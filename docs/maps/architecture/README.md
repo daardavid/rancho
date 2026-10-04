@@ -1,6 +1,16 @@
-# Mapa de arquitectura v0.1
+# Mapa de arquitectura
 
 Explicación interactiva de la arquitectura ya aceptada. No es un alcance de producto y no sustituye los documentos de `docs/architecture`.
+
+## Estado
+
+**ARCHITECTURE MAP v1 — FROZEN BASELINE**
+
+El mapa visualiza la arquitectura lógica y física aceptadas.
+
+No es código de producción. No es una especificación generada para implementar. No promete que cada tecnología todavía abierta se vaya a adoptar. No autoriza, por sí solo, a empezar el MVP.
+
+Un cambio posterior de arquitectura nace de evidencia nueva del rancho, de lo que se aprenda al construir, de un ADR explícito, o de reabrir a propósito esta línea de base.
 
 La pestaña ARCHITECTURE de `apps/domain-map` muestra este mapa. AS-IS y TO-BE siguen siendo las otras dos pestañas. Sus datos no cambian aquí.
 
@@ -37,7 +47,7 @@ La capa de aplicación queda arriba. Los orquestadores llaman la interfaz públi
 
 Salud, reproducción, presencia, tierra, reportes, evidencia, identidad, seguridad, leche y analítica no son módulos. Evidencia, identidad, el núcleo compartido, la persistencia y los adaptadores se dibujan como asuntos transversales.
 
-Los modelos de lectura consultan. No escriben. La ausencia sospechada no es la afirmación de ausencia confirmada ni la salida. La rentabilidad provisional no es el libro de Finanzas.
+Los modelos de lectura consultan. No escriben. Son cinco: `WeeklyRanchSummary`, `AnimalGrowthView`, `ProvisionalProfitabilityView`, `InventoryVarianceView` y `MissingAnimalRiskView`. La última observación es otra proyección de esa misma capa de lectura. No es un sexto modelo de lectura ni un módulo. La ausencia sospechada no es la afirmación de ausencia confirmada ni la salida. La rentabilidad provisional no es el libro de Finanzas.
 
 ## Flujos
 

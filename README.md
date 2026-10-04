@@ -4,7 +4,7 @@ RANCHO is a ranch operations and decision-support project.
 
 ## Current phase
 
-Logical architecture v0.2 is frozen as the Logical Architecture v1 baseline. Physical architecture is frozen as the Physical Architecture v1 baseline for implementation.
+The design phase is closed. The frozen baseline is [docs/checkpoints/design-v1.md](docs/checkpoints/design-v1.md).
 
 The production ranch application is not implemented. This repository holds the discovery notes, the domain map, and the architecture documents. It does not yet include a backend, authentication, or a database.
 
