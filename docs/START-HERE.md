@@ -54,17 +54,17 @@ Never invent ranch truth.
 
 ## Context loading by task
 
-**Product or scope.** Constitution, Uncertainty Protocol, Design Checkpoint v1, and the pain or capability the work claims to serve. Do not reopen architecture or invent domain facts in a scope note.
+**Product or scope.** Constitution, Uncertainty Protocol, Design Checkpoint v1, and the pain or capability the work claims to serve. When judging whether a meaningful idea, workflow, automation, or integration deserves to be pursued now, also use the [Product Scorecard](product/product-scorecard.md), together with current evidence and the current phase. The scorecard supports judgment. It does not override the Constitution, and it does not set priority by arithmetic. Do not reopen architecture or invent domain facts in a scope note. A typo or an equivalent trivial change does not need the scorecard.
 
-**UX.** Constitution, especially the UX constraint, plus the target process and the actor who actually captures or reads. Workers are not assumed to be application users. Unknown must remain expressible.
+**UX.** Constitution, [UX Principles](product/ux-principles.md), Uncertainty Protocol, plus the target process and the actor who actually captures or reads. Workers are not assumed to be application users. Unknown must remain expressible. The UX principles are not required reading for a change that does not affect how someone works.
 
 **Domain.** [docs/domain/](domain/README.md) and [open questions](domain/open-questions.md). Keep `a la parte` and `bulto` in their original terms until their meaning is established. Keep `SINIIGA` as the name of the official ear tag, not as an integration design. Do not close an open question inside a code change.
 
 **Architecture.** [docs/architecture/](architecture/README.md), the relevant ADRs, and the [architecture map](maps/architecture/README.md) as an explanation of the accepted baseline. The map does not replace the architecture documents.
 
-**Code or implementation.** When they exist, the current Increment or PR brief; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification.
+**Code or implementation.** When they exist, the current Increment or PR brief; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. For a meaningful product increment, also use the [Definition of Done](product/definition-of-done.md). Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification. A trivial change does not need every Done section.
 
-**Review.** Check the change against the Constitution, the Uncertainty Protocol, the authoritative source for the question type, and the scope of the current work. Look for invented ranch facts, collapsed uncertainty, duplicated capture, derived data written as truth, and future tools promoted into current requirements.
+**Review.** Check the change against the Constitution, the Uncertainty Protocol, the authoritative source for the question type, and the scope of the current work. A meaningful implementation review should also consider the [Definition of Done](product/definition-of-done.md). Look for invented ranch facts, collapsed uncertainty, duplicated capture, derived data written as truth, and future tools promoted into current requirements. A typo or an equivalent trivial fix does not need the full Definition of Done.
 
 ## Repository knowledge rule
 
