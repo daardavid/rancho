@@ -1,24 +1,43 @@
 # Catálogo de procesos AS-IS
 
-Procesos de la operación actual. Ninguna ficha propone una solución. Las cantidades y los arreglos incompletos se dejan como están.
+Procesos de la operación actual, versión 0.2. Ninguna ficha propone una solución. Las cantidades y los arreglos incompletos se dejan como están.
 
-Estados: `current` (vigente) y `current_informal` (vigente, sin formalizar).
+Estados: `current` (se hace) y `current_informal` (se hace, sin registro).
+
+## Líneas
+
+Secuencia, línea continua con flecha:
+
+- `PROC-PUR-001` → `PROC-TRANS-001` → `PROC-REC-001`
+- `PROC-REP-001` → `PROC-BIRTH-001`
+
+Asociación, línea punteada sin flecha:
+
+- `PROC-BIRTH-001` — `PROC-ID-001`
+- `PROC-INV-001` — `PROC-FEED-001`
+- `PROC-FIN-001` — `PROC-PUR-001`
+- `PROC-FIN-001` — `PROC-FEED-001`
+- `PROC-SALE-001` — `PROC-FIN-001`
+- `PROC-COMM-001` — sección del ciclo del becerro
+
+No hay flecha desde la llegada hacia el pesaje, ni desde alimentación, pesaje o sanidad hacia la venta.
 
 ## Ciclo del becerro / engorda
 
-La engorda no es un proceso aparte. Es la sección donde viven estas actividades.
+La engorda no es un proceso aparte. Compra, transporte y llegada son la única secuencia de entrada. Identificación, alimentación, pesaje, sanidad y pastoreo ocurren durante la engorda, a la par. La venta es la salida comercial.
 
 ### PROC-PUR-001 — Compra de ganado
 
 - Estado: `current`
 - Para qué sirve hoy: entrar animales al rancho para la engorda.
-- Cómo funciona hoy: se compra por kilogramo o, en grupos más grandes, por bulto. En el bulto no necesariamente se pesa cada animal. Qué significa «bulto» en dinero y en peso no está cerrado. El flete lo paga el comprador. Hay cabezas del propietario y cabezas «a la parte»; el arreglo no se redefine aquí.
-- Actores: ACT-OWNER, ACT-SELLER, ACT-PARTNER cuando el animal entra en ese arreglo.
+- Cómo funciona hoy: se compra por kilogramo o, en grupos más grandes, por bulto. En el bulto no necesariamente se pesa cada animal. El significado económico de «bulto» no está cerrado. El flete lo paga el comprador. Parte del hato está «a la parte»; ese arreglo no se reinterpreta aquí.
+- Actores: ACT-OWNER, ACT-SELLER, y ACT-PARTNER cuando el animal entra en ese arreglo.
 - Entradas: animales ofrecidos, precio por kilogramo o por bulto.
 - Salidas: ganado comprado, un costo de compra y de flete. No hay un dictamen de si la compra resultó bien.
 - Fuentes: trato con el vendedor, tickets cuando se guardan.
 - Dolores: PP-FIN-001
 - Preguntas: OQ-TRADE-001, OQ-OWN-004
+- Asociación: con gastos y tickets. No es el paso anterior de la alimentación.
 
 ### PROC-TRANS-001 — Transporte
 
@@ -29,8 +48,9 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Entradas: ganado comprado.
 - Salidas: ganado en el rancho, estresado por el transporte.
 - Fuentes: no hay un registro descrito.
-- Dolores: ninguno ligado. El estrés se anota en la llegada, no como un dolor con ID propio.
+- Dolores: ninguno ligado.
 - Preguntas: ninguna adicional.
+- Secuencia: después de la compra y antes de la llegada.
 
 ### PROC-REC-001 — Llegada y descanso
 
@@ -41,8 +61,9 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Entradas: ganado recién transportado.
 - Salidas: ganado en el rancho. Un peso de llegada solo si en ese caso se tomó; no es un registro descrito.
 - Fuentes: observación de los trabajadores. Sin formato.
-- Dolores: ninguno con ID. La falta de historial de peso está en el pesaje.
+- Dolores: ninguno con ID.
 - Preguntas: OQ-TRADE-001, en la medida en que el peso de compra y el de llegada no están definidos.
+- Aviso: pesar al llegar se considera deseable. La práctica actual todavía requiere validación. No hay flecha hacia el pesaje de becerros.
 
 ### PROC-ID-001 — Identificación
 
@@ -55,18 +76,20 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Fuentes: arete físico cuando está puesto, memoria del trabajador.
 - Dolores: PP-ID-001, PP-DATA-001
 - Preguntas: OQ-OWN-003, OQ-ID-001
+- Asociación: con el parto, sin convertir el reconocimiento en un registro. No es un trámite entre la llegada y el resto de la engorda.
 
 ### PROC-FEED-001 — Alimentación
 
 - Estado: `current`
 - Para qué sirve hoy: mantener y engordar el ganado, además del pasto.
-- Cómo funciona hoy: el ganado pasta en los potreros y recibe dieta preparada. El propietario compra la materia prima y la transporta. Se vacía en un tambo y se mezcla. Los animales comen juntos y pueden competir. No se mide lo que come cada uno. Se mencionaron alrededor de MXN $8 por kilogramo, alrededor de 1.5 kg por animal por día y alrededor de 270 kg de una fórmula que duran alrededor de 15 días. Esas cifras no cierran entre sí. La dieta puede cambiar, y la caja puede cambiar cuál se usa. Las cantidades conocidas de alimentación requieren validación.
+- Cómo funciona hoy: el ganado pasta en los potreros y recibe dieta preparada. El propietario compra la materia prima y la transporta. Se vacía en un tambo y se mezcla. Los animales comen juntos y pueden competir. No se mide lo que come cada uno. Se mencionaron alrededor de MXN $8 por kilogramo, alrededor de 1.5 kg por animal por día y alrededor de 270 kg de una fórmula que duran alrededor de 15 días. Esas cifras no cierran entre sí. La dieta puede cambiar, y la caja puede cambiar cuál se usa.
 - Actores: ACT-OWNER, ACT-WORKER, ACT-FEED
 - Entradas: pasto, materia prima, mano de obra.
 - Salidas: alimento ofrecido al grupo. No hay consumo individual ni remanente comprobado.
 - Fuentes: tickets de compra de materia prima, memoria de lo preparado y de lo repartido.
 - Dolores: PP-FEED-001
 - Preguntas: OQ-FEED-001, OQ-FEED-002, OQ-FEED-003
+- Asociaciones: con la bodega y con los gastos. No precede a la venta.
 
 ### PROC-GROW-001 — Pesaje de becerros
 
@@ -80,7 +103,7 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Dolores: PP-GROW-001, PP-DATA-001
 - Preguntas: OQ-SCALE-001, OQ-OWN-003
 
-### PROC-HEALTH-001 — Salud
+### PROC-HEALTH-001 — Vacunas, medicamentos y baños
 
 - Estado: `current_informal`
 - Para qué sirve hoy: vacunar, medicar, tratar y bañar cuando hace falta.
@@ -95,7 +118,7 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 ### PROC-SALE-001 — Venta de becerros
 
 - Estado: `current`
-- Para qué sirve hoy: vender el producto principal actual.
+- Para qué sirve hoy: vender el producto principal actual. Es la salida comercial de la engorda, no el resultado de completar alimentación, pesaje o sanidad.
 - Cómo funciona hoy: los becerros se venden por kilogramo de peso vivo. Vender por bulto es una posibilidad futura, no el modelo descrito como vigente. No hay un cálculo de margen ni de costo por kilogramo ganado.
 - Actores: ACT-OWNER, ACT-BUYER
 - Entradas: becerros, un peso vivo de la venta cuando así se comercializa.
@@ -103,6 +126,20 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Fuentes: la transacción y los comprobantes, si se guardaron.
 - Dolores: PP-FIN-001
 - Preguntas: OQ-TRADE-001
+- Asociación: con gastos y tickets, por el ingreso que no se junta con el costo.
+
+### PROC-LAND-001 — Pastoreo en potreros
+
+- Estado: `current`
+- Para qué sirve hoy: el ganado vive y pasta en áreas cercadas, durante la engorda.
+- Cómo funciona hoy: pasta libre dentro de potreros grandes. Se identificaron aproximadamente 8 potreros; algunos rondan 20 hectáreas. Esas cifras no describen las aproximadamente 530 hectáreas. No hay seguimiento formal de movimientos ni de ubicación. Existe un mapa del rancho, o puede obtenerse; no está en este repositorio.
+- Actores: ACT-WORKER
+- Entradas: potreros y ganado.
+- Salidas: animales distribuidos en el terreno, sin ubicación registrada.
+- Fuentes: mapa del rancho, conocimiento de los trabajadores.
+- Dolores: PP-SEC-002
+- Preguntas: OQ-LAND-001, OQ-LAND-002, OQ-FIRE-001
+- Las quemas quedan aquí como incertidumbre de terreno, no como seguridad del ganado. No hay un proceso de fuego.
 
 ## Reproducción
 
@@ -110,29 +147,31 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 
 - Estado: `current`
 - Para qué sirve hoy: preñar las hembras.
-- Cómo funciona hoy: monta natural con un solo toro. Por eso la paternidad es hoy relativamente simple. No hay registro genealógico. Las razas no se nombraron. No se afirmó inseminación.
+- Cómo funciona hoy: monta natural con un solo toro. Por eso la paternidad puede conocerse hoy de manera informal. No hay registro genealógico. Las razas no se nombraron. No se afirmó inseminación.
 - Actores: ACT-WORKER en el manejo. El toro no es un usuario.
 - Entradas: hembras y el toro en el rancho.
-- Salidas: gestaciones conocidas de manera informal.
+- Salidas: parentesco informal, sin registro genealógico.
 - Fuentes: conocimiento informal.
 - Dolores: PP-REPRO-001, PP-DATA-001
 - Preguntas: OQ-GEN-001, OQ-REPRO-001
+- Secuencia: antes del parto.
 
 ### PROC-BIRTH-001 — Parto
 
 - Estado: `current_informal`
 - Para qué sirve hoy: nacer el becerro que luego puede entrar a la engorda.
-- Cómo funciona hoy: los partos ocurren y no se registran de forma formal. No existe en este mapa un proceso de «registro de nacimiento». La madre se conoce de manera informal. Cómo se detecta el parto en el campo no está descrito. Un recién nacido puede pasar un tiempo sin arete y sin nombre.
+- Cómo funciona hoy: los partos ocurren y no se registran de forma formal. No existe un proceso de «registro de nacimiento». La madre se conoce de manera informal. Cómo se detecta el parto en el campo no está descrito. Un recién nacido puede pasar un tiempo sin arete y sin nombre.
 - Actores: ACT-WORKER
 - Entradas: hembra próxima al parto. No hay corral de parto documentado como práctica actual.
 - Salidas: un becerro presente, sin ficha.
 - Fuentes: memoria. No hay registro sistemático.
 - Dolores: PP-REPRO-001, PP-ID-001, PP-DATA-001
 - Preguntas: OQ-ID-001, OQ-OWN-003
+- Asociación: con la identificación informal. Esa línea no afirma que el nacimiento quede anotado.
 
-## Inventario / insumos
+## Bodega / insumos
 
-### PROC-INV-001 — Bodega de insumos
+### PROC-INV-001 — Bodega, sin control de existencias
 
 - Estado: `current_informal`
 - Para qué sirve hoy: guardar insumos del rancho.
@@ -140,51 +179,54 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Actores: ACT-OWNER, ACT-WORKER
 - Entradas: compras que el propietario lleva al rancho.
 - Salidas: materiales disponibles para alimentación, sanidad y trabajo. Sin saldo confiable.
-- Fuentes: la bodega misma. Sin kardex descrito.
+- Fuentes: la bodega misma. Sin control de existencias.
 - Dolores: PP-INV-001, PP-FEED-001
 - Preguntas: OQ-FEED-001, OQ-FEED-003
+- Asociación: con la alimentación.
 
 ## Finanzas
 
-### PROC-FIN-001 — Egresos, nómina y comprobantes
+### PROC-FIN-001 — Gastos, nómina y tickets
 
 - Estado: `current_informal`
 - Para qué sirve hoy: pagar la operación y conservar comprobantes.
-- Cómo funciona hoy: hay compras, nómina, combustible y mejoras. Las compras se pagan comúnmente con tarjeta y la nómina comúnmente en efectivo. Se guarda la mayoría de los tickets. El combustible se usa sobre todo en camionetas y tractores; no se describió un control de combustible. No hay una vista que separe gasto operativo e inversión, ni un cálculo de rentabilidad. En «a la parte», el entendimiento verbal es que el ranchero suele pagar los gastos, que los medicamentos a veces se comparten y que las crías se dividen aproximadamente 50/50. Si muere el animal original, la frase queda sin reinterpretar: «si el ganado que se dio se muere, si es de vieja se reemplaza y si es por alguna otra cosa la paga el del rancho con un becerro.»
+- Cómo funciona hoy: hay compras, nómina y mejoras. Las compras se pagan comúnmente con tarjeta y la nómina comúnmente en efectivo. Se guarda la mayoría de los tickets. El combustible aparece en el glosario como ejemplo de gasto operativo; las entrevistas no describen vehículos ni un control de combustible. No hay una vista que separe gasto operativo e inversión, ni un cálculo de rentabilidad. En «a la parte», el entendimiento verbal es que el ranchero suele pagar los gastos, que los medicamentos a veces se comparten y que las crías se dividen aproximadamente 50/50. Si muere el animal original, la frase queda sin reinterpretar: «si el ganado que se dio se muere, si es de vieja se reemplaza y si es por alguna otra cosa la paga el del rancho con un becerro.»
 - Actores: ACT-OWNER, ACT-WORKER, ACT-PARTNER, ACT-FEED
-- Entradas: tickets, pagos, salarios, compras de ganado y de alimento, combustible, mejoras.
+- Entradas: tickets, pagos, salarios, compras de ganado y de alimento, mejoras.
 - Salidas: comprobantes guardados y una caja que se mueve. No un margen.
 - Fuentes: tickets en papel, estados de cuenta no revisados en el descubrimiento, efectivo de la nómina.
 - Dolores: PP-FIN-001, PP-FIN-002
 - Preguntas: OQ-OWN-001, OQ-OWN-002, OQ-FIN-001, OQ-PEOPLE-001
+- Asociaciones: con la compra de ganado, con la alimentación y con la venta. No forman una secuencia de costos.
 
 ## Seguridad
 
-### PROC-SEC-001 — Perímetro y presencia del ganado
+`PROC-SEC-001` ya no cubre el cerco. En v0.1 ese id mezclaba el faltante de ganado con la intrusión.
+
+### PROC-SEC-001 — Ganado que se nota tarde
 
 - Estado: `current_informal`
-- Para qué sirve hoy: el cerco delimita el rancho. No hay un proceso formal de vigilancia.
-- Cómo funciona hoy: el perímetro está cercado, con alrededor de 5 entradas o salidas y aproximadamente 3 caminos en partes del entorno. No hay cámaras. No hay un conteo frecuente. Notar que falta un animal puede tardar varios días o más. En un robo, el cerco puede cortarse, a menudo de noche, y el ganado puede faltar aproximadamente 1 o 2 semanas. A veces puede haber participación interna; no es siempre el caso. Saber que falta un animal y saber que alguien entró son problemas distintos. El software no sustituye el cerco. Las cámaras solo se están considerando.
+- Para qué sirve hoy: no hay un proceso formal de conteo. Describe cómo se nota, tarde, que falta un animal.
+- Cómo funciona hoy: no hay un conteo frecuente y confiable. Notar un faltante puede tardar varios días o más. En un robo, el ganado puede faltar aproximadamente 1 o 2 semanas. A veces puede haber participación interna; no es siempre el caso.
 - Actores: ACT-WORKER, ACT-OWNER
-- Entradas: el cerco y la presencia física del ganado.
-- Salidas: un faltante que se descubre tarde. No una alerta.
+- Entradas: la presencia física del ganado.
+- Salidas: un faltante que se descubre tarde. No un aviso.
 - Fuentes: observación tardía. Sin ronda documentada.
-- Dolores: PP-SEC-001, PP-SEC-002, PP-SEC-003
-- Preguntas: OQ-COUNT-001, OQ-SEC-001, OQ-FIRE-001
+- Dolores: PP-SEC-001, PP-SEC-002
+- Preguntas: OQ-COUNT-001
 
-## Terreno / potreros
+### PROC-SEC-002 — Cerco, sin aviso de entrada
 
-### PROC-LAND-001 — Pastoreo en potreros
-
-- Estado: `current`
-- Para qué sirve hoy: el ganado vive y pasta en áreas cercadas.
-- Cómo funciona hoy: pasta libre dentro de potreros grandes. Se identificaron aproximadamente 8 potreros; algunos rondan 20 hectáreas. Esas cifras no describen las aproximadamente 530 hectáreas. No hay seguimiento formal de movimientos ni de ubicación. Existe un mapa del rancho, o puede obtenerse; no está en este repositorio.
-- Actores: ACT-WORKER
-- Entradas: potreros y ganado.
-- Salidas: animales distribuidos en el terreno, sin ubicación registrada.
-- Fuentes: mapa del rancho, conocimiento de los trabajadores.
-- Dolores: PP-SEC-002
-- Preguntas: OQ-LAND-001, OQ-LAND-002
+- Estado: `current_informal`
+- Para qué sirve hoy: el cerco delimita el rancho. No hay un aviso cuando alguien entra o cuando sacan ganado.
+- Cómo funciona hoy: el perímetro está cercado, con alrededor de 5 entradas o salidas y aproximadamente 3 caminos en partes del entorno. El cerco se puede cortar, a menudo de noche. Cortarlo o sacar ganado no genera un aviso. Saber que alguien entró y saber que falta un animal son problemas distintos.
+- Actores: ACT-WORKER, ACT-OWNER
+- Entradas: el cerco y los accesos.
+- Salidas: una entrada o una salida que no se avisa.
+- Fuentes: el cerco. Sin aviso documentado.
+- Dolores: PP-SEC-003
+- Preguntas: OQ-SEC-001
+- No se dibujan cámaras ni sensores.
 
 ## Información / comunicación
 
@@ -199,6 +241,7 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 - Fuentes: teléfono, WhatsApp, cuadernos, memoria.
 - Dolores: PP-DATA-002, PP-GOV-001, PP-CONN-001
 - Preguntas: OQ-CONN-001
+- Asociación: una sola línea punteada con el ciclo del becerro, para no convertir cada actividad en un paso de la comunicación.
 
 ## Trazabilidad de dolores
 
@@ -214,7 +257,7 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 | PP-INV-001 | PROC-INV-001 |
 | PP-SEC-001 | PROC-SEC-001 |
 | PP-SEC-002 | PROC-SEC-001, PROC-LAND-001 |
-| PP-SEC-003 | PROC-SEC-001 |
+| PP-SEC-003 | PROC-SEC-002 |
 | PP-HEALTH-001 | PROC-HEALTH-001 |
 | PP-REPRO-001 | PROC-REP-001, PROC-BIRTH-001 |
 | PP-MILK-001 | Ninguno. La leche no es operación vigente. |
@@ -224,13 +267,17 @@ La engorda no es un proceso aparte. Es la sección donde viven estas actividades
 ## Relaciones que siguen abiertas
 
 - No se sabe qué parte de las aproximadamente 21 cabezas pasa por el pesaje de becerros.
-- No se sabe si el descanso en la llegada es la regla o solo una posibilidad.
+- No se sabe si el descanso en la llegada es la regla o solo una posibilidad, ni si el peso de llegada se toma.
 - No se sabe si el ganado de terceros en renta ocurre hoy.
 - Compra, alimentación y venta no tienen una secuencia de costos que produzca un margen.
+- Las cifras de alimento no se reconcilian.
+- «A la parte» no se reinterpreta.
+- Ocho potreros no describen las aproximadamente 530 hectáreas.
+- La cobertura celular sigue limitada, poco confiable y pendiente de validación.
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Descubrimiento
 - Última actualización: 2026-10-03
 - Fuente: `docs/domain` v0.1

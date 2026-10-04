@@ -2,7 +2,7 @@
 
 Esta carpeta es la fuente de verdad del contexto del rancho mientras dura el descubrimiento. No es el diseño de la aplicación ni un alcance aprobado.
 
-El mapa AS-IS v0.1, descrito en [../maps/as-is/README.md](../maps/as-is/README.md), dibuja la operación actual a partir de este material. TO-BE y arquitectura siguen sin diseñarse. El mapa no es el diseño de la solución.
+El mapa AS-IS v0.2, descrito en [../maps/as-is/README.md](../maps/as-is/README.md), dibuja la operación actual a partir de este material. TO-BE y arquitectura siguen sin diseñarse. El mapa no es el diseño de la solución.
 
 ## Cómo se clasifica el conocimiento
 

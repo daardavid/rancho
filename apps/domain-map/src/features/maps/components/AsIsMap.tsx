@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react'
 import {
   Background,
   Controls,
-  MarkerType,
   MiniMap,
   ReactFlow,
   useEdgesState,
@@ -11,7 +10,7 @@ import {
   type NodeChange,
   type NodeTypes,
 } from '@xyflow/react'
-import { asIsEdges, asIsNodes, type AsIsFlowNode } from '../../../data/asIsMap.ts'
+import { asIsEdges, asIsNodes, type AsIsEdge, type AsIsFlowNode } from '../../../data/asIsMap.ts'
 import type { MapFilter } from '../../../types/map.ts'
 import { DetailPanel } from './DetailPanel.tsx'
 import { MapFilters } from './MapFilters.tsx'
@@ -41,7 +40,7 @@ export function AsIsMap() {
   )
 
   const handleEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
+    (changes: EdgeChange<AsIsEdge>[]) => {
       onEdgesChange(withoutRemovals(changes))
     },
     [onEdgesChange],
@@ -64,6 +63,7 @@ export function AsIsMap() {
     <div className="as-is">
       <div className="map-column">
         <MapFilters active={filter} onChange={setFilter} />
+        <EdgeLegend />
         <div className="map-canvas">
           <ReactFlow
             nodes={visibleNodes}
@@ -82,8 +82,6 @@ export function AsIsMap() {
             proOptions={{ hideAttribution: false }}
             defaultEdgeOptions={{
               type: 'smoothstep',
-              style: { stroke: '#5c6778' },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#5c6778' },
             }}
           >
             <Background gap={20} color="#e1e5ec" />
@@ -93,6 +91,21 @@ export function AsIsMap() {
         </div>
       </div>
       <DetailPanel node={selectedNode} />
+    </div>
+  )
+}
+
+function EdgeLegend() {
+  return (
+    <div className="edge-legend" aria-label="Significado de las líneas">
+      <span className="edge-legend__item">
+        <span className="edge-legend__swatch is-sequence" />
+        Línea continua: una cosa ocurre después, según las entrevistas
+      </span>
+      <span className="edge-legend__item">
+        <span className="edge-legend__swatch is-association" />
+        Línea punteada: están relacionadas, sin orden ni causa
+      </span>
     </div>
   )
 }

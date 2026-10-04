@@ -13,7 +13,7 @@ export type ProcessCategory =
 
 export type ProcessFilter =
   | 'datos'
-  | 'crecimiento'
+  | 'pesaje'
   | 'alimentacion'
   | 'finanzas'
   | 'inventario'
@@ -44,13 +44,20 @@ export interface ProcessNodeData extends Record<string, unknown> {
   warnings: string[]
   notes: string[]
   filters: ProcessFilter[]
+  /** Short job label for a card that is not a step in a sequence. */
+  roleLabel?: string
 }
 
 export interface SectionNodeData extends Record<string, unknown> {
   title: string
   summary: string
+  canvasNote?: string
+  /** Dashed association may end on this section rather than on every process. */
+  associationTarget?: boolean
   processIds: string[]
 }
+
+export type EdgeRelation = 'sequence' | 'association'
 
 export interface PainPoint {
   id: string
@@ -64,8 +71,8 @@ export interface PainPoint {
 }
 
 export const statusLabels: Record<ProcessStatus, string> = {
-  current: 'Vigente',
-  current_informal: 'Vigente, informal',
+  current: 'Se hace',
+  current_informal: 'Se hace, sin registro',
   historical_inactive: 'Histórico, inactivo',
 }
 
@@ -85,10 +92,10 @@ export const confidenceLabels: Record<Confidence, string> = {
 export const filterLabels: { id: MapFilter; label: string }[] = [
   { id: 'todos', label: 'Todos' },
   { id: 'datos', label: 'Datos' },
-  { id: 'crecimiento', label: 'Crecimiento' },
+  { id: 'pesaje', label: 'Pesaje' },
   { id: 'alimentacion', label: 'Alimentación' },
   { id: 'finanzas', label: 'Finanzas' },
-  { id: 'inventario', label: 'Inventario' },
+  { id: 'inventario', label: 'Bodega' },
   { id: 'seguridad', label: 'Seguridad' },
   { id: 'salud', label: 'Salud' },
   { id: 'reproduccion', label: 'Reproducción' },

@@ -34,9 +34,14 @@ function EmptyDetail() {
       <p className="detail-panel__kicker">AS-IS</p>
       <h2>Operación actual</h2>
       <p>
-        Este mapa muestra lo que el rancho hace hoy, según las entrevistas. No propone soluciones ni incluye la
-        ordeña: la leche es historia y una intención, no una operación vigente.
+        Este mapa muestra lo que el rancho hace hoy, según las entrevistas. No propone soluciones. La leche y la
+        ordeña son historia y una intención, no una operación vigente.
       </p>
+      <h3>Líneas</h3>
+      <ul>
+        <li>Línea continua: una actividad ocurre después de la otra, según las entrevistas.</li>
+        <li>Línea punteada: hay relación, sin afirmar un orden ni una causa.</li>
+      </ul>
       <p>Seleccione un proceso para ver cómo funciona, quién interviene y qué sigue sin saberse.</p>
       <h3>Incertidumbres que el mapa no cierra</h3>
       <ul>
@@ -44,6 +49,7 @@ function EmptyDetail() {
         <li>La cobertura celular es limitada/no confiable; pendiente de validación.</li>
         <li>Ocho potreros no describen las aproximadamente 530 hectáreas.</li>
         <li>El arreglo «a la parte» no se reinterpreta.</li>
+        <li>Pesar al llegar se considera deseable. La práctica actual todavía requiere validación.</li>
       </ul>
       <p className="detail-panel__note">
         El dolor PP-MILK-001 está en el descubrimiento y no cuelga de ningún proceso, para no dibujar la leche como

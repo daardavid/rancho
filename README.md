@@ -19,7 +19,7 @@ The working ranch context is in [docs/domain/README.md](docs/domain/README.md). 
 - `docs/maps` — supporting map notes for as-is, to-be, and architecture views.
 - `docs/architecture` — architecture decisions. Maps are kept as code; see `docs/architecture/adr/ADR-001-domain-maps-as-code.md`.
 
-`apps/domain-map` is not a production system. The five AS-IS nodes (Compra, Entrada, Alimentación, Pesaje, Venta) are temporary scaffolding.
+`apps/domain-map` is not a production system. The current-state map is documented in [docs/maps/as-is/README.md](docs/maps/as-is/README.md) and [docs/maps/as-is/process-catalog.md](docs/maps/as-is/process-catalog.md).
 
 ## Requirements
 

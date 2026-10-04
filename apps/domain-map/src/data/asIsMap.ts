@@ -1,15 +1,19 @@
-import type { Edge, Node } from '@xyflow/react'
+import { MarkerType, type Edge, type Node } from '@xyflow/react'
 import { asIsProcessById } from './asIsProcesses.ts'
-import type { ProcessNodeData, SectionNodeData } from '../types/map.ts'
+import type { EdgeRelation, ProcessNodeData, SectionNodeData } from '../types/map.ts'
 
 export type ProcessFlowNode = Node<ProcessNodeData, 'process'>
 export type SectionFlowNode = Node<SectionNodeData, 'section'>
 export type AsIsFlowNode = ProcessFlowNode | SectionFlowNode
+export type AsIsEdgeData = { relation: EdgeRelation }
+export type AsIsEdge = Edge<AsIsEdgeData>
 
 interface SectionLayout {
   id: string
   title: string
   summary: string
+  canvasNote?: string
+  associationTarget?: boolean
   position: { x: number; y: number }
   width: number
   height: number
@@ -26,98 +30,95 @@ const sections: SectionLayout[] = [
     id: 'GRP-CALF',
     title: 'Ciclo del becerro / engorda',
     summary:
-      'Actividad principal actual: comprar o criar becerros, mantenerlos y venderlos por kilogramo. Alimentación, pesaje y salud ocurren durante la engorda; no son un trámite en fila.',
+      'La compra, el transporte y la llegada van en ese orden. Identificación, alimentación, pesaje, sanidad y potrero ocurren durante la engorda, a la par. La venta es la salida comercial, no el paso que sigue a esas actividades.',
+    canvasNote:
+      'Compra, transporte y llegada van en ese orden. Lo demás ocurre a la par. La venta es la salida comercial.',
+    associationTarget: true,
     position: { x: 24, y: 16 },
-    width: 880,
+    width: 1146,
     height: 500,
     processIds: [
       'PROC-PUR-001',
       'PROC-TRANS-001',
       'PROC-REC-001',
-      'PROC-ID-001',
+      'PROC-SALE-001',
       'PROC-FEED-001',
       'PROC-GROW-001',
       'PROC-HEALTH-001',
-      'PROC-SALE-001',
+      'PROC-LAND-001',
+      'PROC-ID-001',
     ],
   },
   {
     id: 'GRP-REPRO',
     title: 'Reproducción',
     summary:
-      'Monta natural con un solo toro. El parto ocurre y no se registra. El becerro pasa después por la identificación, que tampoco es una ficha.',
-    position: { x: 924, y: 16 },
-    width: 430,
-    height: 200,
+      'Monta natural con un solo toro, y después el parto. El parto no se registra. La línea punteada hacia la identificación no crea una ficha.',
+    canvasNote: 'La monta va antes del parto. El nacimiento no se anota.',
+    position: { x: 1190, y: 50 },
+    width: 242,
+    height: 458,
     processIds: ['PROC-REP-001', 'PROC-BIRTH-001'],
   },
   {
-    id: 'GRP-LAND',
-    title: 'Terreno / potreros',
-    summary:
-      'El ganado pasta libre en potreros cercados. Los potreros identificados no explican toda la propiedad.',
-    position: { x: 924, y: 232 },
-    width: 430,
-    height: 196,
-    processIds: ['PROC-LAND-001'],
-  },
-  {
     id: 'GRP-INV',
-    title: 'Inventario / insumos',
-    summary: 'Hay bodega cerrada. No hay un inventario formal ni una conciliación de existencias.',
-    position: { x: 924, y: 444 },
-    width: 430,
-    height: 196,
+    title: 'Bodega / insumos',
+    summary: 'Hay bodega cerrada. No hay un control formal de existencias ni una conciliación.',
+    position: { x: 24, y: 536 },
+    width: 242,
+    height: 236,
     processIds: ['PROC-INV-001'],
   },
   {
     id: 'GRP-FIN',
     title: 'Finanzas',
     summary:
-      'El dinero se mueve y la mayoría de los tickets se guardan. No hay rentabilidad ni separación entre gasto e inversión.',
-    position: { x: 24, y: 536 },
-    width: 280,
-    height: 210,
+      'El dinero se mueve y la mayoría de los tickets se guardan. No hay rentabilidad ni separación entre gasto e inversión. Las líneas punteadas relacionan ese dinero con la compra, el alimento y la venta.',
+    position: { x: 282, y: 536 },
+    width: 250,
+    height: 236,
     processIds: ['PROC-FIN-001'],
   },
   {
     id: 'GRP-SEC',
     title: 'Seguridad',
     summary:
-      'Hay cerco y no hay cámaras. Un faltante puede descubrirse días o semanas después. Las cámaras no están instaladas.',
-    position: { x: 320, y: 536 },
-    width: 280,
-    height: 210,
-    processIds: ['PROC-SEC-001'],
+      'Notar que falta un animal y saber que alguien entró son problemas distintos. No hay conteo frecuente. El cerco existe y no avisa si lo cortan.',
+    canvasNote: 'Un faltante y una entrada son problemas distintos.',
+    position: { x: 548, y: 536 },
+    width: 242,
+    height: 500,
+    processIds: ['PROC-SEC-001', 'PROC-SEC-002'],
   },
   {
     id: 'GRP-COMM',
     title: 'Información / comunicación',
     summary:
-      'Lo que el propietario sabe llega de los trabajadores por teléfono, WhatsApp, fotos, audios y cuadernos. Ellos no son usuarios de una aplicación.',
-    position: { x: 616, y: 536 },
-    width: 288,
-    height: 210,
+      'Lo que el propietario sabe de la operación llega de los trabajadores por teléfono, WhatsApp, fotos, audios y cuadernos. Ellos no son usuarios de una aplicación. La línea punteada une ese relato con el ciclo del becerro, sin convertirlo en un paso.',
+    position: { x: 806, y: 536 },
+    width: 260,
+    height: 236,
     processIds: ['PROC-COMM-001'],
   },
 ]
 
 const processLayouts: ProcessLayout[] = [
-  { processId: 'PROC-PUR-001', position: { x: 16, y: 48 } },
-  { processId: 'PROC-TRANS-001', position: { x: 228, y: 48 } },
-  { processId: 'PROC-REC-001', position: { x: 440, y: 48 } },
-  { processId: 'PROC-ID-001', position: { x: 652, y: 48 } },
-  { processId: 'PROC-FEED-001', position: { x: 122, y: 200 } },
-  { processId: 'PROC-GROW-001', position: { x: 342, y: 200 } },
-  { processId: 'PROC-HEALTH-001', position: { x: 562, y: 200 } },
-  { processId: 'PROC-SALE-001', position: { x: 342, y: 360 } },
-  { processId: 'PROC-REP-001', position: { x: 16, y: 52 } },
-  { processId: 'PROC-BIRTH-001', position: { x: 214, y: 52 } },
-  { processId: 'PROC-LAND-001', position: { x: 16, y: 56 } },
-  { processId: 'PROC-INV-001', position: { x: 16, y: 56 } },
-  { processId: 'PROC-FIN-001', position: { x: 16, y: 64 } },
-  { processId: 'PROC-SEC-001', position: { x: 16, y: 64 } },
-  { processId: 'PROC-COMM-001', position: { x: 16, y: 64 } },
+  { processId: 'PROC-PUR-001', position: { x: 16, y: 96 } },
+  { processId: 'PROC-TRANS-001', position: { x: 242, y: 96 } },
+  { processId: 'PROC-REC-001', position: { x: 468, y: 96 } },
+  { processId: 'PROC-SALE-001', position: { x: 920, y: 96 } },
+  { processId: 'PROC-FEED-001', position: { x: 16, y: 300 } },
+  { processId: 'PROC-GROW-001', position: { x: 242, y: 300 } },
+  { processId: 'PROC-HEALTH-001', position: { x: 468, y: 300 } },
+  { processId: 'PROC-LAND-001', position: { x: 694, y: 300 } },
+  { processId: 'PROC-ID-001', position: { x: 920, y: 300 } },
+  { processId: 'PROC-REP-001', position: { x: 16, y: 78 } },
+  { processId: 'PROC-BIRTH-001', position: { x: 16, y: 266 } },
+  { processId: 'PROC-INV-001', position: { x: 16, y: 44 } },
+  { processId: 'PROC-FIN-001', position: { x: 16, y: 44 } },
+  { processId: 'PROC-SEC-001', position: { x: 16, y: 104 } },
+  { processId: 'PROC-SEC-002', position: { x: 16, y: 300 } },
+  { processId: 'PROC-COMM-001', position: { x: 16, y: 44 } },
 ]
 
 const parentByProcess = new Map<string, string>()
@@ -133,9 +134,11 @@ function sectionNode(section: SectionLayout): SectionFlowNode {
     data: {
       title: section.title,
       summary: section.summary,
+      canvasNote: section.canvasNote,
+      associationTarget: section.associationTarget,
       processIds: section.processIds,
     },
-    style: { width: section.width, height: section.height },
+    style: { width: section.width, height: section.height, zIndex: 0 },
     selectable: true,
     draggable: true,
     connectable: false,
@@ -152,6 +155,7 @@ function processNode(layout: ProcessLayout): ProcessFlowNode {
     data,
     parentId,
     extent: 'parent',
+    zIndex: 1,
     draggable: true,
     connectable: false,
   }
@@ -162,26 +166,61 @@ export const asIsNodes: AsIsFlowNode[] = [
   ...processLayouts.map(processNode),
 ]
 
-export const asIsEdges: Edge[] = [
-  edge('pur-trans', 'PROC-PUR-001', 'PROC-TRANS-001', 'out', 'in'),
-  edge('trans-rec', 'PROC-TRANS-001', 'PROC-REC-001', 'out', 'in'),
-  edge('rec-id', 'PROC-REC-001', 'PROC-ID-001', 'out', 'in'),
-  edge('id-feed', 'PROC-ID-001', 'PROC-FEED-001', 'bottom', 'top'),
-  edge('id-grow', 'PROC-ID-001', 'PROC-GROW-001', 'bottom', 'top'),
-  edge('id-health', 'PROC-ID-001', 'PROC-HEALTH-001', 'bottom', 'top'),
-  edge('feed-sale', 'PROC-FEED-001', 'PROC-SALE-001', 'bottom', 'top'),
-  edge('grow-sale', 'PROC-GROW-001', 'PROC-SALE-001', 'bottom', 'top'),
-  edge('health-sale', 'PROC-HEALTH-001', 'PROC-SALE-001', 'bottom', 'top'),
-  edge('mate-birth', 'PROC-REP-001', 'PROC-BIRTH-001', 'out', 'in'),
-  edge('birth-id', 'PROC-BIRTH-001', 'PROC-ID-001', 'out-left', 'in-right'),
+const sequenceStyle = { stroke: '#5c6778', strokeWidth: 1.5 }
+const associationStyle = { stroke: '#7b8794', strokeWidth: 1.25, strokeDasharray: '6 5' }
+const sequenceMarker = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#5c6778' }
+
+export const asIsEdges: AsIsEdge[] = [
+  sequence('seq-pur-trans', 'PROC-PUR-001', 'PROC-TRANS-001', 'out', 'in'),
+  sequence('seq-trans-rec', 'PROC-TRANS-001', 'PROC-REC-001', 'out', 'in'),
+  sequence('seq-mate-birth', 'PROC-REP-001', 'PROC-BIRTH-001', 'bottom', 'top'),
+  association('assoc-birth-id', 'PROC-BIRTH-001', 'PROC-ID-001', 'out-left', 'in-right'),
+  association('assoc-inv-feed', 'PROC-INV-001', 'PROC-FEED-001', 'up', 'bottom-in'),
+  association('assoc-fin-pur', 'PROC-PUR-001', 'PROC-FIN-001', 'out-left', 'in'),
+  association('assoc-fin-feed', 'PROC-FEED-001', 'PROC-FIN-001', 'bottom', 'top'),
+  association('assoc-sale-fin', 'PROC-SALE-001', 'PROC-FIN-001', 'out', 'top'),
+  association('assoc-comm-calf', 'PROC-COMM-001', 'GRP-CALF', 'up', 'group-in'),
 ]
 
-function edge(
+function sequence(
   id: string,
   source: string,
   target: string,
   sourceHandle: string,
   targetHandle: string,
-): Edge {
-  return { id, source, target, sourceHandle, targetHandle }
+): AsIsEdge {
+  return {
+    id,
+    source,
+    target,
+    sourceHandle,
+    targetHandle,
+    type: 'smoothstep',
+    className: 'edge-sequence',
+    data: { relation: 'sequence' },
+    style: sequenceStyle,
+    markerEnd: sequenceMarker,
+    zIndex: 2,
+  }
+}
+
+function association(
+  id: string,
+  source: string,
+  target: string,
+  sourceHandle: string,
+  targetHandle: string,
+): AsIsEdge {
+  return {
+    id,
+    source,
+    target,
+    sourceHandle,
+    targetHandle,
+    type: 'smoothstep',
+    className: 'edge-association',
+    data: { relation: 'association' },
+    style: associationStyle,
+    zIndex: 1,
+  }
 }
