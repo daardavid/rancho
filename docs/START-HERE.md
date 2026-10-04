@@ -1,0 +1,120 @@
+# Start here
+
+Universal entry point for humans and AI agents working on RANCHO.
+
+Read this page to choose sources. Do not treat it as a copy of the domain or the architecture.
+
+## Mandatory first reads
+
+For meaningful product, domain, UX, architecture, or implementation work, read:
+
+1. [product/constitution.md](product/constitution.md)
+2. [product/uncertainty-protocol.md](product/uncertainty-protocol.md)
+3. [checkpoints/design-v1.md](checkpoints/design-v1.md)
+
+Then load only the sources that govern the task.
+
+Do not read every project document for every small change. Load context by responsibility.
+
+## Source of truth by question type
+
+Authority depends on the kind of question. There is no single document that outranks every other document for every question.
+
+| Question | Authority |
+| --- | --- |
+| Product purpose and principles | [Product Constitution](product/constitution.md). Accepted Product Decisions, when they exist. |
+| Ranch and domain facts | [docs/domain/](domain/README.md), the [open-question registry](domain/open-questions.md), and accepted domain refinements. |
+| AS-IS and TO-BE | [docs/maps/as-is/](maps/as-is/README.md) and [docs/maps/to-be/](maps/to-be/README.md). |
+| Architecture | [docs/architecture/](architecture/README.md), accepted ADRs, and [docs/maps/architecture/](maps/architecture/README.md). |
+| Current design baseline | [docs/checkpoints/design-v1.md](checkpoints/design-v1.md). |
+| Current work | The future Master Plan, phase, Product Increment, PR brief, or linked issue, when one exists. |
+
+Current-work documents define scope. They do not silently override the Constitution, domain truth, or accepted architecture.
+
+## Conflict rule
+
+If sources appear to conflict:
+
+1. Identify the type of decision.
+2. Use the authoritative source for that type.
+3. Check explicit supersession.
+4. If the conflict is still unresolved, stop and ask.
+
+Do not resolve contradictions by convenience. Do not assume the newest timestamp wins. Do not assume running code defines correct business behavior.
+
+## Unknown rule
+
+Follow [product/uncertainty-protocol.md](product/uncertainty-protocol.md).
+
+Unknown and not blocking: preserve it.
+
+Unknown and blocking: ask.
+
+Never invent ranch truth.
+
+## Context loading by task
+
+**Product or scope.** Constitution, Uncertainty Protocol, Design Checkpoint v1, and the pain or capability the work claims to serve. Do not reopen architecture or invent domain facts in a scope note.
+
+**UX.** Constitution, especially the UX constraint, plus the target process and the actor who actually captures or reads. Workers are not assumed to be application users. Unknown must remain expressible.
+
+**Domain.** [docs/domain/](domain/README.md) and [open questions](domain/open-questions.md). Keep `a la parte` and `bulto` in their original terms until their meaning is established. Keep `SINIIGA` as the name of the official ear tag, not as an integration design. Do not close an open question inside a code change.
+
+**Architecture.** [docs/architecture/](architecture/README.md), the relevant ADRs, and the [architecture map](maps/architecture/README.md) as an explanation of the accepted baseline. The map does not replace the architecture documents.
+
+**Code or implementation.** When they exist, the current Increment or PR brief; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification.
+
+**Review.** Check the change against the Constitution, the Uncertainty Protocol, the authoritative source for the question type, and the scope of the current work. Look for invented ranch facts, collapsed uncertainty, duplicated capture, derived data written as truth, and future tools promoted into current requirements.
+
+## Repository knowledge rule
+
+If an important accepted decision exists only in a ChatGPT conversation, a Cursor conversation, a Work run, a personal note, or a GitHub comment, it is not safely preserved as project knowledge yet.
+
+Once accepted, record it in the correct repository artifact.
+
+GitHub preserves discussion and history. The repository preserves accepted project knowledge.
+
+## Agent behavior
+
+AI agents should distinguish fact from proposal, distinguish current from future, preserve unknowns, surface conflicts, minimize unnecessary scope, protect UX, protect reliable data semantics, respect architecture, and avoid speculative infrastructure.
+
+They may recommend changes. They may not silently redefine the project.
+
+## Before modifying files
+
+For non-trivial work, the agent or developer should be able to answer:
+
+1. What problem is this solving?
+2. Who has the problem?
+3. Why does it matter to RANCHO?
+4. Which sources govern it?
+5. What is out of scope?
+6. Are required facts unknown?
+7. Does it affect accepted architecture?
+8. How will the result be validated?
+
+If required answers are unavailable, apply the [Uncertainty Protocol](product/uncertainty-protocol.md).
+
+## Current project state
+
+RANCHO Design Phase v1 is closed.
+
+Accepted artifacts include AS-IS v1, TO-BE v1, Logical Architecture v1, Physical Architecture v1, and Architecture Map v1.
+
+No production application has been scaffolded as of Design v1. The interactive domain map in `apps/domain-map` is not the ranch application.
+
+Details and commit pins are in [checkpoints/design-v1.md](checkpoints/design-v1.md).
+
+## Fundamental reminder
+
+Do not optimize a local task at the expense of RANCHO's global goal.
+
+Prefer work that improves ranch economic decision-making, reduces user friction, increases trustworthy reusable information, and keeps a proportionate path toward future automation and AI.
+
+And always:
+
+Unknown and not blocking: preserve it.
+
+Unknown and blocking: ask.
+
+Never invent ranch truth.

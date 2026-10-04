@@ -2,6 +2,10 @@
 
 RANCHO is a ranch operations and decision-support project.
 
+## Start here
+
+Read [docs/START-HERE.md](docs/START-HERE.md) before product, domain, architecture, or implementation work.
+
 ## Current phase
 
 The design phase is closed. The frozen baseline is [docs/checkpoints/design-v1.md](docs/checkpoints/design-v1.md).
