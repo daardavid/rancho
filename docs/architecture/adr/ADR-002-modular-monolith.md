@@ -63,12 +63,12 @@ Microservices are not selected. Scalability of a future larger herd is not, by i
 - The team deploys and observes one application.
 - Capture-once flows can be transactional without a saga.
 - The current logical cut is five domain modules: Herd, Growth, Feeding, Inventory, and Finance, with parentage and health as records inside Herd. That list is a consequence of the later boundary refinement. It is not a permanent clause of this decision. Replacing it does not, by itself, reopen the monolith.
-- Module authors need a public application interface and a rule against touching another module's tables. How that rule is enforced in a repository is [AQ-P1-007](../architecture-open-questions.md).
-- Read models can live in the same process and can be computed on read while the data is small. That choice stays open ([AQ-P1-008](../architecture-open-questions.md)).
+- Module authors need a public application interface and a rule against touching another module's tables. The enforcement mechanism is [ADR-012](ADR-012-repository-module-enforcement.md).
+- Read models live in the same process and are computed on read while the data is small ([persistence-strategy.md](../persistence-strategy.md)).
 - Cross-module publication is not required. The decision is [ADR-004](ADR-004-no-cross-module-event-bus-yet.md).
 - A shared database does not mean shared write ownership.
 - The discovery application in `apps/domain-map` is unaffected. It is not a module of this monolith.
-- Database product, schema layout, backend language, and hosting remain undecided. This ADR does not smuggle them in.
+- This ADR does not itself select the database product, schema layout, language, or host. Physical architecture v0.1 records those choices in [ADR-005](ADR-005-backend-runtime.md) through [ADR-012](ADR-012-repository-module-enforcement.md). Those ADRs do not reopen the monolith. The hosting vendor remains unselected.
 
 ## When to revisit
 
@@ -84,8 +84,8 @@ Do not reopen it only because the herd grew, because a diagram would look more m
 
 ## Status of this document
 
-- Version: 0.2 (decision unchanged; consequences revised after the five-module refinement)
+- Version: 0.2 (decision unchanged; consequences point at the later physical ADRs)
 - Status: Accepted
 - Last updated: 2026-10-04
 - Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`, architecture v0.1, and architecture QA
-- Validation: The style decision stands. The module list remains outside this ADR and is maintained in domain-boundaries v0.2
+- Validation: The style decision stands. The module list remains outside this ADR and is maintained in domain-boundaries v0.2. Physical choices do not revise this decision

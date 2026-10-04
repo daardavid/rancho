@@ -1,6 +1,6 @@
 # Integration boundaries
 
-Ports for systems that may one day sit outside the ranch application. No adapter is implemented here. No vendor is selected. A port with no current consumer is still named, so the domain is not later wired straight to a device.
+Ports for systems that may one day sit outside the ranch application. No adapter is implemented here. No vendor is selected for the scale, cameras, messaging, or account import. Authentication and evidence storage have physical decisions in [ADR-010](adr/ADR-010-authentication.md) and [ADR-011](adr/ADR-011-evidence-storage.md). Those decisions still sit behind the ports below. A port with no current consumer is still named, so the domain is not later wired straight to a device.
 
 The rule: an integration may produce a domain fact or offer bytes the domain already decided to store. Domain logic depends on the port's normalized fact, never on a vendor API.
 
@@ -65,7 +65,7 @@ A candidate line is not an expense. Finance becomes the authority only when the 
 
 The domain assumes one application user role in the first stage: the owner. Workers, the vet, the economic partner, and commercial counterparties do not need accounts ([system-context.md](system-context.md)).
 
-Authentication is a port in front of the application, not a ranch module. Sessions and passwords are generic. Which provider, or whether the first deployment even uses an external provider, is [AQ-P1-004](architecture-open-questions.md). Domain aggregates do not import that provider.
+Authentication is a port in front of the application, not a ranch module. Sessions and passwords are generic. Physical architecture v0.1 uses library-based sessions stored in PostgreSQL ([ADR-010](adr/ADR-010-authentication.md)). Domain aggregates do not import that library.
 
 If workers later record facts themselves, they become a second user class at this port. They do not become a bounded context.
 
@@ -73,7 +73,7 @@ If workers later record facts themselves, they become a second user class at thi
 
 Evidence bytes go to a file port: store, retrieve, and discard a blob by an opaque id. The association from blob to business fact lives on the owning record ([cross-cutting-concerns.md](cross-cutting-concerns.md)).
 
-No bucket, disk layout, or vendor is chosen ([AQ-P1-005](architecture-open-questions.md)). The domain does not construct storage URLs.
+Development uses a filesystem adapter. Deployed environments use an S3-compatible object store through the same port. No storage vendor is chosen ([ADR-011](adr/ADR-011-evidence-storage.md)). The domain does not construct storage URLs.
 
 ## Dependency direction
 

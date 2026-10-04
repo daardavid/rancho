@@ -293,7 +293,7 @@ Rejected as a bounded context.
 
 `TGT-GOV-001` reviews identity, tenure gaps, expected place, weights, feed and its quality, known income and expenses, physical counts, and who is still active. It shows gaps. It does not fill them. `TGT-PROFIT-001` is the same kind of reading for money.
 
-The application layer holds read models. Materialized storage versus calculation on read is undecided ([AQ-P1-008](architecture-open-questions.md)). At the current scale the preference is to calculate on read until a demonstrated need says otherwise. That preference is not a persistence decision.
+The application layer holds read models. Physical architecture v0.1 calculates them on read ([persistence-strategy.md](persistence-strategy.md)). A stored projection waits until a query is shown to need one.
 
 | Read model | Reads | Forbidden |
 | --- | --- | --- |

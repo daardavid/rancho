@@ -1,6 +1,6 @@
 # System context
 
-C4-style context for the ranch management system. Boxes are logical. No product is selected for any external box.
+C4-style context for the ranch management system. Boxes are logical. Physical architecture v0.1 chooses library-based sessions and an S3-compatible file port. It does not name a cloud vendor. The dashed boxes below stay adapters.
 
 This context is the future management system. The discovery application in `apps/domain-map` is how the team draws AS-IS and TO-BE maps ([ADR-001](adr/ADR-001-domain-maps-as-code.md)). It is not a container in the diagram below.
 
@@ -103,7 +103,7 @@ The module breakdown is [domain-boundaries.md](domain-boundaries.md). The ports 
 
 The owner is the person who asserts that a fact may enter the system. A worker's message is a source, with source quality, not an authenticated write. Until a later decision says otherwise, there is one class of application user.
 
-Authentication itself is a port. Which provider, if any, is [AQ-P1-004](architecture-open-questions.md). The domain modules do not embed that choice.
+Authentication itself is a port. Physical architecture v0.1 fills that port with library-based sessions ([ADR-010](adr/ADR-010-authentication.md)). The domain modules do not embed that choice.
 
 ## Status
 

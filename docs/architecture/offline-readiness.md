@@ -62,7 +62,7 @@ Offline readiness does not add a module. Every module's commands follow the same
 ## Status
 
 - Version: 0.2
-- Status: Constraints only. Synchronization is not designed
+- Status: Constraints only. Synchronization is not designed. Physical architecture v0.1 maps the constraints to client UUID primary keys, integer versions, and command routes, and does not add a sync queue
 - Last updated: 2026-10-04
 - Source: `CAP-CONN-001`, `CON-NET-001`, `CON-NET-002`, `CON-NET-003`, `OQ-CONN-001`
-- Validation: Unchanged by the five-module refinement. `OQ-CONN-001` remains open
+- Validation: Unchanged in meaning by the five-module refinement and by physical architecture v0.1. `OQ-CONN-001` remains open

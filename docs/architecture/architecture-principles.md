@@ -115,4 +115,4 @@ The principles do not answer `OQ-OWN-001`, `OQ-OWN-002`, `OQ-FEED-002`, `OQ-TRAD
 - Status: Principles for the refined logical architecture. Not an approved scope
 - Last updated: 2026-10-04
 - Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`, architecture QA
-- Validation: Refined with the five-module cut. Ranch-owner validation of the domain remains pending
+- Validation: Refined with the five-module cut. Frozen as part of the Logical Architecture v1 baseline. Physical architecture v0.1 does not revise these principles. Ranch-owner validation of the domain remains pending

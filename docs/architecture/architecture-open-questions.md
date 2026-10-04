@@ -2,7 +2,7 @@
 
 Questions the refined v0.2 architecture leaves open. Domain questions already tracked as `OQ-*` and `DQ-*` are not restated as if architecture could close them. Where a domain question blocks a calculation or an integration, this list points at it and does not answer it.
 
-P0 is empty. The boundary questions that v0.1 left for architecture QA are closed below. P1 needs an implementation decision before a production build and does not change the logical modules. P2 waits on an external choice or on a ranch capability that is not active.
+P0 is empty. The boundary questions that v0.1 left for architecture QA are closed below. Physical architecture v0.1 answers the P1 questions that are technology choices. Those answers do not change the logical modules. Two P1 items remain: the hosting vendor, and whether a feeding group needs an id that is not a paddock. P2 waits on an external choice or on a ranch capability that is not active.
 
 ## P0 — boundary and ownership
 
@@ -18,18 +18,25 @@ The v0.1 questions are closed as follows. Closing them does not close the domain
 | AQ-P0-004 | Last observation is a projection and does not write Herd. Confirmed missing while the animal stays active is `ConfirmedMissingAssertion`. Suspected missing exists only on `MissingAnimalRiskView` |
 | AQ-P0-005 | Provisional profitability remains a read model. It does not invent allocations. The rancher's share stays withheld (`OQ-OWN-001`). Cost per kilogram stays withheld (`OQ-FEED-002`). No analytics context |
 
-## P1 — needed before a production build, not before the logical cut
+## P1 — implementation, not a new logical cut
+
+### Closed by physical architecture v0.1
+
+| ID | Resolution |
+| --- | --- |
+| AQ-P1-001 | Command-oriented REST. [ADR-009](adr/ADR-009-api-style.md) |
+| AQ-P1-002 | TypeScript on Node.js. Fastify is the HTTP adapter, not the module system. [ADR-005](adr/ADR-005-backend-runtime.md) |
+| AQ-P1-003 | One PostgreSQL database and one schema per domain module. [ADR-007](adr/ADR-007-postgresql.md). Drizzle, with the transaction passed into module functions. [ADR-008](adr/ADR-008-data-access.md) |
+| AQ-P1-004 | Library-based sessions in PostgreSQL. [ADR-010](adr/ADR-010-authentication.md) |
+| AQ-P1-005 | Filesystem in development, S3-compatible object storage when deployed. No storage vendor. [ADR-011](adr/ADR-011-evidence-storage.md) |
+| AQ-P1-007 | Module directories inside the API, a public index, and an import test. [ADR-012](adr/ADR-012-repository-module-enforcement.md) |
+| AQ-P1-008 | Query on demand. [persistence-strategy.md](persistence-strategy.md) |
+
+### Still open
 
 | ID | Question | Notes |
 | --- | --- | --- |
-| AQ-P1-001 | What API style do owner-facing commands use? | Not implied by the module cut |
-| AQ-P1-002 | Which language and backend framework? | Out of scope for logical architecture |
-| AQ-P1-003 | Which persistence technology, and how module-owned data is separated inside one database? | One database is allowed. The product is not chosen. No schema is designed here |
-| AQ-P1-004 | How does the owner authenticate? | Port only. See [integrations.md](integrations.md) |
-| AQ-P1-005 | Where do evidence bytes live? | Port only. The business record holds a reference. No vendor |
-| AQ-P1-006 | Where does the single deployable run? | Follows from ADR-002. No cloud is selected |
-| AQ-P1-007 | How are module boundaries enforced in the repo: packages, tests, schema privileges, or review alone? | The monolith will not enforce them by goodwill forever. Orchestrators call public interfaces; the enforcement mechanism is still open |
-| AQ-P1-008 | Are management projections computed on read or maintained as stored projections? | Either can respect ownership. The preference at about 21 head is not to materialize until a need is shown. That preference is not itself a persistence decision |
+| AQ-P1-006 | Which provider and region host the single deployable? | The shape is closed in [deployment-strategy.md](deployment-strategy.md): one Node process, managed PostgreSQL, S3-compatible storage. The vendor is not chosen |
 | AQ-P1-009 | Does a feeding group ever need an id that is not a paddock? | Until it does, a delivery or a location assignment stores a paddock id, an approximate description, a set of animals, or unknown |
 
 ## P2 — later, and blocked by a domain or product choice
@@ -64,8 +71,8 @@ Closing any of these inside a module would falsify the operating model:
 
 ## Status
 
-- Version: 0.2
-- Status: P0 closed. P1 and P2 open. Domain questions untouched
+- Version: 0.2 logical questions, with P1 technology items closed by physical architecture v0.1
+- Status: P0 closed. P1 technology choices closed. AQ-P1-006 vendor and AQ-P1-009 still open. P2 open. Domain questions untouched
 - Last updated: 2026-10-04
-- Source: architecture QA and the v0.1 question list
-- Validation: No technology choice is smuggled into a closed P0
+- Source: architecture QA, the v0.1 question list, and physical architecture v0.1
+- Validation: Closed P1 items point at ADRs. They do not change the five-module cut. No technology choice is smuggled into a closed P0

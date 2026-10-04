@@ -154,7 +154,7 @@ Information: queries of facts, plus calculations (interval, balance, variance, u
 
 A change in a source module can break a view. The repair is the source record or the projection rule. The view is not edited.
 
-A read model may query on demand or keep a stored projection. That choice is [AQ-P1-008](architecture-open-questions.md). The preference at this scale is to avoid materializing until a need is shown. If a projection is stored, its data belongs to the read-model layer.
+Read models query on demand ([persistence-strategy.md](persistence-strategy.md)). A stored projection waits until a need is shown. If a projection is stored, its data belongs to the read-model layer.
 
 The alert policy reads Herd assertions and severe health notes. It emits a notice. It does not write back. Suspected missing on `MissingAnimalRiskView` is not the notice.
 

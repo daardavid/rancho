@@ -17,7 +17,7 @@ The business fact owns the evidence reference. Logical association, stored with 
 - when it was attached
 - source quality of the fact, which remains on the fact, not on the file alone
 
-Technical file storage owns the bytes and the technical file metadata. That split is the file port in [integrations.md](integrations.md). No storage product is selected. The file port does not know what a kilogram or a peso means. Losing the ability to interpret a photo must not create a second numeric authority inside the file metadata. The weight, the amount, and the money stay on the owning record. The file is the backing.
+Technical file storage owns the bytes and the technical file metadata. That split is the file port in [integrations.md](integrations.md). Physical architecture v0.1 uses a filesystem adapter in development and an S3-compatible store when deployed ([ADR-011](adr/ADR-011-evidence-storage.md)). No storage vendor is selected. The file port does not know what a kilogram or a peso means. Losing the ability to interpret a photo must not create a second numeric authority inside the file metadata. The weight, the amount, and the money stay on the owning record. The file is the backing.
 
 A photo does not upgrade declared data to measured. A photo of a scale display can support an observed weight. It does not, by itself, promote a spoken number into a measured one. A picture that does not show the quantity does not change the quantity's quality. The same rule the TO-BE model states for feed applies to every fact.
 
