@@ -80,6 +80,23 @@ AI agents should distinguish fact from proposal, distinguish current from future
 
 They may recommend changes. They may not silently redefine the project.
 
+## AI-assisted work
+
+For a meaningful task done with Cursor, ChatGPT, ChatGPT Work, or another agent, read [ai/context-guide.md](ai/context-guide.md) after this page. The guide says how to load context and how to behave. It does not replace the sources above.
+
+In Cursor, behavior is also constrained by `.cursor/rules/`.
+
+Reusable prompt playbooks:
+
+- [prompts/implement-pr.md](prompts/implement-pr.md)
+- [prompts/review-pr.md](prompts/review-pr.md)
+- [prompts/ux-review.md](prompts/ux-review.md)
+- [prompts/domain-review.md](prompts/domain-review.md)
+
+Open the playbook that matches the task. Do not read every prompt file by default.
+
+A trivial human-only edit does not require the AI context guide.
+
 ## Before modifying files
 
 For non-trivial work, the agent or developer should be able to answer:

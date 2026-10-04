@@ -1,0 +1,18 @@
+---
+description: Always-on uncertainty rule. Preserve a non-blocking unknown and ask when the unknown blocks the task.
+alwaysApply: true
+---
+
+# Uncertainty
+
+Follow [docs/product/uncertainty-protocol.md](../../docs/product/uncertainty-protocol.md). Do not restate that protocol here.
+
+```
+UNKNOWN + NOT BLOCKING → preserve unknown and continue
+UNKNOWN + BLOCKING     → stop and ask
+NEVER                  → invent ranch truth
+```
+
+A reversible internal technical assumption is acceptable only under the conditions defined in that protocol.
+
+Do not guess business, domain, UX, financial, or security ambiguity.

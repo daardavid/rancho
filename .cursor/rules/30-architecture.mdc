@@ -1,0 +1,17 @@
+---
+description: Use when work affects module boundaries, persistence, APIs, cross-module writes, or an accepted ADR.
+alwaysApply: false
+---
+
+# Architecture
+
+Before architecture-affecting work, read [docs/architecture/README.md](../../docs/architecture/README.md) and the relevant accepted ADR linked from that index. Treat that baseline as accepted. This rule does not restate the ADR catalog or approve product scope.
+
+- Do not silently bypass a module boundary.
+- Do not introduce microservices, a cross-module event bus, or Event Sourcing unless an accepted ADR changes that decision.
+- An accepted cross-module atomic workflow belongs to an application orchestrator, not to one module writing another module's data.
+- Read models stay read-only. They do not write domain truth.
+- Domain code stays independent of Fastify, Drizzle, the authentication library, and the UI.
+- A future adapter may remain possible. Do not prebuild the integration. Offline-ready commands are not an offline sync implementation.
+
+If the requested design conflicts with an accepted ADR, stop and report the conflict before implementing it. Name the ADR and the smallest decision required. Do not weaken the ADR inside the change.

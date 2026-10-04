@@ -1,0 +1,21 @@
+---
+description: Use when editing files, installing dependencies, running checks, committing, or setting the scope of a repository change.
+alwaysApply: false
+---
+
+# Development workflow
+
+Understand the task before editing. Identify the allowed scope. No production application exists yet. Do not create `apps/api`, `apps/web`, a schema, or a migration unless the task explicitly approves that work.
+
+- Do not modify unrelated files.
+- Do not install a dependency without justification that the task approved.
+- Do not refactor opportunistically. Preserve existing behavior unless the change is intentional.
+- Prefer a small reviewable change. Do not combine unrelated logical changes in one task.
+- Run the validation that the touched files require. For the domain map, that is `npm run lint:map` and `npm run build:map` when those files change.
+- Report the checks that were actually run. Never claim that tests passed if they were not run.
+- Do not commit when the task is review-only. Do not push unless the user explicitly asks.
+- Leave an out-of-scope opportunity as a finding. Do not implement it in the same change.
+
+A review does not edit files unless the user explicitly asks for the edit.
+
+This rule does not set framework coding standards, a coverage percentage, or a branch strategy.

@@ -1,0 +1,25 @@
+---
+description: Always-on RANCHO bootstrap. Read Start Here, respect accepted governance, and do not invent ranch truth.
+alwaysApply: true
+---
+
+# RANCHO core
+
+Before meaningful RANCHO work:
+
+1. Read [docs/START-HERE.md](../../docs/START-HERE.md).
+2. Load only the authoritative context for this task. How to choose it is in [docs/ai/context-guide.md](../../docs/ai/context-guide.md).
+3. Respect [docs/product/constitution.md](../../docs/product/constitution.md).
+4. Respect the accepted domain and architecture sources named in Start Here.
+5. Keep changes within the approved scope.
+6. Do not promote a future possibility into a current requirement.
+7. Do not silently redefine a ranch fact or product policy.
+8. An important accepted decision must be recorded in the repository.
+9. If a conflict exists, surface it before proceeding.
+10. Apply [docs/product/uncertainty-protocol.md](../../docs/product/uncertainty-protocol.md).
+
+Hold these together: profitability and sustainable ranch value; realistic UX and adoption; reliable reusable data and responsible evolution.
+
+A review stays read-only unless the user explicitly asks for edits. Humans retain the authority defined in the Constitution.
+
+This rule does not replace those documents. No production application is scaffolded. Do not assume `apps/api` or `apps/web` exists.

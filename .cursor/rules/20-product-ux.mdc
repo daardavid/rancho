@@ -1,0 +1,21 @@
+---
+description: Use when designing or changing user-facing behavior, workflows, copy, dashboards, or product priority.
+alwaysApply: false
+---
+
+# Product and UX
+
+When the work changes what a person sees or does, follow the [Product Constitution](../../docs/product/constitution.md) and the [UX Principles](../../docs/product/ux-principles.md). Use the [Product Scorecard](../../docs/product/product-scorecard.md) when judging whether meaningful work should be pursued now. Use the [Definition of Done](../../docs/product/definition-of-done.md) for a meaningful increment. Do not copy those documents here.
+
+- Optimize for the ranch task, not for CRUD on internal entities.
+- Recurring friction is a real cost. Do not ask for information the system already knows.
+- A valid unknown must remain representable. Do not force false certainty to satisfy a form.
+- When the ranch work is a session or a group, the UX should generally stay in that session. Do not prebuild batch flows the ranch does not need.
+- Use progressive disclosure. Keep audit and provenance off the primary task until needed.
+- Use ranch language. Do not put aggregates, projections, or repositories on the primary screen.
+- Design for a phone and for interruption when the task can happen that way. That does not require a worker app or offline sync.
+- Correction of an ordinary mistake must be practical. History stays underneath.
+- A dashboard must help a decision. Do not decorate, and do not invent a recommendation to look intelligent.
+- Do not collect data only because AI might use it someday.
+
+Do not impose a click count, a color, or a component library. Workers are not assumed to be application users. Profitability visibility is a management reading, not fiscal accounting truth.

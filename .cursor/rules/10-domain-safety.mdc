@@ -1,0 +1,23 @@
+---
+description: Use when ranch facts, animal or feed meaning, tenure, source quality, parentage, or open domain questions are involved.
+alwaysApply: false
+---
+
+# Domain safety
+
+Protect accepted ranch semantics. Do not create new ranch rules in this file.
+
+Read the relevant documents under [docs/domain/](../../docs/domain/README.md) and the [open-question registry](../../docs/domain/open-questions.md). Follow [docs/product/uncertainty-protocol.md](../../docs/product/uncertainty-protocol.md). Current ranch facts live in the domain documents. The desired model in [docs/maps/to-be/](../../docs/maps/to-be/README.md) is not current practice and is not approved product scope. Do not replace those sources with generic livestock practice.
+
+- Never replace a ranch fact with a generic livestock assumption.
+- Unknown remains a valid state.
+- Keep declared, observed, measured, and inferred distinct. Evidence does not upgrade source quality by itself.
+- An inference is not a confirmation. One known bull does not confirm paternity.
+- A correction of a mistaken value is not the same thing as a later real-world event.
+- One fact has one authoritative owner. Derived information does not write that fact.
+- Leave a domain question open until it is explicitly resolved and recorded.
+- A future hardware capability is not current domain behavior.
+
+Keep `a la parte` and `bulto` in their original terms. Neither is a settled settlement rule or a price per head. `SINIIGA` names the official ear tag. It is not an integration design.
+
+If the task needs a missing ranch fact, stop and ask. Do not invent it.
