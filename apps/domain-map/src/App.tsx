@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TopNav } from './components/layout/TopNav.tsx'
 import { AsIsMap } from './features/maps/components/AsIsMap.tsx'
-import { PlaceholderView } from './features/maps/components/PlaceholderView.tsx'
+import { ArchitectureMap } from './features/maps/components/ArchitectureMap.tsx'
 import { ToBeMap } from './features/maps/components/ToBeMap.tsx'
 import type { MapView } from './types/map.ts'
 
@@ -17,10 +17,7 @@ function App() {
         ) : activeView === 'to-be' ? (
           <ToBeMap />
         ) : (
-          <PlaceholderView
-            title="ARCHITECTURE"
-            message="This view is reserved for software architecture mapping. No architecture has been designed yet."
-          />
+          <ArchitectureMap />
         )}
       </main>
     </div>
