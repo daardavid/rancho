@@ -1,6 +1,6 @@
 # Implement an approved change
 
-This playbook is a Builder prompt. It is not a source of truth.
+This playbook is a Builder prompt. It is not a source of truth. The Master Plan gives direction. When the current-work artifact is a Product Increment, that increment is the product scope. This prompt does not override the increment or other governance.
 
 No production application is scaffolded. Do not assume GitHub is configured. Do not assume `apps/api` or `apps/web` exists.
 
@@ -14,7 +14,7 @@ CURRENT WORK:
 3. Load only the domain, UX, and architecture context that this scope requires. Use [../ai/context-guide.md](../ai/context-guide.md) to choose it.
 4. Summarize the understood scope before changing files: the problem, the primary user, what is in scope, and what is out of scope.
 5. List blocking unknowns.
-6. If a required fact is unknown, or the request conflicts with the Constitution, domain truth, an accepted ADR, or the supplied scope, stop and ask. Do not implement past that point.
+6. If a required fact is unknown, or the request conflicts with the Constitution, domain truth, an accepted Product Decision, an accepted ADR, or the supplied scope, stop and ask. Do not implement past that point.
 
 ## While editing
 

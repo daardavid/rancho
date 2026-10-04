@@ -22,12 +22,14 @@ Authority depends on the kind of question. There is no single document that outr
 
 | Question | Authority |
 | --- | --- |
-| Product purpose and principles | [Product Constitution](product/constitution.md). Accepted Product Decisions, when they exist. |
+| Product purpose and principles | [Product Constitution](product/constitution.md). An accepted [Product Decision](product/decisions/README.md), once one exists. |
 | Ranch and domain facts | [docs/domain/](domain/README.md), the [open-question registry](domain/open-questions.md), and accepted domain refinements. |
 | AS-IS and TO-BE | [docs/maps/as-is/](maps/as-is/README.md) and [docs/maps/to-be/](maps/to-be/README.md). |
 | Architecture | [docs/architecture/](architecture/README.md), accepted ADRs, and [docs/maps/architecture/](maps/architecture/README.md). |
 | Current design baseline | [docs/checkpoints/design-v1.md](checkpoints/design-v1.md). |
-| Current work | The future Master Plan, phase, Product Increment, PR brief, or linked issue, when one exists. |
+| Current work | Direction and phase: [Master Plan](product/master-plan.md). Accepted product policy: [Product Decisions](product/decisions/README.md). Current product scope: the Product Increment, when one exists. A PR brief or linked issue may define the repository change. |
+
+The Master Plan provides direction. An Increment, when one exists, provides the current product scope. A prompt provides instructions. A prompt does not override the Increment, the Master Plan, or other governance.
 
 Current-work documents define scope. They do not silently override the Constitution, domain truth, or accepted architecture.
 
@@ -54,7 +56,7 @@ Never invent ranch truth.
 
 ## Context loading by task
 
-**Product or scope.** Constitution, Uncertainty Protocol, Design Checkpoint v1, and the pain or capability the work claims to serve. When judging whether a meaningful idea, workflow, automation, or integration deserves to be pursued now, also use the [Product Scorecard](product/product-scorecard.md), together with current evidence and the current phase. The scorecard supports judgment. It does not override the Constitution, and it does not set priority by arithmetic. Do not reopen architecture or invent domain facts in a scope note. A typo or an equivalent trivial change does not need the scorecard.
+**Product or scope.** Constitution, Uncertainty Protocol, Design Checkpoint v1, the [Master Plan](product/master-plan.md), and the pain or capability the work claims to serve. Read an accepted Product Decision when the task depends on one. When judging whether a meaningful idea, workflow, automation, or integration deserves to be pursued now, also use the [Product Scorecard](product/product-scorecard.md), together with current evidence and the current phase. The [Opportunity Backlog](product/opportunity-backlog.md) is for evaluating a future idea, not for every task. The scorecard supports judgment. It does not override the Constitution, and it does not set priority by arithmetic. Do not reopen architecture or invent domain facts in a scope note. A typo or an equivalent trivial change does not need the scorecard, the Master Plan, or the Opportunity Backlog.
 
 **UX.** Constitution, [UX Principles](product/ux-principles.md), Uncertainty Protocol, plus the target process and the actor who actually captures or reads. Workers are not assumed to be application users. Unknown must remain expressible. The UX principles are not required reading for a change that does not affect how someone works.
 
@@ -62,7 +64,7 @@ Never invent ranch truth.
 
 **Architecture.** [docs/architecture/](architecture/README.md), the relevant ADRs, and the [architecture map](maps/architecture/README.md) as an explanation of the accepted baseline. The map does not replace the architecture documents.
 
-**Code or implementation.** When they exist, the current Increment or PR brief; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. For a meaningful product increment, also use the [Definition of Done](product/definition-of-done.md). Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification. A trivial change does not need every Done section.
+**Code or implementation.** When one exists, the current [Product Increment](product/increments/README.md) is the product scope. Also read its PR brief when the change is one PR of that increment; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. For a meaningful product increment, also use the [Definition of Done](product/definition-of-done.md). Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification. A trivial change does not need every Done section.
 
 **Review.** Check the change against the Constitution, the Uncertainty Protocol, the authoritative source for the question type, and the scope of the current work. A meaningful implementation review should also consider the [Definition of Done](product/definition-of-done.md). Look for invented ranch facts, collapsed uncertainty, duplicated capture, derived data written as truth, and future tools promoted into current requirements. A typo or an equivalent trivial fix does not need the full Definition of Done.
 
@@ -119,6 +121,8 @@ RANCHO Design Phase v1 is closed.
 Accepted artifacts include AS-IS v1, TO-BE v1, Logical Architecture v1, Physical Architecture v1, and Architecture Map v1.
 
 No production application has been scaffolded as of Design v1. The interactive domain map in `apps/domain-map` is not the ranch application.
+
+Direction and the current phase are in the [Master Plan](product/master-plan.md).
 
 Details and commit pins are in [checkpoints/design-v1.md](checkpoints/design-v1.md).
 

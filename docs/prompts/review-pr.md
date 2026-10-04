@@ -1,6 +1,6 @@
 # Review a change
 
-This playbook is a Reviewer prompt. It is not a source of truth.
+This playbook is a Reviewer prompt. It is not a source of truth. The Master Plan gives direction. When the current-work artifact is a Product Increment, that increment is the product scope. This prompt does not override the increment or other governance.
 
 Default behavior: read-only. Do not modify files unless the user explicitly asks for edits in a later step.
 
@@ -16,6 +16,7 @@ CURRENT WORK:
    - [UX Principles](../product/ux-principles.md), when the change is user-facing
    - the relevant domain documents
    - [Uncertainty Protocol](../product/uncertainty-protocol.md)
+   - an accepted Product Decision, when the change depends on one
    - the relevant ADRs
    - [Definition of Done](../product/definition-of-done.md)
    - any explicit out-of-scope statement in the current work

@@ -32,7 +32,9 @@ A typical future implementation task should load:
 
 - [Product Constitution](../product/constitution.md)
 - [Uncertainty Protocol](../product/uncertainty-protocol.md)
-- the current Increment or PR brief, when one is supplied
+- the [Master Plan](../product/master-plan.md), when the task depends on direction or the current phase
+- the current [Product Increment](../product/increments/README.md), when one is supplied; that file is the product scope
+- the PR brief, when the change is one reviewable part of that increment
 - the relevant domain documents
 - the relevant ADRs
 - [UX Principles](../product/ux-principles.md), when the work is user-facing
@@ -59,6 +61,8 @@ Keep these categories distinct. Do not present one as another.
 | Future possibility | Not current scope. |
 | Derived information | Calculated or projected from authoritative facts. It does not write those facts. |
 | AI inference or recommendation | Not an authoritative ranch fact. |
+
+An accepted [Product Decision](../product/decisions/README.md) is product policy. It is not a proposal and not a ranch fact. An entry in the [Opportunity Backlog](../product/opportunity-backlog.md) is a future possibility. It is not a requirement and not permission to implement. A prompt is an execution instruction, not project truth. Do not read the whole Opportunity Backlog unless the task is about a future idea.
 
 ## 5. Uncertainty
 
@@ -94,11 +98,13 @@ When a discussion resolves an important ambiguity, classify it and record it in 
 
 - domain documents, for a ranch fact or business rule
 - an ADR, for an architecture decision
-- the Increment or PR brief, when the answer is only for that work
+- a [Product Decision](../product/decisions/README.md), for accepted product policy
+- the [Master Plan](../product/master-plan.md), when accepted direction or phase changes
+- the [Opportunity Backlog](../product/opportunity-backlog.md), for a non-committed future idea
+- the Increment, when the answer is only for that increment
 - a governance file, when the change is governance
-- a Product Decision, when that record type exists
 
-This guide does not create Product Decision files. An important accepted decision must not remain only in chat.
+Only an accepted Product Decision governs. Do not create one unless a real product choice is being recorded. An important accepted decision must not remain only in chat.
 
 ## 9. Builder and reviewer modes
 

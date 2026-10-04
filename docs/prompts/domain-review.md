@@ -1,6 +1,6 @@
 # Review domain meaning
 
-This playbook is a Reviewer prompt. It is not a source of truth.
+This playbook is a Reviewer prompt. It is not a source of truth. The Master Plan gives direction. When the current-work artifact is a Product Increment, that increment is the product scope. This prompt does not override the increment or other governance.
 
 Default behavior: read-only. Do not modify files unless the user explicitly asks for edits.
 
