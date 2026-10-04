@@ -4,9 +4,11 @@ Qué necesita poder hacer el rancho. Una capacidad no es un proceso, no es una o
 
 Los puntos de dolor conservan el ID de [../../domain/pain-points.md](../../domain/pain-points.md). No se crean dolores nuevos.
 
-`CAP-COMM-001` se añade porque la comunicación a distancia, la calidad del dato y la cadencia de gestión son resultados distintos. `CAP-FEED-002` se añade porque relacionar estrategia, crecimiento y costo no es lo mismo que comprobar cantidades. `CAP-MILK-001` existe solo como futura y condicional.
+`CAP-COMM-001`, `CAP-DATA-002` y `CAP-CONN-001` son transversales: calidad del dato, canal y tolerancia a la señal. Acompañan a los eventos. No son operaciones del rancho al mismo nivel que el pesaje o la venta, y un mapa futuro no tiene que dibujarlas como nodos hermanos. `CAP-FEED-002` permanece y está bloqueada como capacidad analítica futura. `CAP-MILK-001` sigue siendo futura y condicional.
 
-Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cumplir sigue abierta donde hay una pregunta sin cerrar.
+En v0.2 se añaden `CAP-OWN-001`, `CAP-LIFE-001` y `CAP-LAND-001`.
+
+Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cumplir sigue abierta donde hay una pregunta sin cerrar. Desconocido es un estado válido.
 
 ## Identidad
 
@@ -21,6 +23,20 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - El SINIIGA sigue siendo útil y no es la única forma de nombrar al animal.
 - Restricciones conocidas: `CON-ID-001`, `BR-ID-001`, `BR-ID-002`, `BR-ID-003`. No se elige tecnología de arete.
 - Preguntas abiertas: `OQ-OWN-003`, `OQ-ID-001`. La disposición a mejorar la identificación no fija el método.
+
+### CAP-OWN-001 — Decir cómo se tiene un animal sin cerrar el contrato
+
+- Para qué hace falta: parte del hato es del propietario y parte está «a la parte». Puede haber ganado de terceros. Propiedad y participación no son el mismo dato, y el arreglo verbal no alcanza para calcular la parte del ranchero.
+- Dolores: `PP-FIN-001`, `PP-DATA-001`
+- Resultado de negocio deseado: de cada animal gestionado se puede decir la tenencia, y por separado qué se sabe de la participación económica del rancho. Las dos pueden quedar desconocidas.
+- Indicadores de éxito:
+  - La tenencia es del rancho, «a la parte», de un tercero, o desconocida.
+  - La participación económica es conocida, conocida en parte, o desconocida.
+  - El relato verbal puede quedar como nota. No se convierte en una regla de mitades.
+  - Mientras `OQ-OWN-001` siga abierta, la parte final del ranchero no se calcula.
+  - El ganado de un tercero puede constar sin ficha individual si el rancho no lo maneja cabeza por cabeza. El uso de la tierra queda en `CAP-LAND-001` cuando haga falta.
+- Restricciones conocidas: `BR-OWN-001`, `BR-OWN-002`, `BR-OWN-003`, `BR-PART-001`.
+- Preguntas abiertas: `OQ-OWN-001`, `OQ-OWN-002`, `OQ-OWN-004`. Esta capacidad no las responde.
 
 ## Historial y evidencia
 
@@ -46,7 +62,9 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - Una foto, un audio o un ticket quedan ligados al evento que respaldan, cuando se usaron.
   - Un cálculo posterior puede mostrar que descansa en datos declarados, observados o incompletos.
 - Restricciones conocidas: `BR-EVID-001` es principio deseado, no control actual. `CON-DEV-001` dice que hay teléfonos Android; no dice que la primera captura ocurra en ellos.
-- Preguntas abiertas: ninguna pregunta de descubrimiento se cierra al distinguir las dos clases de dato. La cobertura celular sigue en `OQ-CONN-001`.
+- Preguntas abiertas: ninguna pregunta de descubrimiento se cierra al distinguir las clases de dato. La cobertura celular sigue en `OQ-CONN-001`.
+- Papel en el mapa: transversal. La calidad acompaña a un peso, una cantidad o un gasto. No es un proceso de rancho aparte.
+- Calidades de negocio usadas también en el alimento: declarado, observado, medido.
 
 ## Crecimiento
 
@@ -65,44 +83,53 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
 
 ## Alimentación
 
-### CAP-FEED-001 — Conocer y comprobar el alimento comprado, preparado y entregado
+### CAP-FEED-001 — Conocer el alimento comprado, preparado, declarado, medido y remanente
 
-- Para qué hace falta: el propietario no puede comprobar con fiabilidad cuánto se compró, cuánto se preparó, cuánto se entregó ni cuánto quedó. El ejemplo de riesgo es una entrega menor que la meta, con la diferencia fuera del comedero. Eso es un riesgo de merma, no una acusación.
+- Para qué hace falta: el propietario no puede saber con fiabilidad cuánto se compró, cuánto se preparó, cuánto se dijo que se entregó, cuánto se midió al entregar ni cuánto quedó. El ejemplo de riesgo es una entrega menor que la meta. Eso es un riesgo de merma, no una acusación.
 - Dolores: `PP-FEED-001`
-- Resultado de negocio deseado: de un periodo se puede decir qué materia prima entró, qué mezcla se preparó, qué cantidad se ofreció a un grupo aproximado, y qué diferencia hay contra lo que debería quedar.
+- Resultado de negocio deseado: cada cantidad lleva dicho de qué cantidad se trata y de qué calidad es. Una declaración no se presenta como entrega verificada.
+- Cantidades, y qué son:
+  - Comprada: lo que entró, a menudo con ticket.
+  - Preparada: lo que se mezcló en un lote o tambo.
+  - Entregada declarada: lo que alguien afirma que se ofreció al grupo.
+  - Entregada medida: lo que se pesó o se midió al ofrecerla. Hoy no está en el paquete de ahora.
+  - Remanente físico: lo que se contó en la bodega.
+- Calidad de cada cantidad, a nivel de negocio: declarado, observado o medido. Una foto que no muestra un peso no convierte un dicho en medición.
 - Indicadores de éxito:
-  - Hay registro de compras de materia prima, de preparaciones y de entregas al grupo.
-  - Se puede contrastar cantidad comprada, preparada, entregada y remanente cuando ese remanente se contó.
+  - Se puede decir cuál de esas cinco cantidades existe y cuál falta.
+  - La compra puede registrarse sin afirmar que la entrega quedó comprobada.
   - El consumo individual no se presenta como medido.
-  - Las cifras históricas de alrededor de MXN $8/kg, alrededor de 1.5 kg por animal por día y alrededor de 270 kg que duran alrededor de 15 días siguen sin cuadrarse entre sí.
+  - Las cifras de alrededor de MXN $8/kg, alrededor de 1.5 kg por animal por día y alrededor de 270 kg en alrededor de 15 días siguen sin cuadrarse.
 - Restricciones conocidas: `BR-FEED-001`, `BR-FEED-002`, `CON-FEED-001`. Los animales comen juntos y compiten.
-- Preguntas abiertas: `OQ-FEED-001`, `OQ-FEED-002`, `OQ-FEED-003`. Ninguna opción de este diseño elige el supuesto que haría cuadrar esas cifras.
+- Preguntas abiertas: `OQ-FEED-001`, `OQ-FEED-002`, `OQ-FEED-003`. Ninguna opción elige el supuesto que haría cuadrar esas cifras. Con el paquete de ahora, este dolor mejora la visibilidad y no queda controlado.
 
 ### CAP-FEED-002 — Relacionar la estrategia de alimento con el crecimiento y el costo
 
-- Para qué hace falta: saber si una dieta conviene depende de lo que costó y de cómo crecieron los animales. Hoy no hay base para esa comparación.
+- Estado: bloqueada / capacidad analítica futura. No está activa ni lograda.
+- Para qué hace falta: saber si una dieta conviene depende de cantidad, grupo, tiempo y crecimiento. Hoy esas piezas no se pueden unir con fiabilidad.
 - Dolores: `PP-FEED-001`, `PP-FIN-001`
-- Resultado de negocio deseado: cuando existan cantidades, costos y pesos que el rancho reconozca, se puede comparar estrategias de alimentación. Mientras esos insumos no existan, la comparación no se presenta como hecha.
-- Indicadores de éxito:
-  - Dos periodos con dieta distinta se pueden poner lado a lado en costo de alimento y ganancia de los becerros pesados.
-  - Si falta el costo, el peso o la cantidad, la comparación se ve incompleta.
-- Restricciones conocidas: las mismas de `CAP-FEED-001` y `CAP-GROW-001`. No es un requisito de dosificación individual.
-- Preguntas abiertas: `OQ-FEED-002`, `OQ-FEED-003`, `OQ-FIN-001`. Esta capacidad no está en condiciones de cumplirse con las cifras actuales.
+- Resultado de negocio deseado, solo cuando deje de estar bloqueada: comparar estrategias sin rellenar huecos.
+- Indicadores de éxito, todavía no exigibles:
+  - Hay cantidad de alimento con calidad medida u observada, un grupo, un periodo y una ganancia de esos animales.
+  - Si una de esas piezas falta, la comparación no se muestra.
+- Restricciones conocidas: las de `CAP-FEED-001` y `CAP-GROW-001`. No es dosificación individual.
+- Preguntas abiertas: `OQ-FEED-002`, `OQ-FEED-003`, `OQ-FIN-001`. Permanece en el modelo para no perder el objetivo. No se dibuja como capacidad en uso.
 
 ## Economía
 
-### CAP-FIN-001 — Estimar la economía de criar y de vender, incluido el costo por kilogramo ganado
+### CAP-FIN-001 — Ver una rentabilidad administrativa provisional, con lo que falta a la vista
 
-- Para qué hace falta: no se puede decidir qué actividad conviene ni si una compra resultó bien. Es uno de los objetivos más importantes del descubrimiento y hoy no está cubierto.
+- Para qué hace falta: no se puede decidir qué actividad conviene ni si una compra resultó bien. Es uno de los objetivos más importantes del descubrimiento. Una cifra cerrada, con las reglas aún abiertas, sería peor que un hueco.
 - Dolores: `PP-FIN-001`
-- Resultado de negocio deseado: con los costos y los ingresos que sí estén registrados, se puede ver una lectura económica del animal, del grupo o del kilo ganado, y se ve qué parte falta.
+- Resultado de negocio deseado: una rentabilidad administrativa provisional. No es utilidad contable ni fiscal. Usa ingreso de venta conocido, costo de compra, flete, gastos directos conocidos, costos asignados de forma explícita y una bolsa de costos no asignados.
 - Indicadores de éxito:
-  - Una venta de becerros por kilogramo de peso vivo puede verse junto al costo de entrada y a los costos de crianza que ya estén clasificados.
-  - El costo por kilogramo ganado solo aparece cuando hay pesos y costos suficientes para ese animal o ese grupo.
-  - La parte del ranchero en «a la parte» no se calcula con una regla que la entrevista no fijó.
-  - Una lectura incompleta no se muestra como margen cerrado.
-- Restricciones conocidas: `BR-OWN-003`, `BR-SALE-001`, `BR-BUY-001`, `BR-BUY-002`, `CON-ACC-001`. Esto no reemplaza la contabilidad fiscal.
-- Preguntas abiertas: `OQ-OWN-001`, `OQ-OWN-002`, `OQ-OWN-004`, `OQ-TRADE-001`, `OQ-FEED-002`, `OQ-PEOPLE-001`. El prorrateo no está diseñado.
+  - Se ve un margen provisional a partir de lo asignado, junto con la bolsa no asignada.
+  - Se ve la completitud de la estimación y la calidad de los datos que la sostienen: declarado, observado o medido.
+  - La parte personal o económica del ranchero permanece desconocida y no calculable mientras las reglas de tenencia sigan abiertas.
+  - No se calcula utilidad fiscal, finiquito del socio, ni costo por kilogramo ganado cuando la cantidad de alimento no es confiable.
+  - El ingreso de una venta se puede registrar aunque esta lectura todavía no se haga.
+- Restricciones conocidas: `BR-OWN-003`, `BR-SALE-001`, `BR-BUY-001`, `BR-BUY-002`, `CON-ACC-001`, `CAP-OWN-001`.
+- Preguntas abiertas: `OQ-OWN-001`, `OQ-OWN-002`, `OQ-OWN-004`, `OQ-TRADE-001`, `OQ-FEED-002`, `OQ-PEOPLE-001`. El prorrateo no está diseñado y esta capacidad no lo inventa.
 
 ### CAP-FIN-002 — Separar gasto operativo e inversión, con comprobante
 
@@ -136,20 +163,21 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
 
 - Para qué hace falta: un faltante puede tardar días, y en un robo alrededor de una o dos semanas. No hay una verificación frecuente y confiable. Saber que falta un animal no es saber que alguien entró.
 - Dolores: `PP-SEC-001`, `PP-SEC-002`
-- Resultado de negocio deseado: existe una lista de quién debería estar, una última verificación utilizable, y un faltante confirmado se nota antes que por la observación tardía de hoy.
+- Resultado de negocio deseado: saber quién debería estar, dónde se espera al grupo, cuándo se le vio por última vez en un evento, y si alguna vez se verificó el grupo entero. El método y la cadencia de esa verificación siguen sin elegir. Este dolor no se da por controlado.
 - Indicadores de éxito:
-  - Se puede decir qué animales están dados de alta como presentes.
-  - De un animal, o del grupo que se pudo ver, se conoce la última verificación y su fecha.
-  - Un animal que salió por venta deja de contarse como presente.
-  - No se afirma un plazo de detección mientras `OQ-COUNT-001` siga abierta.
-- Restricciones conocidas: `CON-LAND-001`, `CON-SEC-001`. El predio es grande. Reunir ganado toma tiempo. El software no sustituye la presencia física.
-- Preguntas abiertas: `OQ-COUNT-001`, `OQ-OWN-003`, `OQ-LAND-001`, `OQ-LAND-002`, `OQ-OWN-002`. Cómo sale de la lista un animal que muere o se repone no está definido. Véase `DQ-HERD-001`.
+  - Se distingue la última observación durante un evento de una verificación del grupo o del hato.
+  - Un animal activo tiene lugar esperado o lugar desconocido (`CAP-LAND-001`).
+  - Un animal que salió deja de contarse como activo y conserva su historia (`CAP-LIFE-001`).
+  - Un faltante y una baja del activo no son el mismo hecho.
+  - No se promete un plazo menor que el de hoy mientras método y cadencia sigan pendientes.
+- Restricciones conocidas: `CON-LAND-001`, `CON-SEC-001`. El predio es grande. Reunir ganado toma tiempo.
+- Preguntas abiertas: `OQ-COUNT-001`, `OQ-LAND-002`, `DQ-SEC-003`. `OQ-OWN-002` no se interpreta como regla de reposición.
 
 ### CAP-SEC-002 — Dejar evidencia de una entrada o una salida no autorizada
 
 - Para qué hace falta: cortar el cerco o sacar ganado no genera aviso. No hay cámaras. Las cámaras solo se están considerando.
 - Dolores: `PP-SEC-003`
-- Resultado de negocio deseado: un acceso o un tramo que el rancho decida vigilar puede dejar constancia de una revisión o de una anomalía. Detectar la intrusión sigue siendo un problema físico distinto del faltante.
+- Resultado de negocio deseado: el control deseado existe como problema distinto del faltante. La implementación no está elegida. Hasta que una opción se adopte, el dolor no está abordado.
 - Indicadores de éxito:
   - Se puede distinguir un faltante de hato de un evento de acceso o de cerco.
   - Si se adopta un medio físico, queda dicho qué punto cubre y qué punto no cubre.
@@ -177,12 +205,13 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
 
 - Para qué hace falta: los partos no se anotan y la filiación es informal. Con un solo toro la paternidad es simple y aun así no hay registro. El interés de comparar líneas es de largo plazo.
 - Dolores: `PP-REPRO-001`
-- Resultado de negocio deseado: un nacimiento queda anotado, la madre queda ligada cuando se reconoce, y el padre actual queda como supuesto mientras siga habiendo un solo toro.
+- Resultado de negocio deseado: un nacimiento queda anotado. Madre y padre tienen certeza: observado, inferido o desconocido. Si es inferido, queda el motivo.
 - Indicadores de éxito:
   - Se puede responder con registro cuántos nacimientos quedaron anotados, no cuántos ocurrieron si nadie los vio.
-  - Una cría apunta a su madre o dice que la madre se desconoce.
-  - El toro único no se presenta como prueba genética.
-  - Comparar qué línea produce mejores animales queda para cuando exista historia. No es resultado de esta versión.
+  - La madre es observada, inferida o desconocida. El padre también.
+  - El único toro puede ser el motivo de una inferencia. No aparece como paternidad confirmada.
+  - Motivos de inferencia posibles: parto visto, dicho de un trabajador, único toro presente, u otro que se nombre. Desconocido también cabe.
+  - Comparar líneas queda para cuando exista historia. No es resultado de esta versión. No hay flujo de laboratorio.
 - Restricciones conocidas: `BR-REPRO-001`, `BR-BIRTH-001`, `BR-ID-003`, `CON-ID-001`. El corral de parto y el calostro son meta de manejo (`BR-COLOSTRUM-001`), no un paso impuesto aquí.
 - Preguntas abiertas: `OQ-ID-001`, `OQ-REPRO-001`, `OQ-GEN-001`, `OQ-OWN-001` para el reparto de crías.
 
@@ -199,6 +228,7 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - El canal original no se convierte, por sí solo, en un archivo ordenado.
 - Restricciones conocidas: `CON-ENTRY-001`, `CON-SITE-001`, `CON-DEV-001`, `BR-ENTRY-001`.
 - Preguntas abiertas: `OQ-CONN-001`, `DQ-HABIT-001`. Si el propietario no puede sostener ese paso, el paquete inicial no se sostiene.
+- Papel en el mapa: transversal. Es la forma de hacer llegar un evento, no una operación junto a la engorda.
 
 ## Conectividad
 
@@ -213,6 +243,7 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - No se diseña aquí la sincronización de una aplicación de campo.
 - Restricciones conocidas: `CON-NET-001`, `CON-NET-002`, `CON-NET-003`. La operación sin conexión está nombrada como necesidad posible, no como arquitectura.
 - Preguntas abiertas: `OQ-CONN-001`, `OQ-NET-001`. Starlink sigue siendo un ejemplo, no una decisión.
+- Papel en el mapa: transversal. Es una restricción de los eventos, no un proceso de red.
 
 ## Gestión
 
@@ -227,6 +258,35 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - La revisión muestra huecos de información en lugar de rellenarlos.
 - Restricciones conocidas: `BR-CADENCE-001`, `CON-SITE-001`.
 - Preguntas abiertas: `DQ-GOV-001`. La lista cerrada de «problema grave» no salió de la entrevista.
+
+## Estado del animal
+
+### CAP-LIFE-001 — Estado operativo del animal y motivo de salida
+
+- Para qué hace falta: si un animal muere, falta de forma confirmada o sale por un motivo distinto de la venta, no puede seguir contando como activo para siempre. Borrar la ficha borraría el historial.
+- Dolores: `PP-SEC-001`, `PP-DATA-001`, `PP-FIN-001`
+- Resultado de negocio deseado: se sabe si el animal sigue activo. Si no, queda el motivo de salida y la historia.
+- Indicadores de éxito:
+  - Los motivos posibles son venta, muerte, faltante confirmado, otra salida, o desconocido.
+  - Notar que falta y darlo de baja no son el mismo hecho. Un animal puede seguir activo y marcado como no visto.
+  - La baja no define reposición ni dinero. `OQ-OWN-002` y «a la parte» no se interpretan.
+- Restricciones conocidas: `BR-SALE-001`. La venta es una salida. No es la única.
+- Preguntas abiertas: `OQ-OWN-002`, `DQ-HERD-001`. El proceso que la usa es `TGT-ANIMAL-EXIT-001`.
+
+## Lugar esperado
+
+### CAP-LAND-001 — Ubicación esperada por potrero o grupo
+
+- Para qué hace falta: el alimento se ofrece a un grupo, el conteo en un predio grande necesita un lugar, y la última vez visto no dice dónde debía estar el animal. No hace falta un mapa completo ni un aparato por cabeza.
+- Dolores: `PP-FEED-001`, `PP-SEC-001`, `PP-SEC-002`, `PP-GOV-001`
+- Resultado de negocio deseado: un animal o un grupo tiene un potrero o lugar esperado, con fecha de vigencia, o consta como desconocido.
+- Indicadores de éxito:
+  - Se pueden usar los aproximadamente 8 potreros ya identificados, sin afirmar que describen las aproximadamente 530 hectáreas.
+  - El lugar desconocido es válido.
+  - Un movimiento queda fechado. No se exige hectárea, GPS ni un sistema de mapas.
+  - El grupo de alimentación, la verificación de presencia y la revisión de gestión pueden apoyarse en ese lugar.
+- Restricciones conocidas: `CON-LAND-001`, `OQ-LAND-001`, `OQ-LAND-002`.
+- Preguntas abiertas: `OQ-LAND-001`, `OQ-LAND-002`. Nombrar un potrero no cierra el croquis.
 
 ## Leche
 
@@ -245,7 +305,7 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Diseño de dominio, no alcance aprobado
 - Última actualización: 2026-10-03
 - Fuente: `docs/domain` v0.1 y AS-IS v0.2

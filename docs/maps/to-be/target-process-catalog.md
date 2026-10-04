@@ -1,79 +1,109 @@
 # Catálogo de procesos objetivo
 
-Cómo debería operar el rancho en términos de negocio. Un proceso objetivo no es una pantalla, una tabla, un módulo ni un contrato de software.
+Cómo debería operar el rancho en términos de negocio. Un proceso objetivo no es una pantalla, una tabla, un módulo ni un contrato de software. Versión 0.2.
 
-La conectividad no es un proceso. Es una condición de los procesos críticos: el hecho puede ocurrir sin señal, y el registro puede completarlo después el propietario. Las opciones están en [solution-catalog.md](solution-catalog.md) (`SOL-CONN-001`, `SOL-CONN-002`, `SOL-CONN-003`).
+## Un evento, varios hechos
 
-Ningún paso de esta lista cierra una pregunta abierta. Donde el descubrimiento no fijó un hecho, el paso se detiene.
+Un evento operativo se captura una sola vez y puede producir múltiples hechos. Es una regla de trabajo del rancho, no un diseño técnico.
 
-Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Participar no implica una cuenta.
+Ejemplos que este catálogo usa:
 
-## TGT-ANIMAL-001 — Ficha con identidad estable
+- En la manga, un becerro deja peso, confirmación de identidad y última observación.
+- Una compra de alimento deja el gasto, la entrada a bodega y la cantidad comprada, con su calidad.
+- Un nacimiento deja la ficha, el parto, la madre con su certeza, el padre inferido o desconocido, y la evidencia si la hay.
+- Una venta deja el ingreso conocido y la salida con motivo venta.
 
-- Disparador: el rancho pasa a gestionar un animal. Puede ser del hato actual, de una compra o de un nacimiento.
-- Actores: `ACT-OWNER` registra. `ACT-WORKER` puede reconocer al animal y aportar una foto o un nombre. `ACT-PARTNER` importa solo si el animal entra en «a la parte»; no se asume que use el registro.
+No se abre otro proceso para capturar otra vez el hecho derivado.
+
+## Qué puede quedar desconocido
+
+El modelo tiene que poder contestar, o decir que no se sabe:
+
+1. Qué animal es.
+2. Con qué tenencia y qué participación económica se maneja.
+3. Dónde se espera que esté.
+4. Qué eventos operativos importan y ya ocurrieron.
+5. Cuánto pesó.
+6. Qué alimento se asoció a su grupo, y de qué calidad es esa cantidad.
+7. Qué costos e ingresos se conocen.
+8. Si sigue activo.
+9. Si no, por qué salió.
+10. Cuándo y dónde se le observó por última vez con alguna fiabilidad.
+11. Cuál es el resultado provisional de gestión, con su completitud.
+12. Qué sigue desconocido.
+
+La conectividad no es un proceso. Es una condición: el hecho puede ocurrir sin señal y el propietario lo asienta después. `CAP-DATA-002`, `CAP-COMM-001` y `CAP-CONN-001` son atributos de esos eventos. Un mapa futuro no tiene que dibujarlos como operaciones.
+
+Ningún paso cierra una pregunta abierta. Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Participar no implica una cuenta.
+
+## TGT-ANIMAL-001 — Ficha con identidad, tenencia y participación
+
+- Disparador: el rancho pasa a gestionar un animal. Puede ser del hato actual, de una compra o de un nacimiento. El nacimiento no se captura otra vez aquí: `TGT-BIRTH-001` produce esta ficha.
+- Actores: `ACT-OWNER` registra. `ACT-WORKER` puede reconocer al animal. `ACT-PARTNER` importa si el animal entra en «a la parte»; no se asume que use el registro.
 - Pasos deseados:
-  1. Abrir una identidad propia del rancho en el momento en que el animal se va a gestionar.
-  2. Anotar sexo, categoría aproximada si se conoce, y régimen económico si se conoce. El régimen no se reduce a un nombre de dueño.
-  3. Colgar en esa identidad las marcas que existan: SINIIGA, nombre, foto. Si no hay marca, la identidad existe igual.
-  4. Cuando una marca aparezca, cambie o se pierda, actualizar la misma identidad. No abrir otro animal por un arete nuevo.
-  5. Dejar dicho quién asentó el dato, cuándo y si el dato fue declarado u observado.
-- Información que produce: ficha del animal, marcas asociadas, régimen si se conoce, huecos explícitos si no se conoce.
-- Evidencia que produce: foto, si se tomó. La ausencia de arete queda dicha, no supuesta.
-- Dolores: `PP-ID-001`, `PP-DATA-001`
-- Capacidades: `CAP-ID-001`, `CAP-DATA-001`, `CAP-DATA-002`
-- Excepciones y preguntas: `OQ-OWN-003` impide dar por hecha la ficha de las aproximadamente 21 cabezas. `OQ-OWN-001` y `OQ-OWN-004` impiden cerrar el régimen. No se elige arete secundario ni RFID. Una salida distinta de la venta de becerros, como muerte o reposición, no tiene paso cerrado (`OQ-OWN-002`, `DQ-HERD-001`).
+  1. Abrir una identidad propia del rancho. El arete puede no existir todavía.
+  2. Anotar sexo y categoría aproximada si se conocen.
+  3. Anotar la tenencia: del rancho, «a la parte», de un tercero, o desconocida.
+  4. Anotar la participación económica del rancho: conocida, conocida en parte, o desconocida. Si solo hay relato verbal, guardarlo como nota. No convertirlo en porcentaje.
+  5. Colgar las marcas que existan. Si una marca cambia, sigue siendo el mismo animal.
+  6. Dejar lugar esperado o desconocido. El movimiento posterior es `TGT-MOVE-001`.
+  7. Dejar el estado en activo. Una salida posterior es `TGT-ANIMAL-EXIT-001`.
+- Información que produce: ficha, tenencia, participación o su hueco, marcas, lugar o desconocido, activo.
+- Evidencia que produce: la nota del arreglo, si se guardó. La foto, si se tomó, no es obligatoria para abrir la ficha.
+- Dolores: `PP-ID-001`, `PP-DATA-001`, `PP-FIN-001`
+- Capacidades: `CAP-ID-001`, `CAP-OWN-001`, `CAP-LIFE-001`, `CAP-LAND-001`, `CAP-DATA-001`
+- Excepciones y preguntas: `OQ-OWN-003` impide dar por hecha la ficha de las aproximadamente 21 cabezas. `OQ-OWN-001` y `OQ-OWN-004` impiden cerrar la participación. No se elige arete ni RFID.
 
-## TGT-BIRTH-001 — Nacimiento con identidad previa al arete
+## TGT-BIRTH-001 — Nacimiento, una sola captura
 
 - Disparador: se detecta un parto o un becerro recién nacido.
-- Actores: `ACT-WORKER` lo observa en el campo. `ACT-OWNER` lo asienta con lo que le llega. El toro y la madre son datos, no usuarios.
-- Pasos deseados:
-  1. Avisar el nacimiento con lo que se sepa ese día. El mismo día es deseable y no es una regla medida: no se sabe cómo se detecta el parto (`OQ-ID-001`).
-  2. Abrir la ficha del becerro aunque no tenga arete ni nombre. Vale el proceso `TGT-ANIMAL-001`.
-  3. Anotar madre si se reconoce, sexo, y fecha u hora, o fecha aproximada si el día exacto no se vio.
-  4. Conservar foto si se tomó.
-  5. Dejar la filiación de ese día como primer vínculo. Corregirla después es `TGT-REPRO-001`.
-  6. El arete posterior se asocia a esta ficha.
-- Información que produce: nacimiento, cría, madre conocida o desconocida, sexo, fecha aproximada.
-- Evidencia que produce: mensaje, foto o audio, con su clase de dato.
-- Dolores: `PP-REPRO-001`, `PP-ID-001`, `PP-DATA-001`, `PP-DATA-002`
-- Capacidades: `CAP-REPRO-001`, `CAP-ID-001`, `CAP-DATA-001`, `CAP-DATA-002`, `CAP-COMM-001`
-- Excepciones y preguntas: `OQ-ID-001`. La preferencia de esperar alrededor de un mes para aretar sigue sin medirse (`BR-ID-003`). Corral de parto y calostro en las primeras horas aproximadas son meta de manejo, no paso de este proceso (`BR-COLOSTRUM-001`). El reparto de la cría «a la parte» no se calcula aquí (`OQ-OWN-001`).
+- Actores: `ACT-WORKER` lo observa. `ACT-OWNER` lo asienta. El toro y la madre son datos, no usuarios.
+- Pasos deseados, en un solo evento:
+  1. Avisar con lo que se sepa. El mismo día no es una regla medida (`OQ-ID-001`).
+  2. Crear la ficha del becerro, aunque no tenga arete ni nombre. Queda activa.
+  3. Anotar sexo y fecha u hora, o fecha aproximada.
+  4. Anotar la madre como observada, inferida o desconocida. Si es inferida, decir el motivo: parto visto, dicho de un trabajador, u otro.
+  5. Anotar el padre como inferido o desconocido. Con un solo toro, el motivo de la inferencia es «único toro presente». Eso no es paternidad confirmada. Corregirlo después es `TGT-REPRO-001`, no un alta nueva.
+  6. La tenencia de la cría queda desconocida si el reparto «a la parte» no está definido.
+  7. La evidencia, si llegó, queda en el mismo evento.
+- Información que produce: animal nuevo, nacimiento, certezas de madre y padre, tenencia desconocida si aplica.
+- Evidencia que produce: mensaje, foto o audio, con su clase. La foto no es requisito del alta.
+- Dolores: `PP-REPRO-001`, `PP-ID-001`, `PP-DATA-001`
+- Capacidades: `CAP-REPRO-001`, `CAP-ID-001`, `CAP-OWN-001`, `CAP-LIFE-001`, `CAP-DATA-001`
+- Excepciones y preguntas: `OQ-ID-001`, `BR-ID-003`, `BR-COLOSTRUM-001` fuera de este proceso, `OQ-OWN-001`.
 
-## TGT-WEIGH-001 — Pesaje de becerros con historial
+## TGT-WEIGH-001 — Pesaje de becerros, una fila por animal
 
-- Disparador: una sesión de pesaje de becerros. Hoy esa práctica es de aproximadamente cada 15 días. No es diaria.
-- Actores: `ACT-WORKER` reúne y pasa la manga. `ACT-OWNER` asienta el peso a partir del cuaderno, de una foto o, solo si un día se confirmara, de una lectura de aparato.
+- Disparador: una sesión de pesaje de becerros. Hoy es de aproximadamente cada 15 días. No es diaria.
+- Actores: `ACT-WORKER` pasa la manga. `ACT-OWNER` asienta.
 - Pasos deseados:
   1. Partir de los becerros que entran a la rutina. Cuáles son sigue abierto (`OQ-OWN-003`).
-  2. Identificar al animal en la manga contra la ficha.
-  3. Asentar el peso como medición, con fecha y origen: número anotado, foto del indicador, o lectura de aparato si existiera.
-  4. Marcar el becerro esperado que no se pesó.
-  5. Con dos pesos del mismo animal, poder ver la ganancia del intervalo. No hace falta una curva el primer día.
-  6. Una serie rara o un hueco se ve en la revisión semanal. No genera un aviso por cada kilo.
-- Información que produce: serie de pesos, pesaje faltante, ganancia entre fechas.
-- Evidencia que produce: la anotación, la foto del indicador, o el dato de aparato, según la opción que esté en uso. Esas opciones no están decididas.
-- Dolores: `PP-GROW-001`, `PP-DATA-001`, `PP-DATA-002`
-- Capacidades: `CAP-GROW-001`, `CAP-DATA-001`, `CAP-DATA-002`, `CAP-ID-001`
-- Excepciones y preguntas: las vacas adultas no entran a esta rutina (`BR-WEIGH-001`). Pueden pesarse al vender o cuando sirva. `OQ-SCALE-001` y `CON-SCALE-001` impiden asumir la báscula IBN ARGON como fuente electrónica. El peso de una compra que llega no es este proceso (`TGT-PUR-001`). La sesión dura aproximadamente una hora; el tamaño exacto del grupo no se dijo (`BR-WEIGH-003`).
+  2. Por cada becerro que pasa, en una sola captura: confirmar la identidad, asentar el peso con su calidad, y dejar la última observación de ese evento. La foto del indicador, si se toma, es evidencia del mismo hecho, no otro trámite.
+  3. Marcar al becerro esperado que no se pesó. Eso es un hueco de peso y también una falta de observación en esa sesión. No es una verificación del hato.
+  4. Con dos pesos del mismo animal, poder ver la ganancia del intervalo.
+  5. El hueco se ve en la revisión. No genera un aviso por cada kilo.
+- Información que produce: peso, identidad confirmada en la manga, última observación, hueco si no pasó, ganancia entre fechas.
+- Evidencia que produce: número anotado y, si existe, foto. La calidad del peso es medido cuando viene de la báscula y se transcribe, u observado si solo hay foto de la lectura. Un número dicho sin lectura es declarado.
+- Dolores: `PP-GROW-001`, `PP-DATA-001`, `PP-SEC-002`
+- Capacidades: `CAP-GROW-001`, `CAP-ID-001`, `CAP-SEC-001`, `CAP-DATA-001`
+- Excepciones y preguntas: las vacas adultas no entran (`BR-WEIGH-001`). `OQ-SCALE-001` impide asumir la báscula como fuente electrónica. Esta sesión no verifica al ganado que no estaba citado. El peso de llegada de una compra es `TGT-PUR-001`.
 
-## TGT-FEED-001 — Compra, preparación, entrega y contraste de alimento
+## TGT-FEED-001 — Compra, preparación y entrega, cada una con su calidad
 
-- Disparador: entra materia prima, se prepara una mezcla o se reparte alimento.
-- Actores: `ACT-OWNER` compra y transporta. `ACT-WORKER` prepara y reparte. `ACT-FEED` es el proveedor, sin acceso supuesto al registro.
+- Disparador: entra materia prima, se prepara una mezcla o se declara una entrega.
+- Actores: `ACT-OWNER` compra. `ACT-WORKER` prepara y reparte. `ACT-FEED` no usa el registro.
 - Pasos deseados:
-  1. Registrar la compra: qué entró, la cantidad que traiga el ticket o la que se anote, y el costo.
-  2. Registrar la preparación por lote o por tambo: qué se mezcló y cuánto se preparó, sin inventar la fórmula (`OQ-FEED-003`).
-  3. Registrar la entrega al grupo: cantidad ofrecida y grupo aproximado. No anotar consumo individual.
-  4. Dejar visibles la cantidad comprada, la preparada, la entregada y, cuando se cuente, lo que queda.
-  5. No elegir un supuesto que haga cuadrar alrededor de MXN $8/kg, alrededor de 1.5 kg por animal por día y alrededor de 270 kg en alrededor de 15 días (`OQ-FEED-002`).
-  6. El saldo de ingredientes en bodega sigue en `TGT-INV-001`.
-- Información que produce: compras, preparaciones, entregas a grupo, diferencias no explicadas.
-- Evidencia que produce: ticket de compra y, si se usó, foto o nota de la preparación y de la entrega.
-- Dolores: `PP-FEED-001`, `PP-INV-001`
-- Capacidades: `CAP-FEED-001`, `CAP-INV-001`, `CAP-DATA-002`
-- Excepciones y preguntas: `OQ-FEED-001` no dice si hoy hay báscula de alimento, recipiente o solo estimación visual. La competencia en el comedero impide leer lo que comió cada animal (`BR-FEED-001`). La frecuencia realista de la anotación es `DQ-FEED-004`. Relacionar esto con crecimiento y costo es `CAP-FEED-002` y no es un paso exigible mientras las cifras no se reconozcan.
+  1. Una compra es un solo evento: cantidad comprada, costo, clase de gasto si se conoce, y entrada a bodega. La calidad es observada cuando el ticket trae la cantidad, y declarada cuando alguien la afirma sin comprobante.
+  2. Una preparación anota qué se mezcló y cuánto, como cantidad preparada, declarada salvo que se haya medido. Si esa mezcla sale de bodega, la salida es el mismo evento, no otro formulario.
+  3. Una entrega anota la cantidad ofrecida a un grupo. Por defecto es entregada declarada. Solo es entregada medida si hubo pesaje o medida del lote (`SOL-FEED-003`, todavía en investigar).
+  4. El grupo es el de `CAP-LAND-001` cuando existe. Si no, el grupo queda aproximado o desconocido.
+  5. El remanente físico es el conteo de `TGT-INV-001`. No se deduce de una declaración.
+  6. No se elige un supuesto para cuadrar las cifras de `OQ-FEED-002`.
+- Información que produce: cantidad comprada, preparada, entregada declarada o medida, cada una con su calidad. El remanente solo si se contó.
+- Evidencia que produce: ticket y, si se usó, foto. La foto no convierte la entrega en medición.
+- Dolores: `PP-FEED-001`, `PP-INV-001`, `PP-FIN-002`
+- Capacidades: `CAP-FEED-001`, `CAP-INV-001`, `CAP-FIN-002`, `CAP-LAND-001`
+- Excepciones y preguntas: `OQ-FEED-001`, `OQ-FEED-002`, `OQ-FEED-003`, `DQ-FEED-004`, `BR-FEED-001`. `CAP-FEED-002` no se ejecuta aquí.
 
 ## TGT-INV-001 — Entradas, salidas y conciliación de bodega
 
@@ -98,8 +128,8 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
 - Pasos deseados:
   1. Conservar el comprobante. Si el pago fue en efectivo y no hay ticket, conservar una nota del pago.
   2. Clasificar el egreso, como visibilidad de gestión, en gasto operativo o inversión. El criterio exacto sigue abierto (`OQ-FIN-001`).
-  3. Atribuir a un animal, a un grupo o a la operación general solo cuando esa atribución se conozca. No prorratear «a la parte» con una regla nueva.
-  4. Dejar el egreso disponible para una lectura económica posterior, sin presentar esa lectura como cerrada.
+  3. Atribuir a un animal, a un grupo o a la operación general solo cuando esa atribución se conozca. Lo no atribuido queda en la bolsa no asignada. No se prorratea «a la parte».
+  4. Dejar el egreso disponible para `TGT-PROFIT-001`. Esta captura no calcula el margen.
 - Información que produce: egreso, clase de gestión, comprobante o nota, atribución si existe.
 - Evidencia que produce: foto o papel del ticket, o nota de efectivo.
 - Dolores: `PP-FIN-001`, `PP-FIN-002`
@@ -113,45 +143,84 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
 - Pasos deseados:
   1. Registrar precio, forma de compra y flete. El flete lo paga el comprador (`BR-BUY-002`).
   2. Conservar la forma «por kilogramo» o «por bulto» sin traducir el bulto a un precio por cabeza o a un peso promedio (`OQ-TRADE-001`).
-  3. Asociar animales a fichas cuando se puedan identificar. En un bulto, el lote puede entrar antes que la ficha de cada cabeza.
-  4. Si se pesa en el rancho después del viaje, guardar ese peso como medición distinta del peso o del precio de compra. No fijar el plazo de descanso (`BR-WEIGH-004`).
+  3. Asociar animales a fichas cuando se puedan identificar. En un bulto, el lote puede entrar antes que la ficha de cada cabeza. La tenencia y la participación quedan desconocidas si no se saben.
+  4. Si se pesa en el rancho después del viaje, guardar ese peso como medición distinta del precio de compra. No fijar el plazo de descanso (`BR-WEIGH-004`).
+  5. El lugar esperado inicial puede quedar desconocido.
 - Información que produce: costo de entrada, forma de compra, lote o animales, peso de llegada si se tomó.
 - Evidencia que produce: comprobante de compra y de flete, si se guardó. El peso de llegada, si existió, con su origen.
 - Dolores: `PP-FIN-001`, `PP-ID-001`
-- Capacidades: `CAP-FIN-001`, `CAP-ID-001`, `CAP-DATA-002`
+- Capacidades: `CAP-FIN-001`, `CAP-OWN-001`, `CAP-ID-001`, `CAP-LIFE-001`
 - Excepciones y preguntas: `OQ-TRADE-001`, `OQ-OWN-004`. Pesar al llegar es preferencia dicha, no rutina confirmada. No hay flecha obligatoria hacia `TGT-WEIGH-001`.
 
-## TGT-SALE-001 — Venta y lectura económica
+## TGT-SALE-001 — Venta e ingreso conocido
 
 - Disparador: una venta. Hoy la venta principal es de becerros por kilogramo de peso vivo.
 - Actores: `ACT-OWNER`, `ACT-BUYER`.
-- Pasos deseados:
-  1. Registrar ingreso y, cuando así se comercialice, el peso vivo de la venta y los animales que salen.
-  2. Sacar esos animales de la lista de quienes deberían estar, sin borrar su historial.
-  3. Cuando haya costos de entrada, alimento y otros egresos ya registrados, estimar costo de criar, margen y costo por kilogramo ganado.
-  4. Si falta el prorrateo, el régimen o una cantidad de alimento no reconciliada, mostrar la lectura como incompleta.
-  5. No tratar la venta por bulto como paso vigente (`BR-SALE-002`).
-- Información que produce: ingreso, animales que salen, lectura económica parcial o incompleta.
-- Evidencia que produce: comprobante de la venta, si se guardó, y el peso de venta con su origen.
+- Pasos deseados, en un solo evento:
+  1. Registrar la cantidad o el peso vivo cuando se conozca.
+  2. Registrar el precio por unidad cuando la forma de venta lo tenga.
+  3. Registrar el ingreso total conocido. Este dato no espera a tener un modelo de rentabilidad completo.
+  4. Registrar al comprador cuando se conozca.
+  5. Conservar el comprobante si existe. Su ausencia deja el ingreso declarado.
+  6. Producir la salida de esos animales con motivo venta, por `TGT-ANIMAL-EXIT-001`, sin borrar el historial y sin capturar la baja en otro formulario.
+  7. No calcular aquí margen, costo por kilo ni parte del socio. Eso, si se hace, es `TGT-PROFIT-001`.
+  8. No tratar la venta por bulto como paso vigente (`BR-SALE-002`). Si un día ocurre, se anota la forma sin traducirla (`OQ-TRADE-001`).
+- Información que produce: ingreso conocido, peso o cantidad si existen, precio unitario si aplica, comprador, animales que salen.
+- Evidencia que produce: comprobante, si se guardó.
 - Dolores: `PP-FIN-001`
-- Capacidades: `CAP-FIN-001`, `CAP-GROW-001`, `CAP-SEC-001`
-- Excepciones y preguntas: `OQ-OWN-001`, `OQ-TRADE-001`, `OQ-FEED-002`. Comparar con leche no es paso de este proceso mientras `CAP-MILK-001` siga condicional. El peso de venta y el último peso de la rutina de becerros pueden no ser el mismo dato; no se fusionan por decreto.
+- Capacidades: `CAP-FIN-001`, `CAP-LIFE-001`
+- Familia: `FAM-SALE-001`
+- Excepciones y preguntas: `OQ-OWN-001`, `OQ-TRADE-001`. El peso de venta y el último peso de la rutina pueden no ser el mismo dato.
 
-## TGT-SEC-001 — Verificación de presencia
+## TGT-PROFIT-001 — Revisión económica provisional
 
-- Disparador: una verificación que el rancho llegue a adoptar, o un manejo que ya reúne animales, como el pesaje o la manga.
-- Actores: `ACT-WORKER` ve el ganado. `ACT-OWNER` asienta el resultado.
+- Disparador: el propietario quiere ver cómo va un animal, un grupo o un periodo, con lo ya registrado.
+- Actores: `ACT-OWNER`.
 - Pasos deseados:
-  1. Partir de la lista de animales que deberían estar.
-  2. Registrar a quién se vio, en qué ocasión, y a quién no se pudo confirmar.
-  3. Dejar la fecha de la última verificación utilizable.
-  4. Un faltante confirmado se trata como excepción crítica de `TGT-GOV-001`.
-  5. No convertir un animal no visto en un robo. La participación interna está nombrada como posibilidad, no como explicación de cada falta.
-- Información que produce: vistos, no confirmados, última verificación.
-- Evidencia que produce: la ocasión del manejo, un conteo, una foto o un paso por un punto, según la opción. Ninguna está elegida como política única.
+  1. Reunir ingreso de venta conocido, costo de compra, flete y gastos directos conocidos. No volver a capturarlos.
+  2. Separar lo asignado de forma explícita a un animal o grupo, y lo que sigue en la bolsa no asignada.
+  3. Mostrar un margen provisional solo sobre lo asignado, la completitud y la calidad de cada pieza.
+  4. Dejar la parte del ranchero como desconocida y no calculable mientras `OQ-OWN-001` siga abierta.
+  5. No mostrar costo por kilogramo ganado si la cantidad de alimento no es medida u observada con fiabilidad.
+  6. No producir utilidad fiscal ni finiquito del socio.
+- Información que produce: margen provisional, costos asignados, bolsa no asignada, completitud, calidad.
+- Evidencia que produce: ninguna nueva. Lee la de los otros eventos.
+- Dolores: `PP-FIN-001`
+- Capacidades: `CAP-FIN-001`, `CAP-OWN-001`
+- Familia: `FAM-PROFIT-001`
+- Excepciones y preguntas: `OQ-OWN-001`, `OQ-FEED-002`, `OQ-TRADE-001`, `OQ-PEOPLE-001`, `DQ-FIN-003`. Esta revisión es deseable. No hace falta para empezar a registrar ingresos y gastos.
+
+## TGT-SEC-001 — Última observación durante un evento
+
+- Disparador: otro evento ya reunió o vio animales. El caso habitual es `TGT-WEIGH-001`. No se captura aparte.
+- Actores: quien ya actuó en ese evento.
+- Pasos deseados:
+  1. El evento deja, para cada animal visto, la última observación: cuándo, en qué evento y, si se sabe, dónde.
+  2. Quien estaba citado y no apareció queda sin observación nueva. Eso no verifica al resto del hato.
+  3. No convertir un no visto en robo ni en baja. La baja es `TGT-ANIMAL-EXIT-001`. La verificación del grupo es `TGT-HERD-VERIFY-001`.
+- Información que produce: última observación por animal, ligada al evento.
+- Evidencia que produce: la del evento de origen.
+- Dolores: `PP-SEC-002`, `PP-SEC-001`
+- Capacidades: `CAP-SEC-001`
+- Excepciones y preguntas: `DQ-SEC-003`. Un pesaje de becerros no demuestra que el resto siga en el predio. Este hecho no controla `PP-SEC-001`.
+
+## TGT-HERD-VERIFY-001 — Verificación de presencia del ganado
+
+- Disparador: una verificación del grupo o del hato que el rancho llegue a adoptar. Hoy no hay método ni cadencia elegidos.
+- Actores: `ACT-WORKER` en el campo. `ACT-OWNER` asienta el resultado.
+- Método: pendiente de validación.
+- Cadencia: pendiente de validación.
+- Pasos deseados, cuando exista un método:
+  1. Partir de los animales activos que deberían estar en un lugar o grupo esperado (`CAP-LAND-001`). Si el lugar es desconocido, la verificación lo dice.
+  2. Registrar a quién se confirmó en esa verificación, distinto de quien solo fue visto de paso en otro evento.
+  3. Dejar a quién no se pudo confirmar.
+  4. Un faltante confirmado puede ser aviso de `TGT-GOV-001`. Darlo de baja es otro hecho, posterior, si el rancho decide que ya no está activo.
+- Información que produce: verificación del grupo, confirmados, no confirmados, lugar usado.
+- Evidencia que produce: la del método que se elija. Ningún método está elegido. Conteo manual, verificación en un manejo, verificación por potrero u otra tecnología siguen siendo posibilidades, no una selección.
 - Dolores: `PP-SEC-001`, `PP-SEC-002`
-- Capacidades: `CAP-SEC-001`, `CAP-DATA-002`
-- Excepciones y preguntas: `OQ-COUNT-001`, `CON-LAND-001`. Un pesaje de becerros no demuestra que el resto del hato siga en el predio. `DQ-HERD-001` y `OQ-OWN-002`: muerte y reposición desalinean la lista si no se anotan. Este proceso no detecta una intrusión (`TGT-SEC-002`).
+- Capacidades: `CAP-SEC-001`, `CAP-LAND-001`
+- Familia: `FAM-SEC-001`
+- Excepciones y preguntas: `OQ-COUNT-001`, `OQ-LAND-002`, `CON-LAND-001`. No se elige RFID, GPS, cámara ni sensor. Mientras método y cadencia sigan pendientes, `PP-SEC-001` no está controlado.
 
 ## TGT-SEC-002 — Evidencia de acceso o de cerco
 
@@ -161,12 +230,12 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
   1. Tratar el hecho como distinto de un faltante de cabezas.
   2. Dejar constancia de qué se revisó o de qué anomalía se vio.
   3. No describir el predio completo como vigilado porque un punto tenga evidencia.
-  4. No elegir aquí cámara, luz, sensor ni ronda. Esas son opciones.
+  4. No elegir aquí cámara, luz, sensor ni ronda. Esas son opciones, y ninguna está adoptada. El control deseado existe. La implementación no está seleccionada.
 - Información que produce: revisión hecha o anomalía observada, con lugar aproximado si se conoce.
 - Evidencia que produce: nota, foto o registro de aparato, según la opción no elegida.
 - Dolores: `PP-SEC-003`
 - Capacidades: `CAP-SEC-002`
-- Excepciones y preguntas: `OQ-SEC-001`. Alrededor de 5 accesos es una aproximación. Una cámara no sustituye este proceso. La prioridad frente al registro de ganado no está decidida, así que este proceso no entra al paquete inicial como adopción.
+- Excepciones y preguntas: `OQ-SEC-001`. Alrededor de 5 accesos es una aproximación. `PP-SEC-003` no está abordado mientras no se adopte una opción.
 
 ## TGT-HEALTH-001 — Anotación sanitaria básica
 
@@ -185,16 +254,16 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
 
 ## TGT-REPRO-001 — Filiación que permanece
 
-- Disparador: se corrige una madre, se confirma un padre supuesto, o cambia la situación del toro.
+- Disparador: se corrige una certeza, o cambia la situación del toro.
 - Actores: `ACT-OWNER` asienta. `ACT-WORKER` reconoce. El toro no es usuario.
 - Pasos deseados:
-  1. No repetir el alta del nacimiento. Eso ya ocurrió en `TGT-BIRTH-001`.
-  2. Ligar o corregir la madre. Si no se reconoce, dejar madre desconocida.
-  3. Mientras haya un solo toro de monta natural, anotar a ese toro como padre supuesto, no como prueba.
-  4. Si más adelante hubiera más de un toro o inseminación, el supuesto deja de servir. Esa situación no está afirmada (`OQ-REPRO-001`).
-  5. Conservar la cadena para una comparación de líneas que hoy no se puede hacer.
-- Información que produce: madre, padre supuesto o desconocido, cría, corrección posterior.
-- Evidencia que produce: quién dijo el parentesco y si fue reconocimiento o solo dicho.
+  1. No repetir el alta del nacimiento.
+  2. Corregir madre o padre a observado, inferido o desconocido.
+  3. Si queda inferido, conservar el motivo: parto visto, dicho de un trabajador, único toro presente, u otro. El único toro no se guarda como paternidad confirmada.
+  4. Si más adelante hubiera más de un toro o inseminación, la inferencia por toro único deja de servir (`OQ-REPRO-001`).
+  5. Conservar la cadena. Comparar líneas no es paso actual.
+- Información que produce: certeza de madre, certeza de padre, motivo de la inferencia, corrección.
+- Evidencia que produce: quién aportó el dato y de qué tipo fue.
 - Dolores: `PP-REPRO-001`, `PP-DATA-001`
 - Capacidades: `CAP-REPRO-001`, `CAP-DATA-002`
 - Excepciones y preguntas: `OQ-GEN-001`, `OQ-REPRO-001`, `OQ-OWN-001`. Comparar producción por línea no es paso actual.
@@ -212,17 +281,18 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
 - Evidencia que produce: el archivo o el mensaje que se decidió conservar, ligado al evento.
 - Dolores: `PP-DATA-002`, `PP-GOV-001`, `PP-CONN-001`
 - Capacidades: `CAP-COMM-001`, `CAP-DATA-002`, `CAP-CONN-001`, `CAP-GOV-001`
-- Excepciones y preguntas: `OQ-CONN-001`. Un mensaje puede no salir del rancho en el momento; el registro espera a que el propietario lo tenga (`SOL-CONN-001`). `DQ-HABIT-001` pregunta si ese trabajo del propietario es sostenible. No se asume integración con una API de WhatsApp.
+- Papel en el mapa: no es una operación que se dibuje junto al pesaje. Es la vía por la que los otros eventos llegan al propietario.
+- Excepciones y preguntas: `OQ-CONN-001`, `DQ-HABIT-001`. No se asume una integración con WhatsApp. El registro puede esperar a que el propietario tenga el mensaje.
 
 ## TGT-GOV-001 — Revisión semanal y excepción crítica
 
 - Disparador: la revisión aproximada de cada semana, o un hecho crítico.
 - Actores: `ACT-OWNER`.
 - Pasos deseados:
-  1. Revisar, en un solo momento, identidad usable, pesos recientes, alimento del periodo, egresos con comprobante, diferencias de bodega y verificaciones de presencia.
-  2. Ver los huecos. No rellenarlos con un promedio ni con las cifras de alimento que no cuadran.
-  3. Avisar en el momento solo un faltante confirmado, un problema grave de un animal, u otra situación que el propietario marque como crítica.
-  4. No avisar cada pesaje, cada ticket, cada mensaje ni cada diferencia pequeña de bodega.
+  1. Revisar identidad, tenencia o su hueco, lugar esperado o desconocido, pesos, alimento con su calidad, ingresos y gastos conocidos, conteo físico si lo hubo, y qué animales siguen activos.
+  2. Ver los huecos. No rellenarlos con las cifras de alimento que no cuadran ni con una parte del socio.
+  3. Avisar en el momento solo un faltante confirmado, un problema grave de un animal, u otra situación que el propietario marque como crítica. Una baja ya registrada no se vuelve un aviso repetido.
+  4. No avisar cada pesaje, cada ticket, cada mensaje ni cada diferencia pequeña de bodega. El resumen semanal es deseable. El aviso crítico es el que hace falta desde el inicio.
 - Información que produce: panorama del periodo y una lista corta de excepciones.
 - Evidencia que produce: la revisión se apoya en la evidencia de los otros procesos. No crea una evidencia nueva por sí misma.
 - Dolores: `PP-GOV-001`
@@ -245,18 +315,52 @@ Los actores usan los ID de [../../domain/actors.md](../../domain/actors.md). Par
 - Capacidades: `CAP-MILK-001`
 - Excepciones y preguntas: `OQ-MILK-001`, `OQ-MILK-002`. La infraestructura requiere mantenimiento; este proceso no ordena repararla. En el AS-IS, `PP-MILK-001` sigue sin proceso vigente, y aquí tampoco entra al flujo inicial.
 
+## TGT-ANIMAL-EXIT-001 — Salida del activo
+
+- Disparador: se sabe que un animal ya no debe seguir activo. Puede ser la venta, una muerte, un faltante que el rancho da por confirmado, u otra salida.
+- Actores: `ACT-OWNER`. `ACT-WORKER` puede ser quien avisa.
+- Pasos deseados:
+  1. Marcar que deja de estar activo. Conservar la ficha y su historia.
+  2. Anotar el motivo: venta, muerte, faltante confirmado, otra salida, o desconocido.
+  3. Si el motivo es venta, el evento de origen es `TGT-SALE-001`. No se captura la baja otra vez.
+  4. Si solo se dejó de ver, el animal sigue activo. La última observación o la verificación no confirmada no son esta baja.
+  5. No anotar reposición, precio de reemplazo ni reparto «a la parte».
+- Información que produce: animal inactivo, motivo, fecha en que se supo.
+- Evidencia que produce: el dicho o el comprobante que haya, con su calidad.
+- Dolores: `PP-SEC-001`, `PP-DATA-001`
+- Capacidades: `CAP-LIFE-001`, `CAP-SEC-001`
+- Familia: `FAM-LIFE-001`
+- Excepciones y preguntas: `OQ-OWN-002`, `DQ-HERD-001`. El motivo desconocido es válido. La regla económica de la frase de la entrevista no se escribe aquí.
+
+## TGT-MOVE-001 — Asignar o mover un animal o un grupo
+
+- Disparador: el rancho fija o cambia dónde espera a un animal o a un grupo.
+- Actores: `ACT-OWNER` asienta. `ACT-WORKER` puede decir el movimiento.
+- Pasos deseados:
+  1. Nombrar el animal o el grupo.
+  2. Nombrar el potrero o lugar esperado, o dejarlo desconocido.
+  3. Poner la fecha o la hora en que eso empieza a valer.
+  4. Usar los potreros ya identificados, cerca de ocho, sin afirmar que cubren las aproximadamente 530 hectáreas y sin pedir sus hectáreas.
+- Información que produce: lugar esperado vigente, o desconocido, y desde cuándo.
+- Evidencia que produce: quién lo dijo. No hay lectura de aparato.
+- Dolores: `PP-SEC-002`, `PP-FEED-001`, `PP-GOV-001`
+- Capacidades: `CAP-LAND-001`, `CAP-FEED-001`, `CAP-SEC-001`
+- Familia: `FAM-LAND-001`
+- Excepciones y preguntas: `OQ-LAND-001`, `OQ-LAND-002`. No hay GPS ni mapa catastral. Este paso es deseable. Se puede empezar con lugar desconocido.
+
 ## Procesos que no se crean
 
 - No hay proceso de arquitectura ni de sincronización.
 - No hay proceso de ordeña vigente.
-- No hay proceso de muerte o de reposición. Falta el hecho de campo (`DQ-HERD-001`, `OQ-OWN-002`).
-- No hay proceso de fuego. Sigue como pregunta de terreno, `OQ-FIRE-001`, en el pastoreo actual.
-- No hay proceso de mapa o de GIS.
+- No hay regla de reposición ni de dinero por muerte. La salida sí existe, sin esa regla.
+- No hay proceso de fuego. Sigue `OQ-FIRE-001`.
+- No hay proceso de GIS ni de tenencia como trámite aparte: la tenencia entra con el animal.
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Diseño de dominio, no alcance aprobado
 - Última actualización: 2026-10-03
-- Fuente: `docs/domain` v0.1 y AS-IS v0.2
+- Fuente: `docs/domain` v0.1, TO-BE v0.1 y el plan 005
 - Validación: Pendiente de validación iterativa con el propietario del rancho
+

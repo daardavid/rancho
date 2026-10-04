@@ -30,17 +30,17 @@ La séptima pregunta pesa más que el entusiasmo por automatizar. `CON-SCALE-001
 
 Sirven para ver el marco aplicado. No añaden decisiones.
 
-**Registro de alimento por lote, con evidencia** (`SOL-FEED-001`, `SOL-FEED-002`). El dolor `PP-FEED-001` es directo. La gente puede anotar una preparación sin un aparato que no se sabe si existe. La evidencia sube un poco la confiabilidad y no la vuelve medición. La fricción es media y se acepta porque las alternativas medidas están bloqueadas por `OQ-FEED-001`. El costo es bajo para este hato. El mismo registro puede recibir después una cantidad pesada. No exige infraestructura nueva. Por eso la lectura de ahora es `yes`, con la confiabilidad todavía `low` o `medium`, y sin cuadrar `OQ-FEED-002`.
+**Declaración de alimento** (`SOL-FEED-001`, `SOL-FEED-002`). El dolor es directo. Anotar la compra y, si se quiere, lo que se dijo de la mezcla no exige un aparato. La evidencia no vuelve medida una entrega. La lectura de ahora es `yes` como declaración, no como verificación. `OQ-FEED-002` sigue sin cuadrarse.
 
-**Lectura de rentabilidad** (`SOL-FIN-003`). El dolor es real y es de los más importantes. El cálculo no se puede ejecutar con honestidad: «a la parte», el bulto y las cifras de alimento siguen abiertos. Un número incompleto empeora la evidencia si se lee como margen. La fricción del cálculo es baja y eso no lo salva. El costo sería bajo y el camino de datos sí se preserva, pero la séptima pregunta detiene la recomendación. Queda `investigate` en los dos horizontes.
+**Lectura provisional** (`SOL-FIN-003`). El dolor es de los más importantes. Una utilidad cerrada no se puede calcular. Una lectura que muestra lo asignado, la bolsa no asignada, la completitud y la parte del ranchero como no calculable sí cabe, y queda como deseable, fuera del mínimo. No calcula costo por kilo mientras el alimento no sea confiable.
 
-**GPS** (`SOL-SEC-004`). El faltante es un dolor crítico. No está demostrado que la gente pueda operar dispositivos en este predio, ni que el dato llegue con la señal descrita. El costo no es proporcionado a 21 cabezas. No hace falta el GPS para conservar la lista de quién debería estar. Exige infraestructura que no existe. La lectura de ahora es `no`. A escala queda `investigate`, no `yes`.
+**GPS** (`SOL-SEC-004`). El faltante es crítico. El costo no es proporcionado a unas 21 cabezas, y la señal no sostiene un aviso remoto. La lista de activos y el lugar esperado no lo necesitan. La lectura de ahora es `no`. A escala queda `investigate`.
 
 ## Horizontes
 
 `recommendedNow` mira el rancho descubierto: aproximadamente 21 cabezas, aproximadamente dos trabajadores que viven ahí, propietario que no está de tiempo completo, sin Wi-Fi, cobertura celular limitada y poco confiable, captura inicial por el propietario.
 
-`recommendedAtScale` mira un hato en el que ese hábito puede no alcanzar. El descubrimiento no dio la cantidad. No se usa un número inventado. Una opción puede ser `yes` ahora y `investigate` a escala, como la transcripción de pesos o el copiado por el propietario. Otra puede ser `no` ahora y `investigate` a escala, como RFID. `SOL-REPRO-002` es `yes` ahora y `no` a escala: el padre supuesto depende de que haya un solo toro.
+`recommendedAtScale` mira un hato en el que ese hábito puede no alcanzar. El descubrimiento no dio la cantidad. No se usa un número inventado. Una opción puede ser `yes` ahora y `investigate` a escala, como la transcripción de pesos o el copiado por el propietario. Otra puede ser `no` ahora y `investigate` a escala, como RFID. `SOL-REPRO-002` es `yes` ahora y `no` a escala: la inferencia por un solo toro no es paternidad y no sobrevive a más de un padre posible. `recommendedNow: yes` tampoco mete la opción en el paquete mínimo. Ese corte está en [README.md](README.md).
 
 ## Preguntas de descubrimiento que este diseño no cierra
 
@@ -80,7 +80,48 @@ Aparecieron al armar el modelo. No se copiaron a `docs/domain/open-questions.md`
 | `DQ-FIN-003` | ¿Qué costos se pueden atribuir a un animal o a un grupo mientras «a la parte» no esté definido? | `SOL-FIN-003` no debe inventar la respuesta. |
 | `DQ-GOV-001` | Además de un faltante confirmado y de un problema grave de un animal, ¿qué otro hecho debe avisar de inmediato? | `BR-CADENCE-001` no trae la lista. |
 | `DQ-SEC-003` | En este predio, ¿qué parte del hato puede pasar una o dos semanas sin entrar a la manga ni ser vista de otro modo? | Dice cuánto cubre `SOL-SEC-002` y cuánto sigue abierto en `OQ-COUNT-001`. |
-| `DQ-HERD-001` | ¿Cómo sale hoy un animal de la cuenta cuando muere, se repone o sale por un motivo distinto de la venta de becerros? | Sin eso, `CAP-SEC-001` construye una lista que la realidad desalinea. Se apoya en `OQ-OWN-002` y no lo cierra. |
+| `DQ-HERD-001` | ¿Cómo sale hoy un animal de la cuenta cuando muere, se repone o sale por un motivo distinto de la venta? | La salida ya se puede anotar, con motivo desconocido. La reposición económica no se interpreta. |
+
+## Clase de cada pregunta, en v0.2
+
+El modelo ya puede guardar desconocido en tenencia, participación, lugar, certeza de padres y motivo de salida. Por eso varias preguntas dejan de bloquear el dibujo del dominio. No se borran del registro de entrevistas. Ninguna se da por respondida.
+
+Bloquea el modelo: ninguna de las preguntas de abajo impide ya representar el hueco. Si una pantalla promete la parte del ranchero, el alimento verificado o el hato controlado, esa promesa sí queda bloqueada.
+
+| ID | Clase |
+| --- | --- |
+| OQ-OWN-001 | BLOCKS IMPLEMENTATION de la parte final del ranchero y del reparto de crías. |
+| OQ-OWN-002 | BLOCKS IMPLEMENTATION de una reposición o un pago. La salida del animal ya cabe, con motivo desconocido. |
+| OQ-OWN-003 | CAN BE LEARNED DURING PILOT. El padrón se arma al usarlo. |
+| OQ-OWN-004 | CAN BE LEARNED DURING PILOT. |
+| OQ-FEED-001 | CAN BE LEARNED DURING PILOT. Mientras tanto la entrega declarada no se llama medida. |
+| OQ-FEED-002 | BLOCKS IMPLEMENTATION del costo por kilo y de `CAP-FEED-002`. |
+| OQ-TRADE-001 | BLOCKS IMPLEMENTATION de la economía del bulto. El nombre de la forma sí se anota. |
+| OQ-SCALE-001 | BLOCKS IMPLEMENTATION del enlace con la báscula. |
+| OQ-FEED-003 | CAN BE LEARNED DURING PILOT. |
+| OQ-LAND-001 | LONG-TERM para las hectáreas. Nombrar un potrero no las necesita. |
+| OQ-LAND-002 | CAN BE LEARNED DURING PILOT, en `TGT-MOVE-001`, si el movimiento se anota. |
+| OQ-ID-001 | CAN BE LEARNED DURING PILOT. |
+| OQ-COUNT-001 | CAN BE LEARNED DURING PILOT. Hasta entonces el método y la cadencia de `TGT-HERD-VERIFY-001` siguen pendientes, y `PP-SEC-001` no está controlado. |
+| OQ-CONN-001 | BLOCKS ARCHITECTURE de una sincronización o de un mapa de señal. No bloquea el registro posterior. |
+| OQ-SEC-001 | LONG-TERM. La intrusión sigue sin implementación elegida. |
+| OQ-MILK-001 | LONG-TERM. |
+| OQ-FIN-001 | CAN BE LEARNED DURING PILOT. Lo que no se sepa clasificar queda sin clase. |
+| OQ-PEOPLE-001 | CAN BE LEARNED DURING PILOT. |
+| OQ-GEN-001 | LONG-TERM. |
+| OQ-FIRE-001 | LONG-TERM. |
+| OQ-MILK-002 | LONG-TERM. |
+| OQ-ENV-001 | LONG-TERM. |
+| OQ-NET-001 | LONG-TERM. |
+| OQ-HEALTH-001 | CAN BE LEARNED DURING PILOT. |
+| OQ-REPRO-001 | LONG-TERM. |
+| DQ-HABIT-001 | CAN BE LEARNED DURING PILOT. Por eso el mínimo es más chico que la lista de `yes`. |
+| DQ-FEED-004 | CAN BE LEARNED DURING PILOT. |
+| DQ-INV-001 | CAN BE LEARNED DURING PILOT. El mínimo cuenta ingredientes. |
+| DQ-FIN-003 | BLOCKS IMPLEMENTATION de un prorrateo automático. La bolsa no asignada no lo necesita. |
+| DQ-GOV-001 | CAN BE LEARNED DURING PILOT. |
+| DQ-SEC-003 | CAN BE LEARNED DURING PILOT. |
+| DQ-HERD-001 | CAN BE LEARNED DURING PILOT. El motivo de salida puede quedar desconocido. |
 
 ## De la lectura a una decisión futura
 
@@ -88,8 +129,8 @@ Una decisión posterior tendría que decir qué opción se adopta, cuál se rech
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Diseño de dominio, no alcance aprobado
 - Última actualización: 2026-10-03
-- Fuente: `docs/domain` v0.1 y AS-IS v0.2
+- Fuente: `docs/domain` v0.1, TO-BE v0.1 y el plan 005
 - Validación: Pendiente de validación iterativa con el propietario del rancho

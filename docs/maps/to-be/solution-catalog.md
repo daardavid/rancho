@@ -13,14 +13,18 @@ Valores usados:
 
 NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual puede dejar de ser realista. No se inventa esa cantidad de cabezas.
 
+Las familias de presentación están en [solution-families.md](solution-families.md). Las fichas de abajo conservan el detalle. v0.2 añade `SOL-SALE-001`, `SOL-LIFE-001` y `SOL-LAND-001`. No borra las anteriores.
+
+El paquete mínimo no es la lista de todo `recommendedNow: yes`. Está en [README.md](README.md).
+
 ## Identidad
 
 ### SOL-ID-001 — Identificador interno estable
 
-- Descripción: cada animal gestionado recibe una identidad del rancho, distinta del arete SINIIGA. El arete, el nombre y la foto se cuelgan de esa identidad y pueden cambiar sin crear otro animal.
+- Descripción: cada animal gestionado recibe una identidad del rancho, distinta del arete SINIIGA. En la misma ficha caben la tenencia y la participación económica, incluso cuando son desconocidas. El arete, el nombre y la foto se cuelgan de esa identidad.
 - Tipos: `SOFTWARE`, `PROCESS`
 - Dolores: `PP-ID-001`, `PP-DATA-001`
-- Capacidades: `CAP-ID-001`, `CAP-DATA-001`
+- Capacidades: `CAP-ID-001`, `CAP-DATA-001`, `CAP-OWN-001`, `CAP-LIFE-001`
 - Cómo ayuda: el historial sobrevive a un becerro sin arete, a un arete caído y a un SINIIGA que llega después.
 - Ventajas: no exige hardware nuevo. Sirve de base para peso, cría, gasto y presencia. Escala como dato aunque el hato crezca.
 - Desventajas: alguien tiene que abrir la ficha y reconocer al animal. La identidad de papel o de registro no impide que en el campo se confunda una cabeza si no hay marca física.
@@ -307,16 +311,16 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
 
 ## Alimentación
 
-### SOL-FEED-001 — Registro manual de compra, preparación y entrega
+### SOL-FEED-001 — Declaración estructurada de compra, preparación y entrega
 
-- Descripción: se anota la materia prima que entra, el lote o tambo que se prepara y la cantidad ofrecida a un grupo aproximado. No se anota lo que comió cada animal.
+- Descripción: se anota la materia prima que entra, el lote que se prepara y la cantidad que alguien dice haber ofrecido. Cada cantidad dice si es comprada, preparada o entregada declarada, y si su calidad es declarada, observada o medida. No es una entrega verificada. No se anota lo que comió cada animal.
 - Tipos: `PROCESS`, `SOFTWARE`
 - Dolores: `PP-FEED-001`
 - Capacidades: `CAP-FEED-001`
-- Cómo ayuda: aparece por primera vez una cantidad preparada y una cantidad entregada, separadas de la compra.
-- Ventajas: no exige báscula de alimento ni red. Sirve de base para la bodega y, más adelante, para comparar estrategias.
-- Desventajas: el número puede ser un dicho. La fricción es un hábito nuevo. No hace cuadrar las cifras de `OQ-FEED-002` y no debe usarse para forzarlas.
-- Precondiciones: `OQ-FEED-001` sigue abierta, así que la cantidad puede ser estimada. `OQ-FEED-003` impide fijar la fórmula.
+- Cómo ayuda: separa la compra de lo preparado y de lo declarado como entregado. Una compra, además, puede ser el mismo evento que el gasto y la entrada de bodega.
+- Ventajas: no exige báscula de alimento ni red. Deja el hueco a la vista.
+- Desventajas: el número de preparación o de entrega puede ser un dicho. No prueba el ejemplo de 1.0 kg frente a 1.5 kg. No cuadra `OQ-FEED-002`.
+- Precondiciones: `OQ-FEED-001` sigue abierta. `OQ-FEED-003` impide fijar la fórmula.
 - Evaluación inicial del proyecto:
   - Costo: `low`
   - Complejidad de implementación: `low`
@@ -330,19 +334,20 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
   - Factibilidad actual: `high`
 - recommendedNow: `yes`
 - recommendedAtScale: `investigate`
-- Razón: el dolor es crítico y las opciones medidas no se pueden adoptar mientras no se sepa cómo se mide hoy. Un registro por lote, no por bocado, es el paso de menor fricción. A escala, un dicho sin medida pierde fuerza. La confiabilidad `low` es deliberada.
+- Paquete: la compra está en el mínimo. La preparación y la entrega declarada son deseables, no necesarias para empezar.
+- Razón: archivar el dicho es mejor que no tenerlo, y llamarlo verificación sería una falsa confianza. La cantidad medida sigue en `SOL-FEED-003`.
 - Preguntas para validar: `OQ-FEED-001`, `OQ-FEED-002`, `DQ-FEED-004`.
 
-### SOL-FEED-002 — El mismo registro con evidencia
+### SOL-FEED-002 — La misma declaración, con evidencia
 
-- Descripción: `SOL-FEED-001` más foto o nota del ticket, del tambo o del reparto. La foto no se trata como kilogramo calibrado.
+- Descripción: `SOL-FEED-001` más foto o nota del ticket, del tambo o del reparto. La evidencia no convierte una entrega declarada en entrega medida.
 - Tipos: `PROCESS`, `SOFTWARE`
 - Dolores: `PP-FEED-001`, `PP-DATA-002`
 - Capacidades: `CAP-FEED-001`, `CAP-DATA-002`
-- Cómo ayuda: el propietario ve algo más que la cifra que le dijeron. Sube la posibilidad de revisar una entrega.
-- Ventajas: usa el teléfono actual. Se puede hacer aunque la cantidad siga siendo estimada.
-- Desventajas: una foto del comedero no prueba 1.5 kg ni 1.0 kg. Puede abandonarse si se pide todos los días sin un lote claro.
-- Precondiciones: las de `SOL-FEED-001`, más alguien que tome la evidencia.
+- Cómo ayuda: el propietario puede ver en qué se apoyó el dicho. El ticket de compra sí puede hacer observada la cantidad comprada, cuando el ticket la trae.
+- Ventajas: usa el teléfono actual.
+- Desventajas: una foto del comedero no prueba 1.5 kg ni 1.0 kg.
+- Precondiciones: las de `SOL-FEED-001`.
 - Evaluación inicial del proyecto:
   - Costo: `low`
   - Complejidad de implementación: `low`
@@ -356,8 +361,9 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
   - Factibilidad actual: `high`
 - recommendedNow: `yes`
 - recommendedAtScale: `yes`
-- Razón: es la variante preferida cuando hay imagen o ticket. `SOL-FEED-001` cubre el día en que solo hay un dicho. No son dos proyectos distintos.
-- Preguntas para validar: `DQ-FEED-004`. Qué plano de la preparación muestra una cantidad útil.
+- Paquete: deseable. El ticket de la compra, cuando ya se guarda, entra al mínimo junto con el gasto.
+- Razón: evidencia de un dicho, no verificación de la ración. No es un segundo proyecto respecto de `SOL-FEED-001`.
+- Preguntas para validar: `DQ-FEED-004`.
 
 ### SOL-FEED-003 — Medir el lote con báscula o recipiente no conectado
 
@@ -517,16 +523,16 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
 - Razón: mucho comprobante ya existe. Ligarlo y clasificarlo es de las ganancias de información más altas por peso de trabajo. La confiabilidad de la clase se queda en `medium` a propósito.
 - Preguntas para validar: `OQ-FIN-001`.
 
-### SOL-FIN-003 — Lectura económica incompleta si faltan reglas
+### SOL-FIN-003 — Rentabilidad administrativa provisional
 
-- Descripción: cuando hay costos e ingresos registrados, se puede estimar costo de criar, ingreso, margen y costo por kilogramo ganado. Si falta «a la parte», el bulto o el alimento no reconciliado, la lectura se marca incompleta y no se publica como cifra cerrada.
+- Descripción: con ingresos y costos ya registrados, se muestra un margen provisional de lo asignado, la bolsa de lo no asignado, la completitud y la calidad de los datos. La parte del ranchero queda desconocida. No es utilidad fiscal, no finiquita al socio y no calcula costo por kilo si el alimento no es confiable.
 - Tipos: `SOFTWARE`, `PROCESS`
 - Dolores: `PP-FIN-001`
-- Capacidades: `CAP-FIN-001`, `CAP-FEED-002`
-- Cómo ayuda: prepara el resultado que el propietario quiere, sin fabricarlo.
-- Ventajas: usa los mismos registros. No exige una contabilidad fiscal.
-- Desventajas: un número parcial se puede leer como rentabilidad real. Ese riesgo es la razón para no recomendarlo ahora.
-- Precondiciones: `OQ-OWN-001`, `OQ-OWN-002`, `OQ-TRADE-001`, `OQ-FEED-002`, `OQ-PEOPLE-001`.
+- Capacidades: `CAP-FIN-001`
+- Cómo ayuda: el propietario ve el dinero conocido y lo que falta, sin una cifra que parezca cerrada.
+- Ventajas: usa los registros que ya se capturaron. No exige reglas de «a la parte».
+- Desventajas: un lector apurado puede ignorar la completitud. Por eso la parte del ranchero se muestra como no calculable, no como cero.
+- Precondiciones: que existan algunos ingresos o costos. `OQ-OWN-001` y `OQ-FEED-002` siguen abiertas y limitan la lectura. No la impiden.
 - Evaluación inicial del proyecto:
   - Costo: `low`
   - Complejidad de implementación: `medium`
@@ -537,10 +543,11 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
   - Dependencia de hardware: `none`
   - Escalabilidad: `high`
   - Auditabilidad: `medium`
-  - Factibilidad actual: `low`
-- recommendedNow: `investigate`
-- recommendedAtScale: `investigate`
-- Razón: la capacidad es central y los insumos no están. Recomendar el cálculo ahora convertiría preguntas abiertas en un margen. Tampoco se recomienda para una escala futura hasta que esas reglas existan; el tamaño del hato no las responde.
+  - Factibilidad actual: `medium`
+- recommendedNow: `yes`
+- recommendedAtScale: `yes`
+- Paquete: deseable. No hace falta para empezar. El ingreso de venta se registra igual, en `SOL-SALE-001`.
+- Razón: aplazar toda lectura dejaba el objetivo principal en una gaveta de tickets. La lectura de ahora es provisional a propósito. La confiabilidad `low` es la del conjunto, no la de un ticket suelto.
 - Preguntas para validar: `OQ-OWN-001`, `OQ-TRADE-001`, `OQ-FEED-002`, `DQ-FIN-003`.
 
 ### SOL-FIN-004 — Integración con cuentas financieras
@@ -705,9 +712,9 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
 - Razón: el dolor es crítico y el método realista no está descrito. La confiabilidad `medium` vale solo si el conteo ocurre; la factibilidad actual es `low`.
 - Preguntas para validar: `OQ-COUNT-001`.
 
-### SOL-SEC-002 — Verificación en manejos que ya reúnen animales
+### SOL-SEC-002 — Última observación en un manejo
 
-- Descripción: cuando el ganado pasa por pesaje, manga u otro manejo, se anota a quién se vio y a quién se esperaba y no estuvo. Eso actualiza la última verificación de esos animales.
+- Descripción: la última vez que un animal se vio queda escrita por el evento que ya lo reunió, sobre todo el pesaje. No es un formulario de presencia aparte ni una verificación del hato.
 - Tipos: `PROCESS`
 - Dolores: `PP-SEC-001`, `PP-SEC-002`
 - Capacidades: `CAP-SEC-001`
@@ -728,7 +735,7 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
   - Factibilidad actual: `high`
 - recommendedNow: `yes`
 - recommendedAtScale: `yes`
-- Razón: es una ganancia parcial y honesta, no una solución al robo. La confiabilidad del hato completo se queda en `low`. Se recomienda porque hoy no hay ninguna verificación, y esta no pide trabajo extra grande. No cierra `OQ-COUNT-001`.
+- Razón: es una última observación de quien ya estaba en la manga, con fricción nula si sale del pesaje. No acorta por sí sola el plazo de una o dos semanas del hato. `TGT-HERD-VERIFY-001` sigue con método y cadencia pendientes. La confiabilidad del hato completo se queda en `low`.
 - Preguntas para validar: `OQ-OWN-003`, `DQ-SEC-003`. Qué fracción del hato no entra a la manga en dos semanas.
 
 ### SOL-SEC-003 — Puntos de paso con RFID
@@ -997,16 +1004,16 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
 - Razón: es el inicio del historial de crecimiento y de la genealogía, con fricción baja. La foto, si existe, entra por `SOL-DATA-002`.
 - Preguntas para validar: `OQ-ID-001`.
 
-### SOL-REPRO-002 — Padre supuesto mientras haya un solo toro
+### SOL-REPRO-002 — Inferencia de padre por el único toro
 
-- Descripción: la cría se liga al toro presente como supuesto de monta natural, marcado así, no como prueba.
+- Descripción: si sigue habiendo un solo toro de monta natural, el padre puede quedar inferido, con motivo «único toro presente». La certeza es inferida, nunca observada ni confirmada. La madre usa las mismas tres certezas en el nacimiento: observada, inferida o desconocida.
 - Tipos: `PROCESS`, `POLICY`
 - Dolores: `PP-REPRO-001`
 - Capacidades: `CAP-REPRO-001`
-- Cómo ayuda: la paternidad informal de hoy queda escrita, con su límite.
-- Ventajas: no exige genotipado ni un segundo manejo.
-- Desventajas: el supuesto se cae si hay otro toro, si el toro no estaba con la vaca, o si más adelante hay inseminación. Nada de eso está medido.
-- Precondiciones: que siga habiendo un solo toro. `BR-REPRO-001`.
+- Cómo ayuda: el parentesco informal queda escrito con su límite.
+- Ventajas: no exige otro manejo ni un análisis.
+- Desventajas: la inferencia cae si hay otro toro, si el toro no estaba, o si más adelante hay inseminación. Nada de eso está medido.
+- Precondiciones: `BR-REPRO-001`. Un solo toro.
 - Evaluación inicial del proyecto:
   - Costo: `low`
   - Complejidad de implementación: `low`
@@ -1020,7 +1027,8 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
   - Factibilidad actual: `high`
 - recommendedNow: `yes`
 - recommendedAtScale: `no`
-- Razón: hoy el supuesto es el mejor dato disponible y debe verse como supuesto. No se lleva a un hato con más de un padre posible. Por eso escala en `no`, no en `investigate`.
+- Paquete: deseable. El nacimiento del mínimo puede dejar el padre desconocido.
+- Razón: el único toro es un motivo de inferencia, no una paternidad. A escala, con más de un padre posible, esta política no sirve.
 - Preguntas para validar: `OQ-REPRO-001`.
 
 ### SOL-REPRO-003 — Comparar líneas más adelante
@@ -1317,16 +1325,102 @@ NOW es el rancho descubierto. SCALE es un hato en el que el mismo hábito manual
 - Razón: ni el futuro condicional la da por necesaria. Medir el grupo sería el primer peldaño si la leche volviera.
 - Preguntas para validar: `OQ-MILK-002`.
 
+## Salida, venta y lugar
+
+Estas tres fichas se añaden en v0.2. El resto del catálogo permanece.
+
+### SOL-SALE-001 — Registrar el ingreso conocido de una venta
+
+- Descripción: una venta deja cantidad o peso si se conoce, precio unitario si aplica, ingreso total conocido, comprador y evidencia si existe. No calcula margen. El mismo evento deja la salida con motivo venta.
+- Tipos: `PROCESS`, `SOFTWARE`
+- Dolores: `PP-FIN-001`
+- Capacidades: `CAP-FIN-001`, `CAP-LIFE-001`
+- Cómo ayuda: el ingreso existe aunque la rentabilidad provisional todavía no se mire.
+- Ventajas: el propietario ya cierra la venta. Poca fricción.
+- Desventajas: no dice si convino. No traduce el bulto.
+- Precondiciones: `BR-SALE-001`. `OQ-TRADE-001` sigue abierta.
+- Evaluación inicial del proyecto:
+  - Costo: `low`
+  - Complejidad de implementación: `low`
+  - Fricción operativa: `low`
+  - Confiabilidad del dato: `medium`
+  - Dependencia humana: `high`
+  - Dependencia de conectividad: `low`
+  - Dependencia de hardware: `none`
+  - Escalabilidad: `high`
+  - Auditabilidad: `medium`
+  - Factibilidad actual: `high`
+- recommendedNow: `yes`
+- recommendedAtScale: `yes`
+- Paquete: mínimo.
+- Razón: sin ingreso no hay lectura económica, ni siquiera provisional. Registrarlo no exige el modelo completo.
+- Preguntas para validar: `OQ-TRADE-001`.
+
+### SOL-LIFE-001 — Registrar la salida y conservar la historia
+
+- Descripción: un animal deja de estar activo por venta, muerte, faltante confirmado, otra salida o motivo desconocido. La ficha permanece. Dejar de verlo no es, por sí solo, esta baja.
+- Tipos: `PROCESS`, `SOFTWARE`
+- Dolores: `PP-SEC-001`, `PP-DATA-001`
+- Capacidades: `CAP-LIFE-001`, `CAP-SEC-001`
+- Cómo ayuda: la lista de activos no se queda con animales que ya salieron, y el historial no se borra.
+- Ventajas: no exige saber la regla de reposición.
+- Desventajas: un motivo desconocido es honesto y poco útil para el dinero. No calcula compensación.
+- Precondiciones: `TGT-ANIMAL-EXIT-001`. La venta usa el mismo hecho, no otro trámite.
+- Evaluación inicial del proyecto:
+  - Costo: `low`
+  - Complejidad de implementación: `low`
+  - Fricción operativa: `low`
+  - Confiabilidad del dato: `medium`
+  - Dependencia humana: `high`
+  - Dependencia de conectividad: `low`
+  - Dependencia de hardware: `none`
+  - Escalabilidad: `high`
+  - Auditabilidad: `medium`
+  - Factibilidad actual: `high`
+- recommendedNow: `yes`
+- recommendedAtScale: `yes`
+- Paquete: mínimo.
+- Razón: sin salida, la presencia y la economía siguen contando animales que ya no están. `OQ-OWN-002` no se interpreta.
+- Preguntas para validar: `DQ-HERD-001`, `OQ-OWN-002`.
+
+### SOL-LAND-001 — Lugar esperado, o desconocido
+
+- Descripción: un animal o un grupo queda en un potrero o lugar, desde una fecha, o queda con lugar desconocido. Sirven los potreros ya nombrados. No se pide su superficie ni un aparato.
+- Tipos: `PROCESS`
+- Dolores: `PP-SEC-002`, `PP-FEED-001`, `PP-GOV-001`
+- Capacidades: `CAP-LAND-001`, `CAP-SEC-001`, `CAP-FEED-001`
+- Cómo ayuda: el grupo de alimento, el conteo y la última observación tienen un dónde, cuando se sabe.
+- Ventajas: no exige GPS ni el croquis de las 530 hectáreas.
+- Desventajas: un lugar dicho puede estar mal. No verifica que el animal siga ahí.
+- Precondiciones: `OQ-LAND-001` puede seguir abierta. Desconocido es válido.
+- Evaluación inicial del proyecto:
+  - Costo: `low`
+  - Complejidad de implementación: `low`
+  - Fricción operativa: `low`
+  - Confiabilidad del dato: `medium`
+  - Dependencia humana: `high`
+  - Dependencia de conectividad: `none`
+  - Dependencia de hardware: `none`
+  - Escalabilidad: `high`
+  - Auditabilidad: `medium`
+  - Factibilidad actual: `high`
+- recommendedNow: `yes`
+- recommendedAtScale: `yes`
+- Paquete: deseable. El mínimo puede dejar el lugar desconocido.
+- Razón: el modelo necesita el lugar para no inventar un mapa. Llenarlo el primer día no es requisito.
+- Preguntas para validar: `OQ-LAND-001`, `OQ-LAND-002`.
+
 ## Lectura de los indicadores
 
-Las opciones con `recommendedNow: yes` forman el paquete inicial descrito en [README.md](README.md). No se ejecutan como proyectos separados ni quedan decididas.
+`recommendedNow: yes` no significa que la opción entre al paquete mínimo. El mínimo, lo deseable y lo que queda fuera están en [README.md](README.md). Las familias están en [solution-families.md](solution-families.md).
 
-Donde `recommendedNow` es `investigate` o `no`, el dolor puede seguir cubierto por otra opción o quedar condicional. La matriz está en el mismo índice.
+Ninguna marca es una decisión. Donde la efectividad de un dolor es solo visibilidad, o no está abordado, la existencia de una opción no lo promueve.
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Diseño de dominio, no alcance aprobado
 - Última actualización: 2026-10-03
-- Fuente: `docs/domain` v0.1 y AS-IS v0.2
+- Fuente: `docs/domain` v0.1, TO-BE v0.1 y el plan 005
 - Validación: Pendiente de validación iterativa con el propietario del rancho
+
