@@ -286,7 +286,7 @@ Los indicadores de éxito son de negocio. La evaluación de si hoy se pueden cum
   - Un movimiento queda fechado. No se exige hectárea, GPS ni un sistema de mapas.
   - El grupo de alimentación, la verificación de presencia y la revisión de gestión pueden apoyarse en ese lugar.
 - Restricciones conocidas: `CON-LAND-001`, `OQ-LAND-001`, `OQ-LAND-002`.
-- Preguntas abiertas: `OQ-LAND-001`, `OQ-LAND-002`. Nombrar un potrero no cierra el croquis.
+- Preguntas abiertas: `OQ-LAND-001`, `OQ-LAND-002`. Identificar un potrero, o asignarle después un identificador interno, no cierra el croquis. No se afirma que hoy tengan nombres formales.
 
 ## Leche
 

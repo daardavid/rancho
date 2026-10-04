@@ -5,7 +5,7 @@ type SectionNodeType = Node<SectionNodeData, 'section'>
 
 export function SectionNode({ data }: NodeProps<SectionNodeType>) {
   return (
-    <div className="section-node">
+    <div className={`section-node${data.variant === 'conditional' ? ' is-conditional' : ''}`}>
       <p className="section-node__title">{data.title}</p>
       {data.canvasNote ? <p className="section-node__note">{data.canvasNote}</p> : null}
       {data.associationTarget ? (

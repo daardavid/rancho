@@ -1385,7 +1385,7 @@ Estas tres fichas se añaden en v0.2. El resto del catálogo permanece.
 
 ### SOL-LAND-001 — Lugar esperado, o desconocido
 
-- Descripción: un animal o un grupo queda en un potrero o lugar, desde una fecha, o queda con lugar desconocido. Sirven los potreros ya nombrados. No se pide su superficie ni un aparato.
+- Descripción: un animal o un grupo queda en un potrero o lugar, desde una fecha, o queda con lugar desconocido. Sirven los potreros conocidos o identificados, cerca de ocho. No se afirma que ya tengan nombres formales. El diseño objetivo puede asignar después un nombre o identificador interno. No se pide su superficie ni un aparato.
 - Tipos: `PROCESS`
 - Dolores: `PP-SEC-002`, `PP-FEED-001`, `PP-GOV-001`
 - Capacidades: `CAP-LAND-001`, `CAP-SEC-001`, `CAP-FEED-001`

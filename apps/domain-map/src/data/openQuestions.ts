@@ -27,4 +27,8 @@ export const openQuestionById: Record<string, string> = {
   'OQ-FIRE-001': '¿Qué causa tiene el fuego o las quemas, con qué frecuencia y con qué daño?',
   'OQ-HEALTH-001': '¿Cuál es el calendario real de vacunas, baños y medicamentos?',
   'OQ-REPRO-001': '¿Se contempla más de un toro o inseminación?',
+  'OQ-MILK-001':
+    '¿Cuál fue la economía real de la leche: precio, volumen sostenido, costos, frecuencia de entrega y acuerdo con la quesería? El máximo de aproximadamente 150 litros con 22 vacas es un recuerdo, no esa economía.',
+  'OQ-MILK-002':
+    'Si se retoma la leche, ¿medir por vaca será necesario desde el inicio o bastará un dato de grupo? No está decidido.',
 }

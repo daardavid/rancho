@@ -338,7 +338,7 @@ Ningún paso cierra una pregunta abierta. Los actores usan los ID de [../../doma
 - Actores: `ACT-OWNER` asienta. `ACT-WORKER` puede decir el movimiento.
 - Pasos deseados:
   1. Nombrar el animal o el grupo.
-  2. Nombrar el potrero o lugar esperado, o dejarlo desconocido.
+  2. Indicar el potrero o lugar esperado, o dejarlo desconocido. No se afirma que los potreros ya tengan nombres formales. El diseño puede asignar después un identificador interno.
   3. Poner la fecha o la hora en que eso empieza a valer.
   4. Usar los potreros ya identificados, cerca de ocho, sin afirmar que cubren las aproximadamente 530 hectáreas y sin pedir sus hectáreas.
 - Información que produce: lugar esperado vigente, o desconocido, y desde cuándo.

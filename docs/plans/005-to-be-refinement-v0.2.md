@@ -28,7 +28,7 @@ Added:
 
 - `CAP-OWN-001` — tenure separate from economic participation. Participation may be known, partially known, or unknown. The verbal agreement stays a note. No 50 percent rule. No rancher’s final share while `OQ-OWN-001` is open.
 - `CAP-LIFE-001` — active or not, and why an animal left. History remains.
-- `CAP-LAND-001` — expected paddock or group, date, or unknown. About eight named paddocks do not describe all of the roughly 530 hectares. No GPS and no hectare requirement.
+- `CAP-LAND-001` — expected paddock or group, date, or unknown. About eight known or identified paddocks do not describe all of the roughly 530 hectares. The interviews do not establish formal names for them. The target design may later assign an internal name or identifier. No GPS and no hectare requirement.
 
 Refined:
 
@@ -68,7 +68,7 @@ The v0.1 options stay. Three options are added because the old catalog had no pl
 
 - `SOL-SALE-001` — record known sale income. Recommended now. In the minimum package.
 - `SOL-LIFE-001` — record an exit and keep history. Recommended now. In the minimum package.
-- `SOL-LAND-001` — name an expected paddock or group, or leave it unknown. Recommended now as desirable, not required to start.
+- `SOL-LAND-001` — record an expected paddock or group, using the known or identified paddocks, or leave it unknown. This does not treat those paddocks as already formally named. Recommended now as desirable, not required to start.
 
 `SOL-FEED-001` and `SOL-FEED-002` are structured declaration plus evidence. They are not verified delivery. `SOL-FEED-003` stays investigate.
 

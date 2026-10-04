@@ -99,7 +99,7 @@ Bloquea el modelo: ninguna de las preguntas de abajo impide ya representar el hu
 | OQ-TRADE-001 | BLOCKS IMPLEMENTATION de la economía del bulto. El nombre de la forma sí se anota. |
 | OQ-SCALE-001 | BLOCKS IMPLEMENTATION del enlace con la báscula. |
 | OQ-FEED-003 | CAN BE LEARNED DURING PILOT. |
-| OQ-LAND-001 | LONG-TERM para las hectáreas. Nombrar un potrero no las necesita. |
+| OQ-LAND-001 | LONG-TERM para las hectáreas. Identificar un potrero no las necesita. No se afirma que los potreros ya tengan nombres formales. |
 | OQ-LAND-002 | CAN BE LEARNED DURING PILOT, en `TGT-MOVE-001`, si el movimiento se anota. |
 | OQ-ID-001 | CAN BE LEARNED DURING PILOT. |
 | OQ-COUNT-001 | CAN BE LEARNED DURING PILOT. Hasta entonces el método y la cadencia de `TGT-HERD-VERIFY-001` siguen pendientes, y `PP-SEC-001` no está controlado. |

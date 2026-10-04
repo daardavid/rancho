@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TopNav } from './components/layout/TopNav.tsx'
 import { AsIsMap } from './features/maps/components/AsIsMap.tsx'
 import { PlaceholderView } from './features/maps/components/PlaceholderView.tsx'
+import { ToBeMap } from './features/maps/components/ToBeMap.tsx'
 import type { MapView } from './types/map.ts'
 
 function App() {
@@ -14,10 +15,7 @@ function App() {
         {activeView === 'as-is' ? (
           <AsIsMap />
         ) : activeView === 'to-be' ? (
-          <PlaceholderView
-            title="TO-BE"
-            message="This view is reserved for future process and solution alternatives. None have been designed yet."
-          />
+          <ToBeMap />
         ) : (
           <PlaceholderView
             title="ARCHITECTURE"

@@ -54,6 +54,8 @@ export interface SectionNodeData extends Record<string, unknown> {
   canvasNote?: string
   /** Dashed association may end on this section rather than on every process. */
   associationTarget?: boolean
+  /** Visual frame only. Omitted on the AS-IS map. */
+  variant?: 'conditional'
   processIds: string[]
 }
 

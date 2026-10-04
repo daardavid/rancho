@@ -4,7 +4,7 @@ Modelo deseado del rancho, a nivel de dominio, después de la auditoría de la v
 
 El hoy sigue en [../as-is/README.md](../as-is/README.md) y en [../../domain/README.md](../../domain/README.md). El plan de esta corrección es [../../plans/005-to-be-refinement-v0.2.md](../../plans/005-to-be-refinement-v0.2.md). Las familias están en [solution-families.md](solution-families.md).
 
-La pestaña TO-BE de `apps/domain-map` sigue vacía a propósito.
+La pestaña TO-BE de `apps/domain-map` muestra el mapa interactivo v0.1 de este modelo. El mapa no aprueba un alcance ni sustituye estos documentos.
 
 ## Cómo leer la cadena
 
@@ -94,6 +94,23 @@ El lugar puede quedar desconocido. La verificación del hato no entra, porque su
 ## Preguntas
 
 Siguen en [../../domain/open-questions.md](../../domain/open-questions.md) y, las de diseño, en [decision-framework.md](decision-framework.md). Esta versión no las cierra. Las que bloquean una implementación posterior, y no el hecho de guardar «desconocido», son sobre todo `OQ-OWN-001`, `OQ-OWN-002` en su parte económica, `OQ-FEED-002`, `OQ-TRADE-001`, `OQ-SCALE-001` y `DQ-FIN-003`. `OQ-COUNT-001` y `OQ-SEC-001` dejan la presencia del hato y la intrusión sin método elegido.
+
+## Convenciones de la interfaz v0.1
+
+El mapa dibuja procesos objetivo (`TGT-*`). No dibuja cada capacidad, cada familia ni cada opción.
+
+| Convención | Cómo se ve | Qué significa |
+| --- | --- | --- |
+| Nodo de proceso objetivo | Tarjeta con nombre, horizonte y unos pocos dolores | Proceso deseado. No es una solución adoptada ni un estado resuelto. |
+| Horizonte | Mínimo útil, Deseable ahora, Método pendiente, A escala, Condicional | Alcance de la intención. A escala, en una opción, no obliga a adoptarla después. |
+| Efectividad | Evaluación inicial: sustancialmente controlado, control parcial, solo mejora visibilidad, no atendido, condicional | Lectura del proyecto sobre el dolor. No es un porcentaje ni un cierre. |
+| Método pendiente | Etiqueta en la verificación del hato y en la intrusión | El control deseado está dicho. El método, o la implementación, no. |
+| Familia de solución | En el panel, o en la banda transversal | Enfoque principal y como mucho dos alternativas a la vista. El resto se abre por estante: recomendado ahora, investigar, a escala, no recomendado ahora. |
+| Principios transversales | Banda, no nodos hermanos | `CAP-DATA-002`, `CAP-COMM-001` y `CAP-CONN-001`: fuente, evidencia, canal, y asentar después. No describen una sincronización. |
+
+La leche queda en un marco aparte, marcado Condicional. Los aproximadamente 8 potreros se tratan como conocidos o identificados, no como nombres formales ya existentes.
+
+El catálogo completo de opciones sigue en [solution-catalog.md](solution-catalog.md). Esta sección no lo repite.
 
 ## Estado del documento
 
