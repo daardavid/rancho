@@ -83,6 +83,37 @@ input {
   min-height: 0;
 }
 
+.map-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 72%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.map-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #d9dee7;
+}
+
+.map-filter {
+  border: 1px solid #d0d6e0;
+  background: #ffffff;
+  color: #3e4856;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.map-filter.is-active {
+  background: #1c2430;
+  border-color: #1c2430;
+  color: #ffffff;
+}
+
 .map-canvas {
   flex: 1;
   min-width: 0;
@@ -96,8 +127,10 @@ input {
 }
 
 .detail-panel {
-  width: 320px;
-  flex: none;
+  flex: 0 0 28%;
+  min-width: 300px;
+  max-width: 440px;
+  min-height: 0;
   overflow: auto;
   background: #ffffff;
   border-left: 1px solid #d9dee7;
@@ -122,9 +155,89 @@ input {
 
 .detail-panel h2,
 .placeholder h2 {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   font-size: 22px;
   font-weight: 650;
+}
+
+.detail-panel h3 {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3e4856;
+}
+
+.detail-panel h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.detail-panel p,
+.detail-panel li {
+  color: #1c2430;
+}
+
+.detail-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.detail-panel li + li {
+  margin-top: 6px;
+}
+
+.detail-panel__note,
+.pain-card__meta {
+  color: #5c6778;
+  font-size: 13px;
+}
+
+.detail-warning {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  background: #f4f1e8;
+  border-left: 3px solid #8a6a12;
+  color: #3e4856;
+}
+
+.mono {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.pain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pain-card {
+  padding: 10px 12px;
+  border: 1px solid #d9dee7;
+  border-radius: 4px;
+  background: #fafbfc;
+}
+
+.pain-card p {
+  margin: 0 0 8px;
+}
+
+.pain-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.severity-chip {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #3e4856;
 }
 
 .detail-panel dl {
@@ -159,50 +272,87 @@ input {
   background: #f7f8fa;
 }
 
+.section-node {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #d5dbe3;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 55%);
+}
+
+.section-node__title {
+  margin: 0;
+  padding: 8px 12px 0;
+  color: #5c6778;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .process-node {
-  width: 180px;
-  padding: 10px 12px;
+  width: 196px;
+  height: 108px;
+  padding: 8px 10px;
   background: #ffffff;
   border: 1px solid #d0d6e0;
-  border-left-width: 4px;
+  border-top-width: 3px;
   border-radius: 4px;
   box-shadow: 0 1px 2px rgb(28 36 48 / 8%);
 }
 
 .process-node__title {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 650;
+  line-height: 1.25;
+}
+
+.process-node__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: #5c6778;
+  font-size: 11px;
+}
+
+.react-flow__node.is-dimmed {
+  opacity: 0.28;
+}
+
+.react-flow__node.selected.is-dimmed {
+  opacity: 1;
+}
+
+.category-engorda {
+  border-top-color: #1f4b6e;
+}
+
+.category-reproduccion {
+  border-top-color: #3d5c4a;
+}
+
+.category-inventario {
+  border-top-color: #6a5a3a;
+}
+
+.category-finanzas {
+  border-top-color: #3e4a5c;
+}
+
+.category-seguridad {
+  border-top-color: #6b4040;
+}
+
+.category-terreno {
+  border-top-color: #3f5c48;
+}
+
+.category-informacion {
+  border-top-color: #4a5568;
 }
 
 .process-node.is-selected {
-  border-color: #1f4b6e;
-  box-shadow: 0 0 0 2px rgb(31 75 110 / 20%);
-}
-
-.severity-none {
-  border-left-color: #8b95a5;
-}
-
-.severity-low {
-  border-left-color: #3d7a4a;
-}
-
-.severity-medium {
-  border-left-color: #8a6a12;
-}
-
-.severity-high {
-  border-left-color: #a15c12;
-}
-
-.severity-critical {
-  border-left-color: #8d2f2f;
-}
-
-.severity-label {
-  display: inline-block;
-  padding-left: 8px;
-  border-left: 3px solid currentColor;
-  text-transform: capitalize;
+  box-shadow: 0 0 0 2px rgb(31 75 110 / 28%);
 }

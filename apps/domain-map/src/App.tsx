@@ -16,7 +16,7 @@ function App() {
         ) : activeView === 'to-be' ? (
           <PlaceholderView
             title="TO-BE"
-            message="This view is reserved for future process and solution alternatives. No domain content has been defined yet."
+            message="This view is reserved for future process and solution alternatives. None have been designed yet."
           />
         ) : (
           <PlaceholderView

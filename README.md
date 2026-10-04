@@ -10,7 +10,7 @@ The production ranch application has not been designed yet. This repository curr
 
 ## Domain discovery
 
-The working ranch context is in [docs/domain/README.md](docs/domain/README.md). It separates known facts, current practice, business rules, pain points, future goals, hypotheses, and open questions. It will feed the later AS-IS and TO-BE maps. It is not an approved scope, and it does not replace those maps. Update it when a new interview changes what is understood.
+The working ranch context is in [docs/domain/README.md](docs/domain/README.md). It separates known facts, current practice, business rules, pain points, future goals, hypotheses, and open questions. The current-state map is documented in [docs/maps/as-is/README.md](docs/maps/as-is/README.md) and shown in the AS-IS view. TO-BE and architecture are still empty. This is not an approved scope. Update the domain notes when a new interview changes what is understood.
 
 ## Repository areas
 
