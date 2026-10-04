@@ -1,0 +1,18 @@
+{
+  "name": "rancho",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Ranch operations and decision-support workspace. Domain discovery is in progress.",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:map": "npm run dev -w @rancho/domain-map",
+    "build:map": "npm run build -w @rancho/domain-map",
+    "lint:map": "npm run lint -w @rancho/domain-map"
+  }
+}
