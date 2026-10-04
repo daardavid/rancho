@@ -1,8 +1,8 @@
 # Context map
 
-How the modules of [domain-boundaries.md](domain-boundaries.md) relate. The words upstream and downstream are used in the ordinary sense: upstream owns a fact, downstream uses it. Formal pattern names are used only where they make a relationship easier to see.
+How the modules of [domain-boundaries.md](domain-boundaries.md) relate. Upstream owns a fact. Downstream uses it.
 
-No relationship in this map requires a separate service or a message broker. Inside the monolith, "event" means an explicit in-process fact. "Synchronous" means a call on the owner's port during the request that captured the ranch event.
+No relationship in this map requires a separate service, a message broker, or a published event. Inside the monolith, a cross-module write is an application orchestrator calling public module interfaces in one local transaction ([ADR-003](adr/ADR-003-application-orchestration.md)). A read is a query. See [ADR-004](adr/ADR-004-no-cross-module-event-bus-yet.md).
 
 ## Dependency direction
 
@@ -10,136 +10,173 @@ No relationship in this map requires a separate service or a message broker. Ins
 UI / owner-facing application
         │
         ▼
-application commands (one capture, one local transaction)
+application orchestrators and module operations
+(one capture, one local transaction)
         │
         ├── Herd
         ├── Growth
         ├── Feeding
         ├── Inventory
-        ├── Finance
-        ├── Reproduction
-        └── Health
+        └── Finance
                 │
                 ▼
         read models and alert policy
-        (may listen; nothing above depends on them)
+        (query only; nothing above depends on them)
 
 adapters ── inward ──▶ application ports ──▶ domain modules
 ```
 
 Domain modules do not depend on the UI, on read models, or on adapters.
 
-Allowed domain-to-domain knowledge is a stable id plus, where needed, a query the owner publishes (for example, "is this animal active?"). The caller's domain model does not include the callee's entities.
+A domain module does not write another module's persistence and does not call another module to perform a write. Allowed knowledge across modules is a stable id plus, rarely, a public query. The caller's domain model does not include the callee's entities.
+
+Prefer an id the orchestrator has already validated. A query is for the case where the module itself must see a current fact, such as which animals are still active when a weighing session is opened.
 
 | From | May depend on | Must not |
 | --- | --- | --- |
-| Herd | Shared ids and audit primitives only | Growth, Feeding, Inventory, Finance, Reproduction, Health, read models |
-| Growth | `AnimalId`. May query whether an animal is still expected in the calf routine | Update Animal. Read profitability or the weekly summary to decide a weight |
-| Feeding | `PaddockId` when a delivery names a place. Expense id and stock-movement id as references after the composition command | Write stock rows or expense rows. Treat a paddock query as an observation |
-| Inventory | References back to the capture that caused a movement | Feed quality rules, prices |
-| Finance | `AnimalId` and `PaddockId` as attribution targets | The active flag, parentage, weights as editable copies |
-| Reproduction | `AnimalId` of the offspring, and of dam or sire when those animals exist | Insert the animal |
-| Health | `AnimalId` or `PaddockId`. Optional movement id | Decrement stock itself while inventory's scope is still ingredients-only; the link waits |
-| Read models | Queries or events from any module | Be imported by a domain module |
+| Herd | Shared kernel only | Write Finance, Inventory, Feeding, or Growth. Read a profitability view or a risk view to decide an exit |
+| Growth | `AnimalId`. A public Herd query for active-animal information where the session needs it | Update `Animal`. Read profitability or the weekly summary to decide a weight. Depend on the last-observation projection in order to persist |
+| Feeding | `PaddockId` when a delivery names a place. A public Herd query to resolve a paddock label if the orchestrator did not pass one. A stock-movement id as a reference after the orchestrator | Write stock rows or expense rows. Treat a paddock query as an observation. Store purchased kilograms |
+| Inventory | Capture id, and a `FeedBatch` id or health-event id when the orchestrator supplies it as a reference | Feed quality rules, prices, Feeding tables |
+| Finance | `AnimalId` and `PaddockId` as attribution or sale targets supplied to the command | The active flag, parentage, herd tables, weights as editable copies |
+| Read models | Queries against any module | Be imported by a domain module. Write a source module |
 | Adapters | Inward ports | Be imported by a domain module |
 
-There is no domain cycle. The couplings that feel bidirectional are application commands standing above two modules, not modules calling each other in a loop.
+There is no accepted domain-module dependency cycle. Couplings that span two modules are orchestrators above them, not modules calling each other in a loop.
+
+Herd does not write Finance. Finance does not write Herd tables. Inventory does not write Feeding. Feeding does not write Inventory tables. No domain module depends on reporting. Domain logic does not call a vendor API.
 
 ## Shared kernel
 
-Upstream and downstream both conform to a very small shared kernel:
+Upstream and downstream both conform to the kernel in [cross-cutting-concerns.md](cross-cutting-concerns.md):
 
 - `AnimalId`, `PaddockId`
+- evidence reference
 - source quality: declared, observed, measured
-- audit and correction primitives
-- identifiers for evidence files
+- recorded-time primitives
+- optimistic version
+- `RecordedBy`, `ReportedBy`
 
-Business rules do not live there. This is the shared kernel principle 14 allows. It is not a Commons module for ranch nouns.
+Business rules do not live there. The kernel is not a Commons module and not a home for orchestrators.
+
+## Orchestrators
+
+These names are conceptual. They are not production code.
+
+| Orchestrator | When | Calls |
+| --- | --- | --- |
+| `RecordCattleSale` | The capture claims a sale | `Finance.recordSale()`. `Herd.exitAnimals()` only for managed animals the command identifies |
+| `RecordFeedPurchase` | The capture claims an expense and a warehouse receipt | `Finance.recordExpense()`, `Inventory.receiveStock()` |
+| `PrepareFeedBatch` | The capture claims a prepared batch and, when applicable, a stock issue | `Feeding.prepareBatch()`, `Inventory.issueStock()` when the command claims the draw |
+| `RecordCattlePurchase` | The capture claims a cattle purchase | `Finance.recordPurchase()`. `Herd.registerAnimals()` only when individual heads are known |
+
+Herd-only operations, not orchestrators: register an animal that is already identified outside a purchase, record a birth, correct parentage, record a health event, assign an expected location, record a verification, assert confirmed missing, exit an animal for a reason other than an identified sale.
+
+Growth-only: record a weighing session. Finance-only: record an expense that is not a feed receipt. Feeding-only: record a delivery, or a batch that does not draw stock. Inventory-only: record a receipt or issue that is not part of those captures, and record a physical count.
+
+A future medicine issue beside a health note would be a new orchestrator over Herd and Inventory. It is not part of v0.2.
+
+## Transaction rules
+
+The local transaction is the consistency mechanism. A published event is not.
+
+### Sale
+
+If the sale command identifies managed animals, `Sale` and the `AnimalExit` for those animals commit atomically. One failure rolls both back. Finance stores the income. Herd stores the inactive state, the reason sale, and a reference to the sale. There is no second exit form.
+
+If a commercial sale or lote exists without identified individual animals, Finance may record that commercial transaction and stop. The orchestrator does not invent exits and does not invent animal files. «Bulto» stays an untranslated form (`OQ-TRADE-001`).
+
+Linking heads later, or exiting them later, is an explicit follow-up. When that follow-up identifies managed animals and exits them, the link and those exits commit together. The follow-up does not rewrite the original income.
+
+### Birth
+
+Inside Herd, `Animal` and `ParentageRecord` commit atomically. Unknown parentage is an explicit valid value on the parentage record. A failed parentage write does not leave a calf with no parentage statement. Unknown is a successful statement. A missing write is not.
+
+A later correction (`TGT-REPRO-001`) is Herd alone. It appends certainty history. It does not open another animal.
+
+### Feed purchase
+
+When one capture claims both an expense and a warehouse receipt, those two writes commit atomically. The receipt holds the purchased quantity and its source quality. The expense holds the money. Neither copies the other's figure as a second authority.
+
+Feeding is not called. The purchased kilograms are not written again as a diet fact.
+
+### Feed batch
+
+When one command claims both a feed-batch preparation and an inventory issue, those two writes should commit together. A batch recorded without a warehouse draw is Feeding alone and does not create an issue. A declared `FeedDelivery` does not create an issue either. The physical count is a different Inventory command (`TGT-INV-001`).
+
+### Weighing
+
+The weighing session commits in Growth. That commit does not depend on a last-observation projection existing, being up to date, or being updated in the same transaction. The projection reads the weight afterward, on query or whenever it is built.
+
+### Confirmed missing
+
+`ConfirmedMissingAssertion` commits in Herd. Notification delivery may happen later and may fail. The failed notice does not remove the assertion. The risk view is not part of this transaction and cannot write the assertion.
+
+### Cattle purchase
+
+Finance can record `CattlePurchase` with no animals. When the same command already knows individual heads, the purchase and the Herd registration commit together. When identification happens later, that later command is explicit. Tenure may be unknown. The purchase does not set a share.
+
+An arrival weight, if any, is a Growth session. It references `AnimalId` and may note the purchase id as context. It does not overwrite price or freight, and the commercial quantity does not overwrite the chute weight.
 
 ## Relationships
 
-### Herd upstream of everyone who names an animal
+### Herd upstream of anyone who names an animal
 
-- Downstream: Growth, Feeding (through place), Finance, Reproduction, Health, read models.
-- Information: `AnimalId`, and queries such as active state, category if known, current expected paddock, label for display.
-- Coupling: low. The id is stable. Display labels can be stale in a read model without corrupting the roster.
-- Mechanism: synchronous query when a capture must show who the animal is. `AnimalRegistered`, `AnimalExited`, and `AnimalLocationAssigned` for read models. Growth can learn that an animal left by reading `AnimalExited` or by querying active state when building the next session. Either is valid in-process. A broker is not implied.
+Downstream readers: Growth, Feeding (through a paddock reference), Finance (through ids the orchestrator passes), and the read models.
 
-Herd does not consume those downstream modules. When a birth or a sale needs Herd to write, the application command calls Herd. Herd does not subscribe to Finance to discover that a sale happened.
+Information: `AnimalId`, and queries such as active state, category if known, current expected paddock, and a label for display. Current expected paddock is the latest `LocationAssignment`, not a sighting.
+
+Herd does not consume those downstream modules. When a birth needs an animal, Herd writes it. When a sale needs an exit, the orchestrator calls Herd. Herd does not discover sales by reading Finance.
 
 ### Growth with Herd
 
-- Upstream: Herd for identity. Growth for weights.
-- Downstream of Growth: `LastObservationView`, `AnimalGrowthView`, weekly summary.
-- Information exchanged: `AnimalId` in, weight facts out.
-- Coupling: low.
-- Mechanism: Growth writes only its session. `AnimalWeighed` feeds projections. The command does not call Herd to stamp a last-seen field.
+Growth writes only its session. It may ask Herd which animals are active, and which of them are in the calf routine when Herd knows that. `OQ-OWN-003` may leave the expected set unknown. Growth stores "expected participants unknown" rather than inventing the list.
 
-### Feeding, Inventory, and Finance on a purchase
+The last-observation projection reads confirmed-identity weights. Growth does not stamp a last-seen field.
 
-This is the strongest coupling in the map, and it is supposed to be visible.
+### Feeding with Herd and Inventory
 
-- A feed purchase is one application command, partnership among Feeding, Inventory, and Finance.
-- Upstream of each fact stays with its owner: quantity with Feeding, movement with Inventory, money with Finance.
-- Information exchanged: ids. `FeedPurchaseQuantity` points at the expense and the receipt. The movement points at the feed quantity. The expense points at the capture. None of the three copies the others' amounts as a second authority.
-- Coupling: medium at the command, low between the domain models.
-- Mechanism: synchronous ports in one local transaction (principle 15). Events after commit (`ExpenseRecorded`, `FeedQuantityPurchased`) notify read models. They are not the mechanism that keeps the three writes together. If one write fails, the transaction rolls the others back.
+A delivery may store a `PaddockId`, an approximate description, or unknown. Resolving a label is a read. It is not an observation and it is not a location assignment.
 
-A later correction of that purchase is the same command's correction path, so the three facts move together. Correcting only the expense and leaving the purchased kilograms untouched is a visible inconsistency the command should not offer as the normal edit.
+A batch may store the id of an inventory issue the orchestrator created. Feeding does not post the issue. Inventory does not interpret the batch's diet quality.
 
-Preparation that draws stock is the same shape, smaller: Feeding's `FeedBatch` and Inventory's issue, one transaction when the issue is tracked. A declared delivery that does not touch the warehouse is Feeding alone. The physical remnant is Inventory's count, a different command (`TGT-INV-001`).
+### Feed purchase: Finance and Inventory
 
-### Finance with Herd on sale and on purchase
+Upstream of money: Finance. Upstream of the received quantity: Inventory. Coupling sits in `RecordFeedPurchase`, not between the domain models.
 
-- Sale command: Finance records `Sale`, then Herd exits the named animals with reason sale and a reference to the sale. One transaction. `SaleRecorded` and `AnimalExited` follow for readers.
-- Coupling: medium in that command, because the business insists the exit is not a second form. The domain models stay apart.
-- Cattle purchase: Finance can record `CattlePurchase` with no animals yet («bulto»). When a head is identified, the command calls Herd to register or to link, and stores `AnimalId` on the purchase. Tenure may be unknown. The purchase does not set a share.
-- Arrival weight, if any, is a later or accompanying Growth command. It references `AnimalId` and may note the purchase id as context. It does not overwrite price or freight.
+A correction of that purchase goes through the same orchestrator's correction path, so the expense and the receipt stay aligned. Correcting only the money and leaving the received kilograms untouched is a visible inconsistency the normal edit does not offer.
 
-### Reproduction with Herd on birth
+### Read models
 
-- Birth command: Herd registers the calf (active, tag optional, tenure unknown when the share is unknown), Reproduction writes `ParentageRecord`.
-- Upstream of identity: Herd. Upstream of certainty: Reproduction.
-- Coupling: medium in the birth command, low after that. A later parentage correction (`TGT-REPRO-001`) is Reproduction alone.
-- Mechanism: synchronous in one transaction for the birth. `ParentageRecorded` for readers. No second event is required to say "a birth happened" if those two facts exist.
+Upstream: whichever modules hold the facts in [data-ownership.md](data-ownership.md). Downstream: the owner reading a screen. No domain module.
 
-### Health with Herd and, optionally, Inventory
+Information: queries of facts, plus calculations (interval, balance, variance, unallocated pool, provisional margin, last seen, suspected missing).
 
-- Health stores `HealthEvent` referencing `AnimalId` or `PaddockId`.
-- Coupling: low.
-- An inventory issue for a medicine is a later partnership, only if that item is in Inventory's scope. Until then the note stands without a movement id.
-- `HealthEventRecorded` can feed `LastObservationView` when the event means the animal was seen. A note about a group, or a problem reported without a sighting, does not invent a sighting. The event carries enough context for the projection to tell those apart.
+A change in a source module can break a view. The repair is the source record or the projection rule. The view is not edited.
 
-### Read models downstream of all modules
+A read model may query on demand or keep a stored projection. That choice is [AQ-P1-008](architecture-open-questions.md). The preference at this scale is to avoid materializing until a need is shown. If a projection is stored, its data belongs to the read-model layer.
 
-- Upstream: whichever modules hold the facts listed in [data-ownership.md](data-ownership.md).
-- Downstream: the owner reading a screen. No domain module.
-- Information: copies or queries of facts, plus calculations (interval, balance, variance, unallocated pool, provisional margin, last seen).
-- Coupling: read-only. A change in a source module can break a view; it must not be repairable by editing the view.
-- Mechanism: a read model may query the owners or keep a projection. That choice is [AQ-P1-008](architecture-open-questions.md). If a projection is stored, its tables belong to the read-model layer. No external bus is required either way.
+The alert policy reads Herd assertions and severe health notes. It emits a notice. It does not write back. Suspected missing on `MissingAnimalRiskView` is not the notice.
 
-The alert policy is downstream in the same sense. It reads Herd (and Health, when a problem is severe) and emits a notice. It does not write back.
+### Adapters
 
-### Adapters downstream of ports
+The domain module defines the fact it will accept, such as a weight measurement. The adapter translates a vendor conversation into that fact. IBN-specific bytes stop at the adapter. Growth does not call the scale. Feeding does not call a feed meter.
 
-- The domain module is upstream. It defines the fact it is willing to accept, such as a weight measurement.
-- The adapter is downstream. It translates a vendor conversation into that fact. This is an anti-corruption layer in the practical sense: IBN-specific bytes stop at the adapter.
-- Coupling: the port is stable; the adapter may be replaced or never built.
-- Mechanism: the adapter calls an application service. Growth does not call the scale.
-
-Ports with no adapter in the foreseeable first build (cameras, bank import, messaging API) are still downstream placeholders. They have no upstream domain dependency on a vendor. See [integrations.md](integrations.md).
+Ports with no adapter in the foreseeable first build (cameras, bank import, messaging API) have no upstream domain dependency on a vendor. See [integrations.md](integrations.md).
 
 ## What is intentionally not on the map
 
+- Reproduction or Health as modules. Their records sit inside Herd.
 - A security context beside Herd. Intrusion has no adopted upstream.
-- A reporting context upstream of Finance or Feeding. That arrow would make the summary a source.
-- Milk, GIS, and a worker application.
-- Event-sourcing arrows from every aggregate to a central log that rebuilds the modules.
+- A reporting context upstream of Finance or Feeding.
+- A Feeding record on the feed-purchase path.
+- Milk, GIS, a worker application, and an event bus.
+- Event-sourcing arrows from every aggregate to a central log.
 
 ## Status
 
-- Version: 0.1
-- Status: Proposed map for the modular monolith
+- Version: 0.2
+- Status: Refined map for the modular monolith
 - Last updated: 2026-10-04
-- Source: domain boundaries v0.1 and TO-BE capture-once rules
-- Validation: Pending architecture QA
+- Source: domain boundaries v0.2, ADR-003, ADR-004, TO-BE capture-once rules
+- Validation: Architecture QA applied. No production orchestrator is implemented

@@ -6,7 +6,7 @@ This context is the future management system. The discovery application in `apps
 
 ## What the system is
 
-The system records operational and management facts for one ranch at Balancán, Tabasco, and presents them back to the owner. It is the place where an animal identity, a weight, a feed quantity, a warehouse count, an expense, a sale, a birth, or a health note becomes a durable fact with a source quality.
+The system records operational and management facts for one ranch at Balancán, Tabasco, and presents them back to the owner. It is the place where an animal identity, a weight, a feed quantity, a warehouse count, an expense, a sale, a birth, a parentage statement, or a health note becomes a durable fact with a source quality.
 
 It does not replace fiscal accounting (`CON-ACC-001`). It does not, by itself, detect a cut fence (`CON-SEC-001`). It does not require the workers to carry an application account in the first stage (`CON-ENTRY-001`).
 
@@ -14,7 +14,7 @@ It does not replace fiscal accounting (`CON-ACC-001`). It does not, by itself, d
 
 An actor in the domain catalog is not automatically a user. Participation is defined in `docs/domain/actors.md`.
 
-| Actor | Relationship to the system in v0.1 |
+| Actor | Relationship to the system in v0.2 |
 | --- | --- |
 | `ACT-OWNER`, ranch owner / administrator | Primary person who records facts and reads the weekly view and critical alerts. The only actor assumed to have an application access. |
 | `ACT-WORKER`, worker / encargado | Sees the animals and tells the owner, by the channels already in use. Not an application user in the first stage. May appear on a record as the person who reported a fact. |
@@ -25,7 +25,7 @@ An actor in the domain catalog is not automatically a user. Participation is def
 | `ACT-FEED`, feed supplier | Counterparty on a feed purchase. Reference on the expense or the purchase when known. No assumed access. |
 | `ACT-DAIRY`, dairy buyer | Historical milk relationship. Outside the initial system. No account, and no milk module. |
 
-The bull and the dams are data on a parentage record. They are not actors and not users. A third party who might place cattle on rented land is a tenure case (`OQ-OWN-004`), not a named account.
+The bull and the dams are data on a Herd parentage record. They are not actors and not users. A third party who might place cattle on rented land is a tenure case (`OQ-OWN-004`), not a named account.
 
 ## Current information flow
 
@@ -78,10 +78,10 @@ Solid lines are the flow this architecture takes as current. Dashed lines are bo
 
 Logically, and still as one deployable:
 
-- domain modules that own facts (Herd, Growth, Feeding, Inventory, Finance, Reproduction, Health)
-- application commands that capture one ranch event into several modules
-- read models for the weekly review and provisional profitability
-- transversal evidence and audit
+- five domain modules that own facts (Herd, Growth, Feeding, Inventory, Finance), with parentage and health records inside Herd
+- application orchestrators that capture one ranch event into more than one module
+- read models for the weekly review, growth, provisional profitability, inventory variance, and missing-animal risk
+- transversal evidence, audit, source quality, and capture channel
 - ports for the dashed boxes above
 
 The module breakdown is [domain-boundaries.md](domain-boundaries.md). The ports are [integrations.md](integrations.md).
@@ -107,8 +107,8 @@ Authentication itself is a port. Which provider, if any, is [AQ-P1-004](architec
 
 ## Status
 
-- Version: 0.1
+- Version: 0.2
 - Status: Logical context. No vendor selected
 - Last updated: 2026-10-04
 - Source: `docs/domain/actors.md`, `docs/domain/ranch-context.md`, TO-BE v0.2 at `13c4ef2`
-- Validation: Pending architecture QA. Ranch-owner validation of the domain remains pending
+- Validation: Refined with architecture v0.2. Ranch-owner validation of the domain remains pending

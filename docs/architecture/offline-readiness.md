@@ -4,7 +4,7 @@ Constraints on identifiers and commands so a later field client is not blocked. 
 
 ## Two different efforts
 
-| Effort | What v0.1 does with it |
+| Effort | What v0.2 does with it |
 | --- | --- |
 | Offline-ready data and command design | Adopt the constraints below. They also make owner-side retries and corrections safer, which the first system needs even without a field client |
 | Full offline application | Not designed. No local database, no sync protocol, no conflict-resolution UX, no queue worker. `OQ-CONN-001` blocks a synchronization architecture and a signal map. It does not block the owner recording a fact after returning to a place with signal |
@@ -37,11 +37,11 @@ Weights, parentage, tenure, money, feed quantities, counts, exits, and expected 
 
 ### Corrections and history
 
-The history model in [domain-events.md](domain-events.md) is the conflict policy for important facts. A field client that recorded a declared weight, and an owner who later enters the scale figure, produce a correction or a second weight with its own quality — whichever the business command says — and both remain explainable. They do not collapse into one cell.
+The history model in [domain-events.md](domain-events.md) is the conflict policy for important facts. v0.2 keeps that history on the records themselves. It does not move conflict handling onto a cross-module event log. A field client that recorded a declared weight, and an owner who later enters the scale figure, produce a correction or a second weight with its own quality — whichever the business command says — and both remain explainable. They do not collapse into one cell.
 
 ### Room for a local queue
 
-Commands are self-contained: the id, the payload, the expected version, the source, and the device or session when one exists. A future queue can store that command and send it later. v0.1 does not build the queue. It avoids designs that only work if the server assigns the id inside the same request that shows the user a confirmation.
+Commands are self-contained: the id, the payload, the expected version, the source, and the device or session when one exists. A future queue can store that command and send it later. This architecture does not build the queue. It avoids designs that only work if the server assigns the id inside the same request that shows the user a confirmation.
 
 ### Source metadata
 
@@ -61,8 +61,8 @@ Offline readiness does not add a module. Every module's commands follow the same
 
 ## Status
 
-- Version: 0.1
+- Version: 0.2
 - Status: Constraints only. Synchronization is not designed
 - Last updated: 2026-10-04
 - Source: `CAP-CONN-001`, `CON-NET-001`, `CON-NET-002`, `CON-NET-003`, `OQ-CONN-001`
-- Validation: Pending architecture QA
+- Validation: Unchanged by the five-module refinement. `OQ-CONN-001` remains open

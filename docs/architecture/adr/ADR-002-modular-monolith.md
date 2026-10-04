@@ -4,7 +4,7 @@
 
 Accepted
 
-The deployment style is accepted. The exact module list that accompanies it is a v0.1 proposal in [../domain-boundaries.md](../domain-boundaries.md). Architecture QA may merge a thin module. That adjustment does not reopen this decision unless the criteria under "When to revisit" are met.
+The deployment style is accepted. The exact module list is not part of this decision. Architecture QA refined the v0.1 proposal to the five-module cut in [../domain-boundaries.md](../domain-boundaries.md). A later merge or split of a module does not reopen this decision unless the criteria under "When to revisit" are met.
 
 ## Context
 
@@ -23,10 +23,10 @@ A later scale link, a camera, or a field client may appear. None of those integr
 Build the ranch management system as a modular monolith.
 
 - One deployable application.
-- Explicit domain modules with separate write ownership, as proposed in [../domain-boundaries.md](../domain-boundaries.md).
+- Explicit domain modules with separate write ownership. The current logical cut lives in [../domain-boundaries.md](../domain-boundaries.md) and can change without this ADR changing.
 - One database is allowed. Cross-module writes to another module's tables are not.
-- Multi-fact captures run as application commands in a local transaction, calling each module's port.
-- Domain and application events notify read models and other interested modules inside the process. A message broker is not required.
+- Multi-fact captures that cross modules run as application orchestrators in a local transaction ([ADR-003](ADR-003-application-orchestration.md)).
+- A cross-module event backbone is not required ([ADR-004](ADR-004-no-cross-module-event-bus-yet.md)).
 - External hardware and accounts sit behind adapters.
 - The authoritative state is the current persisted record plus history and audit. The system is not event-sourced.
 
@@ -54,7 +54,7 @@ A deployable service per bounded context, with network calls between them.
 
 This adds distributed transactions or sagas to every capture that the business wants to be atomic, operational dashboards, deployment coordination, and failure modes between "the sale committed and the exit did not." The herd is about 21 head. The team is two people. No context has an independent scaling, availability, or security-zone requirement today.
 
-A camera ingestion path or a vendor protocol could create such a requirement later. It does not exist now. Choosing services in advance would also freeze the module list before architecture QA has reviewed the thin boundaries (Health, Reproduction, Inventory).
+A camera ingestion path or a vendor protocol could create such a requirement later. It does not exist now. Choosing services in advance would also have frozen a module list that architecture QA had not reviewed. QA later kept Inventory separate and folded the thin Reproduction and Health boundaries into Herd. That refinement is recorded in domain-boundaries v0.2. It is not a reversal of this ADR.
 
 Microservices are not selected. Scalability of a future larger herd is not, by itself, a reason to select them.
 
@@ -62,9 +62,10 @@ Microservices are not selected. Scalability of a future larger herd is not, by i
 
 - The team deploys and observes one application.
 - Capture-once flows can be transactional without a saga.
-- Module authors need a public port and a rule against touching another module's tables. How that rule is enforced in a repository is [AQ-P1-007](../architecture-open-questions.md).
+- The current logical cut is five domain modules: Herd, Growth, Feeding, Inventory, and Finance, with parentage and health as records inside Herd. That list is a consequence of the later boundary refinement. It is not a permanent clause of this decision. Replacing it does not, by itself, reopen the monolith.
+- Module authors need a public application interface and a rule against touching another module's tables. How that rule is enforced in a repository is [AQ-P1-007](../architecture-open-questions.md).
 - Read models can live in the same process and can be computed on read while the data is small. That choice stays open ([AQ-P1-008](../architecture-open-questions.md)).
-- Events can be in-process. Publishing them to an external bus is a later decision, not part of this one.
+- Cross-module publication is not required. The decision is [ADR-004](ADR-004-no-cross-module-event-bus-yet.md).
 - A shared database does not mean shared write ownership.
 - The discovery application in `apps/domain-map` is unaffected. It is not a module of this monolith.
 - Database product, schema layout, backend language, and hosting remain undecided. This ADR does not smuggle them in.
@@ -83,8 +84,8 @@ Do not reopen it only because the herd grew, because a diagram would look more m
 
 ## Status of this document
 
-- Version: 0.1
+- Version: 0.2 (decision unchanged; consequences revised after the five-module refinement)
 - Status: Accepted
 - Last updated: 2026-10-04
-- Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`, and the boundary analysis in this folder
-- Validation: The style decision is accepted for v0.1. Module edges remain subject to architecture QA
+- Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`, architecture v0.1, and architecture QA
+- Validation: The style decision stands. The module list remains outside this ADR and is maintained in domain-boundaries v0.2

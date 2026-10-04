@@ -1,5 +1,7 @@
 # 008 — Logical architecture v0.1
 
+Historical. The seven-module proposal this plan produced was refined by architecture QA. The current logical architecture is v0.2, recorded in [009-logical-architecture-refinement-v0.2.md](009-logical-architecture-refinement-v0.2.md) and in [../architecture/README.md](../architecture/README.md). This file remains the method and the record of v0.1, including the v0.1 wording of the principles. It is not the current module cut.
+
 ## Objective
 
 Design the logical software architecture of the future ranch management system, and stop there.
@@ -179,14 +181,18 @@ Review also rejects these failure modes:
 
 ## Output of this pass
 
-The proposal that came out of the method above is summarized in the architecture README: a modular monolith, seven domain modules (Herd, Growth, Feeding, Inventory, Finance, Reproduction, Health), read models for management, transversal evidence and audit, and ports for hardware that is not yet adopted.
+Historical output, superseded as a module cut by v0.2.
 
-[ADR-002](../architecture/adr/ADR-002-modular-monolith.md) records the deployment-style decision. The module edges remain a v0.1 proposal for architecture QA. Merging a thin module later does not, by itself, reopen the monolith decision.
+The proposal that came out of the method above was a modular monolith, seven domain modules (Herd, Growth, Feeding, Inventory, Finance, Reproduction, Health), read models for management, transversal evidence and audit, and ports for hardware that is not yet adopted.
+
+Architecture QA kept the monolith and folded Reproduction and Health into Herd. It also removed `FeedPurchaseQuantity` and the required cross-module event catalog. Those changes are v0.2. They do not rewrite this plan's method.
+
+[ADR-002](../architecture/adr/ADR-002-modular-monolith.md) still records the deployment-style decision. The seven-module edges are no longer the proposal under review.
 
 ## Status
 
 - Version: 0.1
-- Status: Plan of record for logical architecture. Not an approved scope
+- Status: Historical plan. Superseded as the current module cut by [009-logical-architecture-refinement-v0.2.md](009-logical-architecture-refinement-v0.2.md)
 - Last updated: 2026-10-04
 - Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`
-- Validation: Pending architecture QA. Ranch-owner validation of the domain remains pending
+- Validation: Architecture QA completed. The v0.1 module cut was refined rather than accepted as-is. Ranch-owner validation of the domain remains pending

@@ -16,7 +16,7 @@ Modules are cut by language, ownership, and invariants. Whether those modules sh
 
 ## 3. A module owns its writes and its data
 
-Herd owns the animal roster. Growth owns weights. Feeding owns diet quantities. Inventory owns stock movements and counts. Finance owns money facts. Reproduction owns parentage. Health owns health notes. A read model owns only what it derived.
+Herd owns the animal roster and the historical records that describe it: parentage, health notes, paddock references, expected location, verification, and confirmed-missing assertions. Growth owns weights. Feeding owns prepared and delivered diet quantities. Inventory owns stock movements, receipts, issues, and counts. Finance owns money facts and explicit attributions. A read model owns only what it derived.
 
 Ownership means: the authoritative insert, correction, and exit of that fact goes through the owning module.
 
@@ -24,21 +24,23 @@ Ownership means: the authoritative insert, correction, and exit of that fact goe
 
 Growth may store an `AnimalId`. It does not set tenure, exit an animal, or edit a mark. Finance does not set an animal inactive by updating a herd table. The sale use case calls Herd's exit command. The database may be shared. The tables of another module are not a back door.
 
-## 5. Cross-module communication uses explicit interfaces or events
+## 5. Cross-module writes go through the application layer
 
 Allowed paths:
 
-- a public command or query of the owning module
+- an application orchestrator calling the public application interface of each module involved, inside one local transaction ([ADR-003](adr/ADR-003-application-orchestration.md))
+- a public query interface, used rarely, when a module must read another module's fact and the orchestrator cannot simply pass a validated id
 - a stable identifier held by the caller
-- a domain or application event that other parts may consume
 
-Disallowed path: reading or writing another module's internal structures because they happen to sit in the same process.
+A cross-module event bus is not a required path ([ADR-004](adr/ADR-004-no-cross-module-event-bus-yet.md)). Internal events inside one module may exist. They do not authorize another module to subscribe its way into a write.
+
+Disallowed paths: a domain module writing another module's persistence, a domain module calling another module to perform a write, and reading or writing another module's internal structures because they happen to sit in the same process.
 
 ## 6. Capture once, reuse facts
 
-The TO-BE catalog already requires this at business level. A chute pass records identity confirmation, weight, and the material for a last observation in one capture. A feed purchase records the purchased quantity, the warehouse receipt, and the expense once. A birth creates the animal and the parentage once. A sale records income and causes the exit once.
+The TO-BE catalog already requires this at business level. A chute pass records identity confirmation, weight, and the material for a last observation in one capture. A feed purchase records the expense and the warehouse receipt once; the purchased quantity is that receipt, not a third diet figure. A birth creates the animal and the parentage record once, inside Herd. A sale of identified animals records income and causes the exit once.
 
-Architecturally, that is one application command and one local transaction, writing each fact through its owner's port. Downstream screens, the weekly summary, and provisional profitability read those facts. They do not ask the owner to type them again.
+Architecturally, a capture that crosses modules is one application orchestrator and one local transaction, writing each fact through its owner's public interface. A capture inside one module is that module's application operation. Downstream screens, the weekly summary, and provisional profitability read those facts. They do not ask the owner to type them again.
 
 ## 7. Preserve history and corrections
 
@@ -89,17 +91,17 @@ The weekly summary, growth intervals, inventory variance, missing-animal risk, a
 
 ## 13. Domain events do not imply event sourcing
 
-An event names a fact that other modules or read models may hear. The authoritative state is the persisted record of the owning module, plus its correction history. The system must be understandable without replaying every event from the beginning. See [domain-events.md](domain-events.md).
+The authoritative state is the persisted record of the owning module, plus its correction history. The system must be understandable without replaying a log. v0.2 does not require cross-module events at all. If a module uses an internal event for clarity, that event is still not the storage format. See [domain-events.md](domain-events.md) and [ADR-004](adr/ADR-004-no-cross-module-event-bus-yet.md).
 
 ## 14. Avoid a generic shared module that becomes a dumping ground
 
-The shared kernel may hold identifiers (`AnimalId`, `PaddockId`), source quality, and audit primitives. It may not hold animal rules, feed rules, money rules, or "miscellaneous" entities that did not earn a module.
+The shared kernel may hold `AnimalId`, `PaddockId`, an evidence reference, source quality, recorded-time primitives, an optimistic version, `RecordedBy`, and `ReportedBy`. It may not hold animal rules, feed rules, money rules, profitability helpers, feature DTOs, or "miscellaneous" entities.
 
-Health and reproduction are thin. They stay out of a combined "animal events" module because treatment and parentage are different languages. They also stay out of the Animal aggregate, so that aggregate does not become the place every new note is stored.
+Parentage and health are Herd records. They stay out of the Animal aggregate, so that aggregate does not become the place every note is stored. They also stay out of a combined blob that would erase the difference between a parentage correction and a treatment note. They do not become their own modules unless the extraction triggers in [domain-boundaries.md](domain-boundaries.md) are met.
 
 ## 15. Prefer simple transactional behavior over premature distributed consistency
 
-A sale and the matching exit either both commit or neither does. The same is true of a birth and the new animal, and of a feed purchase, its stock receipt, and its expense. At this scale those consistencies are local transactions inside the monolith.
+A sale that names managed animals, and the matching exits, either both commit or neither does. A birth commits the new animal and its parentage record together inside Herd. A feed purchase commits the expense and the stock receipt together, without a Feeding copy of the kilograms. At this scale those consistencies are local transactions inside the monolith.
 
 Outbox patterns, sagas, and eventual consistency are reserved for a boundary that later actually crosses a process. They are not the default for twenty-one cattle.
 
@@ -109,8 +111,8 @@ The principles do not answer `OQ-OWN-001`, `OQ-OWN-002`, `OQ-FEED-002`, `OQ-TRAD
 
 ## Status
 
-- Version: 0.1
-- Status: Proposed principles for the logical architecture. Not an approved scope
+- Version: 0.2
+- Status: Principles for the refined logical architecture. Not an approved scope
 - Last updated: 2026-10-04
-- Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`
-- Validation: Pending architecture QA. Ranch-owner validation of the domain remains pending
+- Source: `docs/domain` v0.1, AS-IS v0.2, TO-BE v0.2 at `13c4ef2`, architecture QA
+- Validation: Refined with the five-module cut. Ranch-owner validation of the domain remains pending

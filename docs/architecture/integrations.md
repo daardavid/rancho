@@ -30,12 +30,12 @@ Future shape:
 ```text
 perimeter adapter
     → PerimeterObservation (normalized)
-        → no domain module in v0.1
+        → no domain module in v0.2
 ```
 
 A normalized observation would say when, which logical point the device claims to cover, and a reference to the stored image or clip. It would not say the whole ranch is watched. It would not mark an animal missing. Herd verification and animal exit stay human decisions in Herd.
 
-There is no Security module waiting to receive this. If the ranch later adopts a device or a manual fence log, architecture QA opens a consumer then ([AQ-P2-002](architecture-open-questions.md)). Building the consumer now would pretend `TGT-SEC-002` has a selected implementation.
+There is no Security module waiting to receive this. If the ranch later adopts a device or a manual fence log, a later decision opens a consumer then ([AQ-P2-002](architecture-open-questions.md)). Building the consumer now would pretend `TGT-SEC-002` has a selected implementation.
 
 ## Messaging
 
@@ -84,7 +84,7 @@ vendor or device
             → domain module (no vendor types)
 ```
 
-The arrow never points from Herd, Growth, Feeding, Inventory, Finance, Reproduction, or Health toward a vendor package.
+The arrow never points from Herd, Growth, Feeding, Inventory, or Finance toward a vendor package. Parentage and health notes are Herd records. They do not add a module that could import a vendor.
 
 ## Ports that are not excuses to widen scope
 
@@ -92,8 +92,8 @@ Naming a port does not pull its feature into the minimum package. The TO-BE excl
 
 ## Status
 
-- Version: 0.1
+- Version: 0.2
 - Status: Port boundaries only. No adapter implemented
 - Last updated: 2026-10-04
 - Source: `CON-SCALE-001`, `CON-SEC-001`, `CON-ACC-001`, `CAP-COMM-001`, `OQ-SCALE-001`, `OQ-SEC-001`
-- Validation: Pending architecture QA
+- Validation: Refined with the five-module cut. No vendor selected
