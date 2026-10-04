@@ -2,7 +2,7 @@
 
 Questions the refined v0.2 architecture leaves open. Domain questions already tracked as `OQ-*` and `DQ-*` are not restated as if architecture could close them. Where a domain question blocks a calculation or an integration, this list points at it and does not answer it.
 
-P0 is empty. The boundary questions that v0.1 left for architecture QA are closed below. Physical architecture v0.1 answers the P1 questions that are technology choices. Those answers do not change the logical modules. Two P1 items remain: the hosting vendor, and whether a feeding group needs an id that is not a paddock. P2 waits on an external choice or on a ranch capability that is not active.
+P0 is empty. The boundary questions that v0.1 left for architecture QA are closed below. Physical architecture v0.1 answered the P1 technology choices. The v0.2 refinement froze those choices as the Physical Architecture v1 baseline and narrowed foreign keys, sessions, history, and `RanchId`. Those answers do not change the logical modules. Two P1 items remain: the hosting vendor, and whether a feeding group needs an id that is not a paddock. The authentication library is implementation-time inside the frozen session architecture. P2 waits on an external choice or on a ranch capability that is not active.
 
 ## P0 — boundary and ownership
 
@@ -20,14 +20,14 @@ The v0.1 questions are closed as follows. Closing them does not close the domain
 
 ## P1 — implementation, not a new logical cut
 
-### Closed by physical architecture v0.1
+### Closed by physical architecture, refined in the v1 baseline
 
 | ID | Resolution |
 | --- | --- |
 | AQ-P1-001 | Command-oriented REST. [ADR-009](adr/ADR-009-api-style.md) |
 | AQ-P1-002 | TypeScript on Node.js. Fastify is the HTTP adapter, not the module system. [ADR-005](adr/ADR-005-backend-runtime.md) |
-| AQ-P1-003 | One PostgreSQL database and one schema per domain module. [ADR-007](adr/ADR-007-postgresql.md). Drizzle, with the transaction passed into module functions. [ADR-008](adr/ADR-008-data-access.md) |
-| AQ-P1-004 | Library-based sessions in PostgreSQL. [ADR-010](adr/ADR-010-authentication.md) |
+| AQ-P1-003 | One PostgreSQL database and one schema per domain module. Cross-schema foreign keys are limited to downstream Herd identity. [ADR-007](adr/ADR-007-postgresql.md). Drizzle, with transaction-scoped repositories. [ADR-008](adr/ADR-008-data-access.md). `RanchId` from the first persistence version. [ADR-013](adr/ADR-013-ranch-scope.md) |
+| AQ-P1-004 | Cookie sessions in PostgreSQL. The library is chosen at scaffold. Better Auth is the first candidate and is not a frozen dependency. [ADR-010](adr/ADR-010-authentication.md) |
 | AQ-P1-005 | Filesystem in development, S3-compatible object storage when deployed. No storage vendor. [ADR-011](adr/ADR-011-evidence-storage.md) |
 | AQ-P1-007 | Module directories inside the API, a public index, and an import test. [ADR-012](adr/ADR-012-repository-module-enforcement.md) |
 | AQ-P1-008 | Query on demand. [persistence-strategy.md](persistence-strategy.md) |
@@ -38,6 +38,19 @@ The v0.1 questions are closed as follows. Closing them does not close the domain
 | --- | --- | --- |
 | AQ-P1-006 | Which provider and region host the single deployable? | The shape is closed in [deployment-strategy.md](deployment-strategy.md): one Node process, managed PostgreSQL, S3-compatible storage. The vendor is not chosen |
 | AQ-P1-009 | Does a feeding group ever need an id that is not a paddock? | Until it does, a delivery or a location assignment stores a paddock id, an approximate description, a set of animals, or unknown |
+
+### Implementation-time, inside the frozen baseline
+
+These are not open architecture questions. The baseline already says how they are bounded. The scaffold or a later product decision fills them in.
+
+| Item | Bound by |
+| --- | --- |
+| Final authentication library | [ADR-010](adr/ADR-010-authentication.md). Better Auth is the first candidate to try |
+| Route catalog | [ADR-009](adr/ADR-009-api-style.md). Illustrative commands are not the catalog |
+| Exact column catalog and migration files | [persistence-strategy.md](persistence-strategy.md). Conventions are frozen. Tables are not |
+| Display-code format | Server-assigned, unique per ranch, format undecided |
+| UI component libraries beyond React, TypeScript, and Vite | [ADR-006](adr/ADR-006-frontend-approach.md) |
+| Scale protocol, offline sync, alert transport beyond the application UI | P2 below |
 
 ## P2 — later, and blocked by a domain or product choice
 
@@ -71,8 +84,8 @@ Closing any of these inside a module would falsify the operating model:
 
 ## Status
 
-- Version: 0.2 logical questions, with P1 technology items closed by physical architecture v0.1
-- Status: P0 closed. P1 technology choices closed. AQ-P1-006 vendor and AQ-P1-009 still open. P2 open. Domain questions untouched
+- Version: 0.2 logical questions. P1 technology choices frozen by the Physical Architecture v1 baseline
+- Status: P0 closed. P1 technology choices closed. AQ-P1-006 vendor and AQ-P1-009 still open. Library, routes, and column catalog are implementation-time. P2 open. Domain questions untouched
 - Last updated: 2026-10-04
-- Source: architecture QA, the v0.1 question list, and physical architecture v0.1
+- Source: architecture QA, the v0.1 question list, physical architecture v0.1, and the v0.2 refinement
 - Validation: Closed P1 items point at ADRs. They do not change the five-module cut. No technology choice is smuggled into a closed P0

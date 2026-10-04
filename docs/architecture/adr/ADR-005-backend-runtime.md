@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted
 
-Proposed with physical architecture v0.1. It does not authorize scaffolding the API.
+Accepted with the Physical Architecture v1 baseline. The decision is unchanged by the v0.2 refinement. It does not authorize scaffolding the API.
 
 ## Context
 
@@ -70,7 +70,7 @@ Do not revisit it because a benchmark of an empty router was faster, or because 
 ## Status of this document
 
 - Version: 0.1
-- Status: Proposed with physical architecture v0.1
+- Status: Accepted with the Physical Architecture v1 baseline. Decision unchanged by the v0.2 refinement
 - Last updated: 2026-10-04
 - Source: Logical Architecture v1 baseline at `762739b`, team shape, repository engines
 - Validation: Decision only. `apps/api` is not created

@@ -68,7 +68,7 @@ Microservices are not selected. Scalability of a future larger herd is not, by i
 - Cross-module publication is not required. The decision is [ADR-004](ADR-004-no-cross-module-event-bus-yet.md).
 - A shared database does not mean shared write ownership.
 - The discovery application in `apps/domain-map` is unaffected. It is not a module of this monolith.
-- This ADR does not itself select the database product, schema layout, language, or host. Physical architecture v0.1 records those choices in [ADR-005](ADR-005-backend-runtime.md) through [ADR-012](ADR-012-repository-module-enforcement.md). Those ADRs do not reopen the monolith. The hosting vendor remains unselected.
+- This ADR does not itself select the database product, schema layout, language, or host. The Physical Architecture v1 baseline records those choices in [ADR-005](ADR-005-backend-runtime.md) through [ADR-013](ADR-013-ranch-scope.md). Those ADRs do not reopen the monolith. The hosting vendor remains unselected.
 
 ## When to revisit
 

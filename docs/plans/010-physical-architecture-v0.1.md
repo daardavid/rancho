@@ -1,5 +1,7 @@
 # 010 — Physical architecture v0.1
 
+Historical evaluation. The stack selection below still stands. Physical architecture v0.2, recorded in [011-physical-architecture-refinement-v0.2.md](011-physical-architecture-refinement-v0.2.md), freezes the Physical Architecture v1 baseline. Where this plan says there are no cross-schema foreign keys, that the orchestrator passes a raw Drizzle transaction into module functions, or that Better Auth is the default library, the v0.2 documents replace that sentence.
+
 ## Objective
 
 Choose how the frozen logical architecture is implemented, and stop there.
@@ -35,7 +37,7 @@ Do not optimize for enormous traffic. Do not pick a tool because it is popular o
 
 The architecture index now states that v0.2 is the Logical Architecture v1 baseline for implementation design. P1 questions that this plan answers are closed in [architecture-open-questions.md](../architecture/architecture-open-questions.md). AQ-P1-009 (a feeding group id that is not a paddock) stays open. The hosting vendor stays open. Ranch `OQ-*` and `DQ-*` questions stay open.
 
-Future extraction stays possible: public module indexes, one PostgreSQL schema per module, no cross-schema foreign keys.
+Future extraction stays possible: public module indexes, one PostgreSQL schema per module. The absolute ban on cross-schema foreign keys in this sentence is historical. The v1 baseline allows only downstream references to `herd.animal` and, where justified, `herd.paddock_reference`.
 
 ## Frontend
 
@@ -69,11 +71,11 @@ Domain model, API contract, and UI model stay three things.
 
 ## Persistence and data access
 
-PostgreSQL is the store. One database. Schemas `herd`, `growth`, `feeding`, `inventory`, `finance`, plus technical `identity` and `evidence`. A `read_model` schema is reserved and unused. No database per module. No cross-schema foreign keys. [ADR-007](../architecture/adr/ADR-007-postgresql.md).
+PostgreSQL is the store. One database. Schemas `herd`, `growth`, `feeding`, `inventory`, `finance`, plus technical `identity` and `evidence`. A `read_model` schema is reserved and unused in this v0.1 text. The v1 baseline does not create that schema initially. No database per module. The "no cross-schema foreign keys" rule in this paragraph is historical. See [011](011-physical-architecture-refinement-v0.2.md). [ADR-007](../architecture/adr/ADR-007-postgresql.md).
 
 Compared Drizzle, Kysely, and Prisma.
 
-**Decision:** Drizzle, with the orchestrator passing one transaction handle into each module function. No cross-module Drizzle relations. [ADR-008](../architecture/adr/ADR-008-data-access.md), [persistence-strategy.md](../architecture/persistence-strategy.md).
+**Decision, as evaluated in v0.1:** Drizzle, with the orchestrator passing one transaction handle into each module function. No cross-module Drizzle relations. The v1 baseline keeps Drizzle and replaces the raw transaction handle with transaction-scoped repositories. [ADR-008](../architecture/adr/ADR-008-data-access.md), [persistence-strategy.md](../architecture/persistence-strategy.md).
 
 Prisma was rejected because its client graph fights module ownership. Kysely was the closest alternative and remains an acceptable query-layer replacement if Drizzle relations start crossing modules. PostgreSQL would stay.
 
@@ -85,7 +87,7 @@ Identifiers are UUID v4. Mutable rows have an integer version. History is a curr
 
 Compared a managed identity provider, hand-rolled passwords, and a session library.
 
-**Decision:** library-based sessions in PostgreSQL, HTTP-only cookie, Better Auth at the edge unless it starts owning orchestrator behavior. Roles `owner` and `support` now. `worker`, `veterinarian`, and `partner-readonly` are named and not built. Actors are not roles. [ADR-010](../architecture/adr/ADR-010-authentication.md).
+**Decision, as evaluated in v0.1:** library-based sessions in PostgreSQL, HTTP-only cookie, Better Auth at the edge unless it starts owning orchestrator behavior. The v1 baseline freezes cookie sessions and leaves Better Auth as a scaffold candidate, not an accepted dependency. Roles `owner` and `support` now. `worker`, `veterinarian`, and `partner-readonly` are named and not built. Actors are not roles. [ADR-010](../architecture/adr/ADR-010-authentication.md).
 
 **Decision:** evidence bytes behind a port. Filesystem in development. S3-compatible storage when deployed. No vendor. Bytes stay out of PostgreSQL. [ADR-011](../architecture/adr/ADR-011-evidence-storage.md).
 
@@ -105,7 +107,7 @@ The matrix of record is [technology-stack.md](../architecture/technology-stack.m
 
 ## Traceability
 
-The logical-to-physical map is in [physical-architecture.md](../architecture/physical-architecture.md). Orchestrators become plain functions. The local transaction becomes a Drizzle handle. Module ownership becomes schemas plus the import test. Evidence ids become the storage port. Read models become queries. Offline-ready commands become client UUIDs and version checks.
+The logical-to-physical map is in [physical-architecture.md](../architecture/physical-architecture.md). Orchestrators become plain functions. The local transaction, in this v0.1 sentence, was a Drizzle handle. The v1 baseline uses transaction-scoped repositories instead. Module ownership becomes schemas plus the import test. Evidence ids become the storage port. Read models become queries. Offline-ready commands become client UUIDs and version checks.
 
 ## Cost and complexity
 
@@ -163,9 +165,9 @@ Not changed: `docs/domain`, `docs/maps/as-is`, `docs/maps/to-be`, `apps/domain-m
 - The provider and region (AQ-P1-006).
 - Whether a feeding group needs an id that is not a paddock (AQ-P1-009).
 - The route catalog, when a vertical slice is built.
-- Whether Better Auth stays at the edge once it is integrated. The fallback is a thinner session library, not a new approach.
+- The authentication library. v0.1 left "whether Better Auth stays" open after naming it as the default. The v1 baseline makes it the first scaffold candidate under [ADR-010](../architecture/adr/ADR-010-authentication.md), not a frozen dependency.
 - Email delivery for password reset. Developer-assisted reset is enough until then.
-- Numeric scale for money, at schema time.
+- Numeric scale for money. Closed by the v1 baseline as `numeric(12,2)` and `numeric(12,3)`. This v0.1 bullet is historical.
 - OpenAPI generation, when a non-TypeScript adapter exists.
 - Alert transport beyond the in-app banner (AQ-P2-004).
 
@@ -186,7 +188,7 @@ Not changed: `docs/domain`, `docs/maps/as-is`, `docs/maps/to-be`, `apps/domain-m
 ## Status
 
 - Version: 0.1
-- Status: Physical design of record, pending physical architecture QA. Not an authorization to scaffold
+- Status: Historical evaluation. Superseded as the physical baseline by the v0.2 refinement. The stack selection remains
 - Last updated: 2026-10-04
 - Source: logical architecture v0.2 at `762739b`
-- Validation: Decisions applied in `docs/architecture`. No production code
+- Validation: Decisions applied in `docs/architecture` and then refined. No production code

@@ -65,15 +65,15 @@ A candidate line is not an expense. Finance becomes the authority only when the 
 
 The domain assumes one application user role in the first stage: the owner. Workers, the vet, the economic partner, and commercial counterparties do not need accounts ([system-context.md](system-context.md)).
 
-Authentication is a port in front of the application, not a ranch module. Sessions and passwords are generic. Physical architecture v0.1 uses library-based sessions stored in PostgreSQL ([ADR-010](adr/ADR-010-authentication.md)). Domain aggregates do not import that library.
+Authentication is a port in front of the application, not a ranch module. Sessions and passwords are generic. The Physical Architecture v1 baseline uses cookie sessions stored in PostgreSQL ([ADR-010](adr/ADR-010-authentication.md)). The session carries `RanchId`. The library is chosen at scaffold. Better Auth is the first candidate and is not a frozen dependency. Domain aggregates do not import that library. An organization object from the library is not the ranch.
 
 If workers later record facts themselves, they become a second user class at this port. They do not become a bounded context.
 
 ## Object storage
 
-Evidence bytes go to a file port: store, retrieve, and discard a blob by an opaque id. The association from blob to business fact lives on the owning record ([cross-cutting-concerns.md](cross-cutting-concerns.md)).
+Evidence bytes go to a file port: store and retrieve a blob by an opaque id. The association from blob to business fact lives on the owning record ([cross-cutting-concerns.md](cross-cutting-concerns.md)).
 
-Development uses a filesystem adapter. Deployed environments use an S3-compatible object store through the same port. No storage vendor is chosen ([ADR-011](adr/ADR-011-evidence-storage.md)). The domain does not construct storage URLs.
+Development uses a filesystem adapter. Deployed environments use an S3-compatible object store through the same port. The key is `{ranchId}/{evidenceId}`. No storage vendor is chosen ([ADR-011](adr/ADR-011-evidence-storage.md)). The domain does not construct storage URLs. Correcting or detaching the fact does not delete the bytes.
 
 ## Dependency direction
 

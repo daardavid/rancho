@@ -26,7 +26,7 @@ The authoritative model is:
 - an audit trail of creation and correction
 - queries from read models onto those records
 
-Replaying a log is not required to reconstruct an animal, a balance, or a sale. A reader should be able to read the current record and its correction history.
+Replaying a log is not required to reconstruct an animal, a balance, or a sale. A reader should be able to read the current record and its correction history. A new weighing, location assignment, stock movement, health event, verification, or parentage certainty is a new historical record. It does not rewrite the previous fact. Changing a wrong value on an existing record is a correction and keeps the previous value. The physical split is in [persistence-strategy.md](persistence-strategy.md). Temporal tables are not this model.
 
 Why this fits:
 
@@ -81,7 +81,7 @@ v0.1 listed a published catalog and treated it as part of the architecture. Thos
 
 `StockReceived` and `StockIssued` are movements. Publishing each one would duplicate the ledger. The balance is a query.
 
-A correction updates the owner's state, appends the correction history, and is visible to the next query. It does not need to emit a delete of the animal's past. An exit does not retract the registration.
+A correction updates the owner's state, appends the correction history, and is visible to the next query. A new ranch fact inserts another historical record and leaves the earlier one. Neither path emits a delete of the animal's past. An exit does not retract the registration.
 
 ## When a cross-module event would be justified
 

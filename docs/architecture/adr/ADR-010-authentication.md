@@ -1,10 +1,10 @@
-# ADR-010: Library-based sessions in PostgreSQL
+# ADR-010: Cookie sessions in PostgreSQL, library chosen at scaffold
 
 ## Status
 
-Proposed
+Accepted
 
-Proposed with physical architecture v0.1. It does not implement login, passwords, or roles.
+Accepted with the Physical Architecture v1 baseline. The session architecture is frozen. The library is not. This ADR does not implement login, passwords, or roles.
 
 ## Context
 
@@ -14,17 +14,32 @@ Authentication is a port in front of the application ([integrations.md](../integ
 
 Priorities are security, low maintenance, roles, a browser and later PWA that can send the same credential, and low cost. The user count at the start is a handful, not a directory.
 
+Physical architecture v0.1 named Better Auth as the default library. The v0.2 refinement keeps library-based sessions and leaves the package until scaffold, because a library that owns organizations, roles, or domain objects would contradict [ADR-013](ADR-013-ranch-scope.md) and the module boundary.
+
 ## Decision
 
-Use library-based authentication with server-side sessions stored in PostgreSQL.
+Use cookie-based server sessions stored as rows in PostgreSQL, maintained by an authentication and password library, isolated at the HTTP and identity edge.
 
-- The default library is Better Auth, confined to the HTTP edge and the `identity` schema ([ADR-007](ADR-007-postgresql.md)).
-- If that library's routes or schema start owning application behavior that belongs to orchestrators, replace it with a thinner session implementation (password hashing plus server-side session rows) without changing this decision's approach.
-- Sessions are rows, not a long-lived access token. Revoking a session deletes or expires the row.
-- The browser receives an HTTP-only, `Secure` session cookie with `SameSite=Lax`. Production serves the SPA and the API on one origin so the cookie is first-party ([deployment-strategy.md](../deployment-strategy.md)).
-- Passwords are hashed by the library. The application does not invent a hash.
-- Password reset for the first deployment may be developer-assisted. An email provider is not required to start.
-- The HTTP layer resolves the session and checks the role before it calls an orchestrator or a module command. Module domain code receives `RecordedBy`. It does not read cookies.
+Frozen:
+
+- Sessions are rows in the `identity` schema, not a long-lived access token. Revoking a session deletes or expires the row.
+- The browser receives an HTTP-only session cookie. In production the cookie is `Secure`, with `SameSite=Lax`. Production serves the SPA and the API on one origin so the cookie is first-party ([deployment-strategy.md](../deployment-strategy.md), [security-baseline.md](../security-baseline.md)).
+- Passwords are hashed by the maintained library. The application does not invent a hash.
+- Password reset for the first boot may be developer-assisted. An email provider is not required to start.
+- The HTTP layer resolves the session, reads `RanchId` and the role from that session, and checks the role before it calls an orchestrator or a module command. Module domain code receives `RecordedBy`. It does not read cookies, and it does not import the auth library.
+- The session carries the `RanchId` the caller may act for ([ADR-013](ADR-013-ranch-scope.md)). The client does not select an arbitrary ranch.
+
+The library itself is chosen when the API is scaffolded. Better Auth is the first candidate to try. It is not an accepted dependency of this baseline.
+
+Acceptance criteria for whichever library is tried:
+
+- Session ownership remains in identity infrastructure. The library does not become an application module.
+- No organization, team, or tenant object from the library becomes the ranch.
+- Auth-specific objects do not leak into Herd, Growth, Feeding, Inventory, or Finance.
+- Roles remain application authorization concepts, checked at the route or command. They are not a policy engine inside the library's data model.
+- Ranch actors remain distinct from user accounts. `ReportedBy` is not a user id.
+
+If Better Auth cannot meet those criteria, the scaffold uses a thinner maintained session and password library. That replacement does not reopen cookie sessions or the `identity` schema. Hand-rolled password hashing is not the thinner option.
 
 Conceptual authorization roles, separate from domain actors:
 
@@ -32,13 +47,13 @@ Conceptual authorization roles, separate from domain actors:
 | --- | --- | --- |
 | `owner` | The ranch owner. Writes and reads operational facts | Yes |
 | `support` | A developer session. Writes are still audited as that account | Yes |
-| `worker` | A future field account | No |
-| `veterinarian` | A future professional account | No |
-| `partner-readonly` | A future read-only partner account | No |
+| `worker` | A future field account | Reserved name. Not built |
+| `veterinarian` | A future professional account | Reserved name. Not built |
+| `partner-readonly` | A future read-only partner account | Reserved name. Not built |
 
 `ReportedBy` stays the real-world source on a fact. It is not a role and not a user id. Giving a worker a `ReportedBy` value does not create a login.
 
-A permission matrix is not part of this decision. The first check is the role on the session.
+A permission matrix is not part of this decision. The first check is the role on the session, on the route or command. There is no per-animal access list and no database row-level grant for business authorization.
 
 ## Why not the other approaches
 
@@ -49,6 +64,10 @@ Clerk, Auth0, Cognito, or a hosted auth product can be the right answer when str
 ### Hand-rolled application auth
 
 Storing a password without a maintained library is how hobby projects leak credentials. The application owns the session rows. It does not own the cryptographic design. Hand-rolled auth is not selected.
+
+### Freezing Better Auth in this ADR
+
+Naming the package before it has been held against the acceptance criteria would make an organization model, or a leak into a domain module, a surprise during scaffold. The session architecture can be frozen without freezing the package.
 
 ## Consequences
 
@@ -61,14 +80,15 @@ Storing a password without a maintained library is how hobby projects leak crede
 ## When to revisit
 
 - People outside the team must register themselves, or social login becomes a requirement.
-- The session library is abandoned, or it cannot stay out of the domain modules.
+- The session library cannot stay out of the domain modules, and no thinner maintained library can either.
 - A worker application on a different origin needs a token the cookie cannot provide.
 - More than the owner and support need access, and a role is no longer a sufficient check. Add permissions then. Do not add them in advance.
+- The deployment topology stops being one origin. The CSRF baseline in the security document is reviewed with that change.
 
 ## Status of this document
 
-- Version: 0.1
-- Status: Proposed with physical architecture v0.1
+- Version: 0.2
+- Status: Accepted with the Physical Architecture v1 baseline. Library selection remains implementation-time
 - Last updated: 2026-10-04
-- Source: system context v0.2, `CON-ENTRY-001`, `BR-ENTRY-001`
+- Source: system context v0.2, `CON-ENTRY-001`, `BR-ENTRY-001`, physical architecture QA
 - Validation: Decision only. No accounts are created

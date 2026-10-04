@@ -51,11 +51,11 @@ Notification of a confirmed-missing assertion may happen later. The assertion it
 
 - The application layer is part of the logical architecture, not an accident of a later framework choice.
 - Module public interfaces must be explicit enough for an orchestrator to call without touching tables. The repository enforces that with a public index and an import test ([ADR-012](ADR-012-repository-module-enforcement.md)).
-- Physical architecture records the transaction as an explicit database handle passed into those functions ([ADR-008](ADR-008-data-access.md)).
+- Physical architecture records the transaction as one database transaction and transaction-scoped repositories. Module application services receive repository interfaces and do not receive a raw Drizzle transaction ([ADR-008](ADR-008-data-access.md)).
 - Intra-module captures stay inside the owning module's application operations. Birth, parentage correction, health notes, weighing, a plain expense, a declared delivery, and a physical count do not gain a second module for company.
 - A follow-up that later identifies animals on an existing sale or purchase is its own explicit command. It does not rewrite history by guessing which heads were meant.
 - Orchestrators are not a bounded context called Operations, and they are not placed in the shared kernel.
-- No framework is selected by this ADR. Physical architecture v0.1 records the process, the database, and the transaction handle in later ADRs without changing who coordinates the capture.
+- No framework is selected by this ADR. The Physical Architecture v1 baseline records the process, the database, and the transaction-scoped repositories in later ADRs without changing who coordinates the capture.
 
 ## When to revisit
 

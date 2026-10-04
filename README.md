@@ -4,7 +4,7 @@ RANCHO is a ranch operations and decision-support project.
 
 ## Current phase
 
-Logical architecture v0.2 is frozen as the baseline for implementation design. Physical architecture v0.1 is proposed and pending QA.
+Logical architecture v0.2 is frozen as the Logical Architecture v1 baseline. Physical architecture is frozen as the Physical Architecture v1 baseline for implementation.
 
 The production ranch application is not implemented. This repository holds the discovery notes, the domain map, and the architecture documents. It does not yet include a backend, authentication, or a database.
 
@@ -17,7 +17,7 @@ The working ranch context is in [docs/domain/README.md](docs/domain/README.md). 
 - `apps/domain-map` — interactive map for AS-IS processes, future TO-BE alternatives, and software architecture.
 - `docs/domain` — ranch context from discovery interviews. See [docs/domain/README.md](docs/domain/README.md).
 - `docs/maps` — supporting map notes for as-is, to-be, and architecture views.
-- `docs/architecture` — logical baseline and physical architecture v0.1. Maps are kept as code; see `docs/architecture/adr/ADR-001-domain-maps-as-code.md`.
+- `docs/architecture` — logical baseline and the Physical Architecture v1 baseline. Maps are kept as code; see `docs/architecture/adr/ADR-001-domain-maps-as-code.md`.
 
 `apps/domain-map` is not a production system. The current-state map is documented in [docs/maps/as-is/README.md](docs/maps/as-is/README.md) and [docs/maps/as-is/process-catalog.md](docs/maps/as-is/process-catalog.md).
 

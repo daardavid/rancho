@@ -8,9 +8,9 @@ A small pyramid for a two-person team. Tools are named so the later implementati
 | --- | --- | --- |
 | Domain unit | Invariants: unknown stays unknown, inferred parentage is not confirmed, exit keeps the file, a declaration is not a stock issue | Vitest, no database, no HTTP |
 | Application | Orchestrators call the right module functions, and a thrown second call does not report success | Vitest, with fakes for the module functions |
-| Persistence integration | Repositories, unique ids, version conflicts, and a real rollback of a sale plus an exit | Vitest against PostgreSQL |
-| API | A command's contract, auth gate, and status for conflict versus rejection | Fastify's request injection, plus a few cases on PostgreSQL for the captures that must be atomic |
-| Import boundary | Code outside a module does not import that module's `domain/` or `persistence/`, except read models reading tables | Vitest scan of the API source ([ADR-012](adr/ADR-012-repository-module-enforcement.md)) |
+| Persistence integration | Repositories, unique ids, version conflicts, idempotency mismatches, and a real rollback of a sale plus an exit | Vitest against a separate PostgreSQL test database. Migrations are applied before these tests. Most cases roll the transaction back. A test that must commit cleans its rows explicitly |
+| API | A command's contract, auth gate, and status for `version_conflict` versus `idempotency_mismatch` versus rejection | Fastify's request injection, plus a few cases on PostgreSQL for the captures that must be atomic |
+| Import boundary | Code outside a module does not import that module's `domain/`, `persistence/`, or internal application, except read models reading tables. Domain files do not import Fastify, Drizzle, or the auth library | Mandatory Vitest scan of the API source ([ADR-012](adr/ADR-012-repository-module-enforcement.md)) |
 | Frontend component | Forms and a couple of screens render contracts and errors | Vitest and React Testing Library, in `apps/web` when it exists |
 | End to end | A few ranch flows: register an animal, record a weight, record a feed purchase, sell a named animal | Playwright |
 
@@ -20,8 +20,8 @@ Domain tests carry the business rules. Persistence tests carry the transaction. 
 
 - **Vitest** for unit, application, persistence, API, component, and the import test. One runner. The production apps are Vite and Vitest belongs to that family. `apps/domain-map` is not retrofitted with a suite in this design.
 - **React Testing Library** for components.
-- **Playwright** for the handful of browser flows, when `apps/web` and the API exist.
-- **PostgreSQL**, the same engine as production, for persistence tests. GitHub Actions provides it as a service container. Locally it is the Compose database, on a separate database name from development data.
+- **Playwright** for the handful of browser flows, once a few stable critical flows exist. It is not the first test added with an empty app.
+- **PostgreSQL**, the same engine as production, for persistence tests. GitHub Actions provides it as a service container. Locally it is the Compose database, on a database name separate from development data. Testcontainers are not introduced initially.
 
 Jest, Cypress, and a second HTTP test framework are not added.
 
@@ -44,8 +44,8 @@ The pyramid is implemented with the API and the web app. This design does not ad
 
 ## Status
 
-- Version: 0.1
-- Status: Proposed strategy. No test runner added
+- Version: 0.2
+- Status: Accepted with the Physical Architecture v1 baseline. No test runner added
 - Last updated: 2026-10-04
 - Source: ADR-003, ADR-008, ADR-012
 - Validation: Proportional to two developers and a small herd

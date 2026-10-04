@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted
 
-Proposed with physical architecture v0.1. It does not create `apps/api`, a package, or a lint configuration.
+Accepted with the Physical Architecture v1 baseline. It does not create `apps/api`, a package, or a lint configuration.
 
 ## Context
 
@@ -21,11 +21,9 @@ Intended layout, not created by this ADR:
 ```text
 apps/
   domain-map/                 # discovery maps; unchanged
-  web/                        # production SPA; not created
   api/
     src/
-      http/
-      application/            # orchestrators
+      shared-kernel/
       modules/
         herd/
           domain/
@@ -36,31 +34,35 @@ apps/
         feeding/
         inventory/
         finance/
+      application/            # orchestrators
       read-models/
-      shared-kernel/
-      identity/
-      ports/
-      adapters/
+      infrastructure/         # Drizzle factories, HTTP adapters, identity, evidence
+      http/
+  web/                        # production SPA; not created
 packages/
-  api-contracts/              # created when apps/web exists
+  api-contracts/              # created when apps/api and apps/web exist
 ```
+
+`shared-kernel` stays a directory inside `apps/api`. It is not a workspace package. There is not one workspace package per domain module.
 
 Rules:
 
 - A module's `index.ts` exports application commands and queries. It does not export persistence or domain types that would let a caller skip the command.
-- Other modules do not import a module's `domain/` or `persistence/` tree. Orchestrators and HTTP handlers import the public index.
-- Read models may import persistence table definitions for `SELECT`. They do not import write repositories.
-- The shared kernel stays inside `apps/api` until a second runtime must share those types. It holds the allowed primitives from [cross-cutting-concerns.md](../cross-cutting-concerns.md) and nothing else.
-- `packages/api-contracts` is created with `apps/web`, not before. It holds Zod contracts ([ADR-009](ADR-009-api-style.md)), not domain entities.
-- Do not create a workspace package per domain module.
+- A module may import its own internals, the shared kernel, and an explicitly allowed public interface of another module.
+- A module does not import another module's `domain/`, `persistence/`, or internal application implementation. Orchestrators and HTTP handlers import the public index.
+- Domain code does not import Fastify, Drizzle, the authentication library, or web frontend code.
+- Application services do not import Drizzle and do not accept a raw Drizzle transaction ([ADR-008](ADR-008-data-access.md)).
+- Read models may import persistence table definitions for `SELECT`. They do not import write repositories. Cross-schema reads stay in this layer ([ADR-007](ADR-007-postgresql.md)).
+- The shared kernel holds the allowed primitives from [cross-cutting-concerns.md](../cross-cutting-concerns.md), including `RanchId`. It holds nothing else.
+- `packages/api-contracts` is created when `apps/api` and `apps/web` exist, not before. It holds Zod request and response schemas, and stable API enums that are part of the HTTP contract ([ADR-009](ADR-009-api-style.md)). It does not hold domain entities, repositories, Drizzle rows, or module internals.
 
-Enforcement, smallest first:
+Enforcement:
 
 1. The public index is the design.
-2. An automated test in the API test suite fails when a file outside a module imports that module's `domain/` or `persistence/`, except the read-model exception above. The test runs with the rest of the tests ([testing-strategy.md](../testing-strategy.md)). It is not installed in this version.
-3. A lint restriction may duplicate that rule for faster editor feedback. The repository already uses oxlint for `apps/domain-map`. The API should use one linter. Add the lint rule only if that linter can express it. Do not adopt ESLint solely for boundaries, and do not add dependency-cruiser.
+2. A Vitest architecture test is mandatory once `apps/api` exists. It fails when a file breaks the import rules above. It runs with the rest of the API tests ([testing-strategy.md](../testing-strategy.md)). It is not installed in this version.
+3. Editor feedback may come from the API's one linter if that linter can express the same rule. The repository already uses oxlint for `apps/domain-map`. Do not adopt a second lint toolchain for boundaries. Do not add dependency-cruiser.
 
-TypeScript project references per module, and workspace packages per module, are not the enforcement mechanism.
+TypeScript project references per module, and workspace packages per module, are not the enforcement mechanism. Revisit those only if the import test proves insufficient.
 
 Schema privileges per module are a later escalation if the import test and review still let cross-module writes through ([ADR-007](ADR-007-postgresql.md)).
 
@@ -72,7 +74,7 @@ A package boundary is real, and it is also a build graph. Orchestrators in the s
 
 - `apps/domain-map` is outside the enforcement graph. It is not a module and it does not import `apps/api`.
 - Fastify plugins are not how modules are separated ([ADR-005](ADR-005-backend-runtime.md)).
-- The import test does not encode the whole context map. It stops the dangerous import: another module's tables and entities. Review still checks that a module does not call another module's write function. Orchestrators are the writers that span modules.
+- The import test does not encode the whole context map. It stops the dangerous import: another module's tables, entities, and internal application code. Review still checks that a module does not call another module's write function. Orchestrators are the writers that span modules.
 - Creating `apps/api` or `apps/web` is a later implementation task. The workspace globs already match `apps/*` and `packages/*`.
 
 ## When to revisit
@@ -83,8 +85,8 @@ A package boundary is real, and it is also a build graph. Orchestrators in the s
 
 ## Status of this document
 
-- Version: 0.1
-- Status: Proposed with physical architecture v0.1
+- Version: 0.2
+- Status: Accepted with the Physical Architecture v1 baseline
 - Last updated: 2026-10-04
-- Source: ADR-002, ADR-003, AQ-P1-007
+- Source: ADR-002, ADR-003, AQ-P1-007, physical architecture QA
 - Validation: Decision only. No application directory is created

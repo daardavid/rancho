@@ -17,7 +17,7 @@ The business fact owns the evidence reference. Logical association, stored with 
 - when it was attached
 - source quality of the fact, which remains on the fact, not on the file alone
 
-Technical file storage owns the bytes and the technical file metadata. That split is the file port in [integrations.md](integrations.md). Physical architecture v0.1 uses a filesystem adapter in development and an S3-compatible store when deployed ([ADR-011](adr/ADR-011-evidence-storage.md)). No storage vendor is selected. The file port does not know what a kilogram or a peso means. Losing the ability to interpret a photo must not create a second numeric authority inside the file metadata. The weight, the amount, and the money stay on the owning record. The file is the backing.
+Technical file storage owns the bytes and the technical file metadata. That split is the file port in [integrations.md](integrations.md). The Physical Architecture v1 baseline uses a filesystem adapter in development and an S3-compatible store when deployed ([ADR-011](adr/ADR-011-evidence-storage.md)). The object key includes `RanchId`. No storage vendor is selected. Correcting or detaching a fact does not delete the historical bytes. The file port does not know what a kilogram or a peso means. Losing the ability to interpret a photo must not create a second numeric authority inside the file metadata. The weight, the amount, and the money stay on the owning record. The file is the backing.
 
 A photo does not upgrade declared data to measured. A photo of a scale display can support an observed weight. It does not, by itself, promote a spoken number into a measured one. A picture that does not show the quantity does not change the quantity's quality. The same rule the TO-BE model states for feed applies to every fact.
 
@@ -68,27 +68,30 @@ When the owner types what a worker reported, `RecordedBy` is the owner and `Repo
 
 Audit primitives live in the shared kernel. Each module applies them to its own records. There is no Audit module and no central audit service that other modules must call in order to be allowed to write. A later activity view, if anyone needs one, is a read model over those fields.
 
-## Corrections
+## Corrections and new facts
 
-Important facts are corrected, not silently replaced. The previous value, the reason, and the person remain available. Current state is still stored directly, so a reader does not replay a log to see this week's weight. See [domain-events.md](domain-events.md).
+Important facts stay explainable. They are not silently replaced. Current state is still stored directly, so a reader does not replay a log to see this week's weight. See [domain-events.md](domain-events.md). The physical form is two patterns in [persistence-strategy.md](persistence-strategy.md):
 
-Records where this is mandatory:
+- An incorrect fact (the recorded value was wrong) may update the current authoritative record and, in the same transaction, append the previous value, who corrected it, when, and why. `occurred_at` stays the original ranch-event time.
+- A legitimate new fact is a new historical record. The previous fact stays. A second weighing is not a correction of the first. Changing 315 kg to 351 kg on the same weighing is a correction. A move from one paddock to another is a new assignment. A measured delivery does not overwrite a declaration when both are meaningful facts.
+
+Records that must remain explainable by one of those patterns:
 
 - weights
 - parentage certainty
 - tenure and the participation note
-- marks, when a tag is replaced
+- marks, when a tag is replaced or an identifier was wrong
 - expenses, sales, and purchase costs
 - feed batches and deliveries
-- stock counts and any adjustment that accepts a count
+- stock movements, stock counts, and any adjustment that accepts a count
 - exit reason
 - expected location, as a history of assignments
 - health notes
 - confirmed-missing assertions
 
-A typo found immediately can still be a correction with a reason. The architecture does not need a separate "grace period delete." Deletes of ranch facts that already meant something are out of the normal path.
+A typo found immediately can still be a correction with a reason. The architecture does not need a separate "grace period delete." Deletes of ranch facts that already meant something are out of the normal path. Full event sourcing and temporal tables are not the history mechanism.
 
-Corrections of a multi-owner capture (feed purchase, identified sale, batch-and-issue) go through the application orchestrator that created the capture, so correlated facts stay aligned. A parentage correction is a Herd operation: it appends history on `ParentageRecord` and does not rewrite `Animal`.
+Corrections of a multi-owner capture (feed purchase, identified sale, batch-and-issue) go through the application orchestrator that created the capture, so correlated facts stay aligned. A parentage correction is a Herd operation: it appends history on `ParentageRecord` and does not rewrite `Animal`. A feed purchase still writes Finance and Inventory. It does not write Feeding.
 
 ## Capture once
 
@@ -121,6 +124,7 @@ These captures are not a bounded context called Operations. They contain no busi
 
 Allowed:
 
+- `RanchId`, as application scope. Not a Herd aggregate and not an organization
 - `AnimalId`
 - `PaddockId`
 - an evidence id or reference
@@ -163,7 +167,7 @@ Suspected missing on the risk view is not this notice.
 ## Status
 
 - Version: 0.2
-- Status: Transversal rules for the refined logical architecture
+- Status: Transversal rules for the refined logical architecture. `RanchId` and the two history patterns are the physical-baseline additions
 - Last updated: 2026-10-04
 - Source: `CAP-DATA-001`, `CAP-DATA-002`, `CAP-COMM-001`, `BR-EVID-001`, architecture QA
 - Validation: Shared kernel limited to the allowed list. Evidence stays transversal

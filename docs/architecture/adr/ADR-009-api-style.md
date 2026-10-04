@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted
 
-Proposed with physical architecture v0.1. It does not define the full route catalog and does not add a dependency.
+Accepted with the Physical Architecture v1 baseline. It does not define the full route catalog and does not add a dependency.
 
 ## Context
 
@@ -24,12 +24,14 @@ The public application API is command-oriented REST over JSON.
 
 - A route names a command. `POST /api/animals/{id}/exit` is the shape of an exit. `PATCH /api/animals/{id}` with `{ "active": false }` is not an exit command and is not the way to inactivate an animal.
 - Cross-module captures are their own commands, for example a cattle-sale command that the `RecordCattleSale` orchestrator handles. The client does not update Finance and then Herd as two optional calls.
-- Create commands carry client-generated ids ([ADR-007](ADR-007-postgresql.md)). Repeating the same id and the same business payload returns the existing result. The same id with a different business payload fails visibly.
-- Update commands carry the version the caller read. A stale version fails visibly. The stored row is unchanged.
+- Create and other state-changing commands carry a stable client command or capture id ([persistence-strategy.md](../persistence-strategy.md)). The same id and the same meaningful payload return the stored success. The same id with an incompatible payload fails with HTTP 409, code `idempotency_mismatch`. A separate idempotency header is not required.
+- Update commands that can race carry the integer version the caller read. A stale version fails with HTTP 409, code `version_conflict`. The stored row is unchanged. Append-only inserts do not carry a version merely because they insert.
+- Decimal money and measurements are strings in the contract, validated by Zod. A JavaScript number is not the authoritative representation.
 - Validate requests and responses at the HTTP boundary with Zod. Infer TypeScript types from those schemas. Fastify does not keep a second, hand-written JSON Schema for the same payload.
+- A handler maps the parsed schema to a plain command, calls the application service, and returns a response DTO.
 - Domain functions re-check invariants. Zod does not replace them. Zod rejects a malformed body. The domain rejects a legal-looking body that breaks a ranch rule, including a guess where unknown is required.
-- When `apps/web` is created, the Zod contracts move to `packages/api-contracts` so the SPA can type its client without importing the API's domain. Until then the schemas live with the API. This ADR does not create the package.
-- The Zod schema is the contract source. An OpenAPI document may be generated later for a non-TypeScript adapter. It is not a second contract edited by hand.
+- When `apps/api` and `apps/web` are created, the Zod contracts move to `packages/api-contracts` so the SPA can type its client without importing the API's domain. That package holds request schemas, response schemas, and stable API enums that are part of the HTTP contract. It does not hold domain entities, repositories, Drizzle rows, or module internals. This ADR does not create the package.
+- The Zod schema is the contract source. An OpenAPI document may be generated later for a non-TypeScript integration, an external adapter, or a documentation need. It is not a second contract edited by hand.
 
 No `/v1` prefix until a real break exists.
 
@@ -58,7 +60,7 @@ CRUD that maps a route to a table invites the client to set `active`, edit a mar
 
 ## Consequences
 
-- HTTP status carries the conflict: a validation failure, a domain rejection, a version conflict, and an idempotency mismatch are distinguishable. A small JSON error body is enough. Problem-details machinery is not required.
+- HTTP status carries the conflict: a validation failure, a domain rejection, HTTP 409 `version_conflict`, and HTTP 409 `idempotency_mismatch` are distinguishable. A small JSON error body is enough. Problem-details machinery is not required.
 - The SPA's TanStack Query functions call these commands and then invalidate the queries those commands affect ([ADR-006](ADR-006-frontend-approach.md)).
 - Adapters speak HTTP commands. They do not share the process's domain objects unless they run inside the process and call the application function directly. A future out-of-process adapter uses the HTTP contract.
 - Contracts do not include profitability formulas, parentage inference, or stock-balance rules. Those stay in the module or the read model.
@@ -71,8 +73,8 @@ CRUD that maps a route to a table invites the client to set `active`, edit a mar
 
 ## Status of this document
 
-- Version: 0.1
-- Status: Proposed with physical architecture v0.1
+- Version: 0.2
+- Status: Accepted with the Physical Architecture v1 baseline
 - Last updated: 2026-10-04
-- Source: ADR-003, offline-readiness constraints, capture-once rules
+- Source: ADR-003, offline-readiness constraints, capture-once rules, physical architecture QA
 - Validation: Decision only. No routes are implemented

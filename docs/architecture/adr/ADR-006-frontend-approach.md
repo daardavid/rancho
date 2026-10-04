@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed
+Accepted
 
-Proposed with physical architecture v0.1. It does not create `apps/web`.
+Accepted with the Physical Architecture v1 baseline. The decision is unchanged by the v0.2 refinement. It does not create `apps/web`.
 
 ## Context
 
@@ -62,7 +62,7 @@ Do not revisit it because a framework offers server rendering, or because the do
 ## Status of this document
 
 - Version: 0.1
-- Status: Proposed with physical architecture v0.1
+- Status: Accepted with the Physical Architecture v1 baseline. Decision unchanged by the v0.2 refinement
 - Last updated: 2026-10-04
 - Source: Logical Architecture v1 baseline, current `apps/domain-map` stack
 - Validation: Decision only. `apps/web` is not created. `apps/domain-map` is unchanged

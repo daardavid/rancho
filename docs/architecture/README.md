@@ -1,6 +1,6 @@
 # Architecture
 
-Logical architecture v0.2 is frozen as the **Logical Architecture v1 baseline** for implementation design. Physical architecture v0.1 records how that baseline runs. Neither is an approved product scope. The physical design does not authorize scaffolding.
+Logical architecture v0.2 is frozen as the **Logical Architecture v1 baseline**. Physical architecture is frozen as the **Physical Architecture v1 baseline** for implementation. Neither is an approved product scope. The physical baseline does not, by itself, scaffold an application.
 
 The logical baseline is:
 
@@ -8,15 +8,15 @@ The logical baseline is:
 - application orchestrators for cross-module writes, in one local transaction
 - read models that query authoritative modules
 - transversal evidence, audit, source quality, and capture channel
-- the minimal shared kernel
+- the minimal shared kernel, including `RanchId` as application scope
 
-The module list may change later through an ADR. Physical architecture implements this list. It keeps a later extraction possible: public module indexes, one schema per module, and no foreign keys across domain schemas. The logical text this baseline freezes is commit `762739b06d830146d61084497eff3f1a1edafd18`. Later sentences in those documents only point at the physical ADRs. Module ownership, orchestrators, and read-model rules are unchanged.
+The module list may change later through an ADR. Physical architecture implements this list. It keeps a later extraction possible: public module indexes, one schema per module, and cross-schema foreign keys limited to downstream Herd identity. Those foreign keys would be removed or replaced if a module left the database. The logical text this baseline freezes is commit `762739b06d830146d61084497eff3f1a1edafd18`. The physical refinement is [../plans/011-physical-architecture-refinement-v0.2.md](../plans/011-physical-architecture-refinement-v0.2.md). Module ownership, orchestrators, and read-model rules are unchanged.
 
 ## Logical architecture
 
 No physical choice required a change to the boundaries below.
 
-v0.1 proposed seven domain modules. QA kept the modular monolith and replaced that cut with five. The method of the refinement is [../plans/009-logical-architecture-refinement-v0.2.md](../plans/009-logical-architecture-refinement-v0.2.md). The v0.1 method remains [../plans/008-logical-architecture-v0.1.md](../plans/008-logical-architecture-v0.1.md) as history. The physical evaluation is [../plans/010-physical-architecture-v0.1.md](../plans/010-physical-architecture-v0.1.md).
+v0.1 proposed seven domain modules. QA kept the modular monolith and replaced that cut with five. The method of the refinement is [../plans/009-logical-architecture-refinement-v0.2.md](../plans/009-logical-architecture-refinement-v0.2.md). The v0.1 method remains [../plans/008-logical-architecture-v0.1.md](../plans/008-logical-architecture-v0.1.md) as history. The physical evaluation is [../plans/010-physical-architecture-v0.1.md](../plans/010-physical-architecture-v0.1.md). The physical freeze is [../plans/011-physical-architecture-refinement-v0.2.md](../plans/011-physical-architecture-refinement-v0.2.md).
 
 The facts remain in [../domain/README.md](../domain/README.md). The current operation remains in [../maps/as-is/README.md](../maps/as-is/README.md). The desired operation remains TO-BE v0.2 at commit `13c4ef2ff067404af5fa76141986b863d5cd18c5`.
 
@@ -55,7 +55,7 @@ Rejected as standalone contexts: Reproduction, Health, Presence, Security, Land,
 | [cross-cutting-concerns.md](cross-cutting-concerns.md) | Evidence, audit, quality, corrections, shared kernel |
 | [offline-readiness.md](offline-readiness.md) | Id and command constraints. Sync is not designed |
 | [integrations.md](integrations.md) | Adapters inward. No vendor packages in the domain |
-| [architecture-open-questions.md](architecture-open-questions.md) | P0 closed. Technology P1 closed. Vendor and feeding-group id still open |
+| [architecture-open-questions.md](architecture-open-questions.md) | P0 closed. Technology P1 closed. Vendor, feeding-group id, and scaffold-time library still open |
 | [adr/ADR-002-modular-monolith.md](adr/ADR-002-modular-monolith.md) | Deployment style. The module list is not part of the decision |
 | [adr/ADR-003-application-orchestration.md](adr/ADR-003-application-orchestration.md) | Who coordinates a capture that writes more than one module |
 | [adr/ADR-004-no-cross-module-event-bus-yet.md](adr/ADR-004-no-cross-module-event-bus-yet.md) | No broker and no required published catalog |
@@ -74,20 +74,21 @@ Rejected as standalone contexts: Reproduction, Health, Presence, Security, Land,
 | [deployment-strategy.md](deployment-strategy.md) | Local development, hosting requirements, CI, cost |
 | [adr/ADR-005-backend-runtime.md](adr/ADR-005-backend-runtime.md) | TypeScript, Node.js, Fastify |
 | [adr/ADR-006-frontend-approach.md](adr/ADR-006-frontend-approach.md) | React + Vite SPA, separate from the domain map |
-| [adr/ADR-007-postgresql.md](adr/ADR-007-postgresql.md) | One database, one schema per domain module |
-| [adr/ADR-008-data-access.md](adr/ADR-008-data-access.md) | Drizzle and an explicit transaction handle |
+| [adr/ADR-007-postgresql.md](adr/ADR-007-postgresql.md) | One database, one schema per domain module, narrow cross-schema foreign keys |
+| [adr/ADR-008-data-access.md](adr/ADR-008-data-access.md) | Drizzle and transaction-scoped repositories |
 | [adr/ADR-009-api-style.md](adr/ADR-009-api-style.md) | Command-oriented REST and Zod |
-| [adr/ADR-010-authentication.md](adr/ADR-010-authentication.md) | Library-based sessions |
+| [adr/ADR-010-authentication.md](adr/ADR-010-authentication.md) | Cookie sessions. Library chosen at scaffold |
 | [adr/ADR-011-evidence-storage.md](adr/ADR-011-evidence-storage.md) | Filesystem in development, S3-compatible when deployed |
 | [adr/ADR-012-repository-module-enforcement.md](adr/ADR-012-repository-module-enforcement.md) | Directories, public index, import test |
+| [adr/ADR-013-ranch-scope.md](adr/ADR-013-ranch-scope.md) | `RanchId` from the first persistence version. Not SaaS |
 
-Physical ADRs are proposed with v0.1. They are pending physical architecture QA.
+Physical ADRs are accepted as the Physical Architecture v1 baseline. They do not scaffold the application.
 
 ## Status
 
 - Logical version: 0.2, frozen as the Logical Architecture v1 baseline
-- Physical version: 0.1, proposed
-- Status: Baseline accepted for implementation design. Physical design pending QA. Not an approved product scope and not a scaffold authorization
+- Physical version: 1 baseline, refined from physical architecture v0.1
+- Status: Accepted for implementation. Not an approved product scope and not a scaffold performed by this folder
 - Last updated: 2026-10-04
-- Source: logical architecture v0.2 at `762739b`, architecture QA, `docs/domain` v0.1, TO-BE v0.2 at `13c4ef2`
+- Source: logical architecture v0.2 at `762739b`, physical architecture v0.1 at `0a0f819`, physical architecture QA, `docs/domain` v0.1, TO-BE v0.2 at `13c4ef2`
 - Validation: Ranch-owner validation of the domain remains pending. No production app is created by this folder

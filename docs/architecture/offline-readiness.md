@@ -21,13 +21,13 @@ The current target path already tolerates a pasture with no usable signal: the w
 
 Identity of an animal is this id, not the SINIIGA and not a server row number that only exists after a round trip.
 
-### Idempotent creation
+### Idempotent commands
 
-Creating a record with an id that already exists returns the existing record and does not append a duplicate weight, expense, or animal. A retry after a dropped connection is safe. The capture commands in [cross-cutting-concerns.md](cross-cutting-concerns.md) are the units of idempotency: a retried feed purchase does not create a second expense beside the first.
+Every state-changing command carries a stable client command or capture id. The same id and the same meaningful payload return the stored success and do not append a duplicate weight, expense, or animal. The same id and an incompatible payload fail visibly and leave the previous row. A retry after a dropped connection is safe. The capture commands in [cross-cutting-concerns.md](cross-cutting-concerns.md) are the units of idempotency: a retried feed purchase does not create a second expense beside the first. That mismatch is a different failure from a stale version.
 
 ### Explicit versions on update
 
-An update names the version it read. If the stored version has moved, the command fails visibly. The caller reloads and, if the change is still wanted, sends a correction. Two editors cannot quietly pass through each other.
+An update that can race names the version it read. If the stored version has moved, the command fails visibly. The caller reloads and, if the change is still wanted, sends a correction. Two editors cannot quietly pass through each other. An append-only insert does not take a version check merely because it is new. The version failure and the idempotency failure stay separate. The physical codes are in [persistence-strategy.md](persistence-strategy.md).
 
 At the start there may be only one editor, the owner. The rule is cheap now and is the difference between a later field client and a pile of last-write-wins bugs.
 
@@ -62,7 +62,7 @@ Offline readiness does not add a module. Every module's commands follow the same
 ## Status
 
 - Version: 0.2
-- Status: Constraints only. Synchronization is not designed. Physical architecture v0.1 maps the constraints to client UUID primary keys, integer versions, and command routes, and does not add a sync queue
+- Status: Constraints only. Synchronization is not designed. The Physical Architecture v1 baseline maps the constraints to client UUID primary keys, command ids, integer versions where updates race, and command routes. It does not add a sync queue
 - Last updated: 2026-10-04
 - Source: `CAP-CONN-001`, `CON-NET-001`, `CON-NET-002`, `CON-NET-003`, `OQ-CONN-001`
-- Validation: Unchanged in meaning by the five-module refinement and by physical architecture v0.1. `OQ-CONN-001` remains open
+- Validation: Unchanged in meaning by the five-module refinement. Physical codes are in the persistence strategy. `OQ-CONN-001` remains open
