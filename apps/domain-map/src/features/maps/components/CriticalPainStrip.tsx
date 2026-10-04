@@ -1,7 +1,12 @@
-import { painPointById } from '../../../data/painPoints.ts'
 import { effectivenessByPainId } from '../../../data/toBe/lookups.ts'
 import { criticalPainIds } from '../../../data/toBe/painEffectiveness.ts'
 import { effectivenessLabels } from '../../../types/toBe.ts'
+
+const criticalLabels: Record<string, string> = {
+  'PP-FEED-001': 'Alimentación',
+  'PP-FIN-001': 'Rentabilidad',
+  'PP-SEC-001': 'Faltantes de ganado',
+}
 
 interface CriticalPainStripProps {
   activePainId: string | null
@@ -13,7 +18,6 @@ export function CriticalPainStrip({ activePainId, onToggle }: CriticalPainStripP
     <div className="pain-strip" aria-label="Dolores críticos">
       <p className="pain-strip__label">Evaluación inicial</p>
       {criticalPainIds.map((id) => {
-        const pain = painPointById[id]
         const effect = effectivenessByPainId[id]
         const active = activePainId === id
         return (
@@ -24,11 +28,11 @@ export function CriticalPainStrip({ activePainId, onToggle }: CriticalPainStripP
             aria-pressed={active}
             onClick={() => onToggle(id)}
           >
-            <span className="mono">{id}</span>
-            <span className="pain-strip__title">{pain?.title}</span>
-            <span className={`pain-strip__effect is-${effect?.effectiveness ?? 'not_addressed'}`}>
+            <span className="pain-strip__title">{criticalLabels[id] ?? id}</span>
+            <span className={`effect-chip is-${effect?.effectiveness ?? 'not_addressed'}`}>
               {effect ? effectivenessLabels[effect.effectiveness] : 'Sin lectura'}
             </span>
+            <span className="mono pain-strip__id">{id}</span>
           </button>
         )
       })}

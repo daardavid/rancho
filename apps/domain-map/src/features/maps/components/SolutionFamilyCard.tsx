@@ -19,9 +19,11 @@ export function SolutionFamilyCard({ family }: { family: SolutionFamilyData }) {
     scale: false,
     notRecommendedNow: false,
   })
+  const [comparing, setComparing] = useState(false)
 
   const primary = family.primarySolutionIds.map((id) => solutionOptionById[id]).filter(Boolean)
   const alternatives = family.visibleAlternativeIds.map((id) => solutionOptionById[id]).filter(Boolean)
+  const comparable = [...primary, ...alternatives.slice(0, 2)]
 
   return (
     <section className="family-card">
@@ -34,6 +36,17 @@ export function SolutionFamilyCard({ family }: { family: SolutionFamilyData }) {
           {line}
         </p>
       ))}
+      {comparable.length >= 2 ? (
+        <button
+          type="button"
+          className="family-shelf__toggle"
+          aria-expanded={comparing}
+          onClick={() => setComparing((value) => !value)}
+        >
+          {comparing ? 'Ocultar comparación' : 'Comparar alternativas'}
+        </button>
+      ) : null}
+      {comparing ? <SolutionComparison options={comparable} primaryIds={family.primarySolutionIds} /> : null}
       {primary.length > 0 ? (
         <div className="family-card__block">
           <p className="family-card__kicker">Enfoque principal</p>
@@ -78,6 +91,87 @@ export function SolutionFamilyCard({ family }: { family: SolutionFamilyData }) {
         )
       })}
     </section>
+  )
+}
+
+function SolutionComparison({
+  options,
+  primaryIds,
+}: {
+  options: SolutionOptionData[]
+  primaryIds: string[]
+}) {
+  const rows: { label: string; value: (option: SolutionOptionData) => string }[] = [
+    { label: 'Tipo', value: (option) => option.types.map((type) => solutionTypeLabels[type]).join(', ') },
+    { label: 'Costo', value: (option) => costLabels[option.cost] },
+    { label: 'Complejidad', value: (option) => bandLabels[option.complexity] },
+    { label: 'Fricción operativa', value: (option) => bandLabels[option.operationalFriction] },
+    { label: 'Confiabilidad del dato', value: (option) => bandLabels[option.dataReliability] },
+    { label: 'Dependencia humana', value: (option) => bandLabels[option.humanDependency] },
+    { label: 'Dependencia de conectividad', value: (option) => dependencyLabels[option.connectivityDependency] },
+    { label: 'Dependencia de hardware', value: (option) => dependencyLabels[option.hardwareDependency] },
+    { label: 'Escalabilidad', value: (option) => bandLabels[option.scalability] },
+    { label: 'Auditabilidad', value: (option) => bandLabels[option.auditability] },
+    { label: 'Viabilidad actual', value: (option) => bandLabels[option.currentFeasibility] },
+  ]
+
+  return (
+    <div className="compare-wrap">
+      <table className="compare-table">
+        <caption>Enfoque principal y alternativas visibles. Lecturas cualitativas, no puntajes.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Lectura</th>
+            {options.map((option) => (
+              <th key={option.id} scope="col">
+                <span className="compare-table__role">
+                  {primaryIds.includes(option.id) ? 'Enfoque principal' : 'Alternativa'}
+                </span>
+                {option.title}
+                <span className="mono">{option.id}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <th scope="row">{row.label}</th>
+              {options.map((option) => (
+                <td key={option.id}>{row.value(option)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="detail-panel__note">Evaluación inicial. Estas lecturas no son porcentajes ni mediciones del rancho.</p>
+      {options.map((option) => (
+        <details key={option.id} className="compare-narrative">
+          <summary>{option.title}</summary>
+          <p>{sentence(option.description)}</p>
+          <p>
+            <strong>Cómo ayuda. </strong>
+            {sentence(option.howItHelps)}
+          </p>
+          <p>
+            <strong>Ventajas. </strong>
+            {sentence(option.pros)}
+          </p>
+          <p>
+            <strong>Desventajas. </strong>
+            {sentence(option.cons)}
+          </p>
+          <p>
+            <strong>Razón. </strong>
+            {sentence(option.rationale)}
+          </p>
+          <p>
+            <strong>Preguntas. </strong>
+            {sentence(option.questionsToValidate)}
+          </p>
+        </details>
+      ))}
+    </div>
   )
 }
 

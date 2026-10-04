@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { openQuestionById } from '../../../data/openQuestions.ts'
 import { painPointById } from '../../../data/painPoints.ts'
 import {
@@ -18,63 +18,111 @@ import {
 } from '../../../types/toBe.ts'
 import { SolutionFamilyCard } from './SolutionFamilyCard.tsx'
 
+type DetailTab = 'proceso' | 'soluciones' | 'pendientes'
+
 interface ToBeDetailPanelProps {
   node: ToBeFlowNode | null
+  helpOpen: boolean
+  onClose: () => void
 }
 
-export function ToBeDetailPanel({ node }: ToBeDetailPanelProps) {
+export function ToBeDetailPanel({ node, helpOpen, onClose }: ToBeDetailPanelProps) {
   if (node?.type === 'toBeProcess') {
     const process = targetProcessById[node.data.processId]
     return (
-      <aside className="detail-panel" aria-label="Detalle del mapa TO-BE">
-        {process ? <ProcessDetail process={process} /> : null}
+      <aside className="tobe-panel" aria-label="Detalle del mapa TO-BE">
+        {process ? (
+          <ProcessDetail
+            key={process.id}
+            process={process}
+            cardTitle={node.data.cardTitle}
+            onClose={onClose}
+          />
+        ) : null}
       </aside>
     )
   }
 
   if (node?.type === 'section') {
     return (
-      <aside className="detail-panel" aria-label="Detalle del mapa TO-BE">
-        <SectionDetail data={node.data} />
+      <aside className="tobe-panel" aria-label="Detalle del mapa TO-BE">
+        <PanelHeader kicker="Grupo" title={node.data.title} onClose={onClose} />
+        <div className="tobe-panel__body">
+          <SectionDetail data={node.data} />
+        </div>
       </aside>
     )
   }
 
+  if (helpOpen) {
+    return (
+      <aside className="tobe-panel" aria-label="Cómo leer el mapa">
+        <PanelHeader kicker="TO-BE" title="Cómo leer el mapa" onClose={onClose} />
+        <div className="tobe-panel__body">
+          <HelpDetail />
+        </div>
+      </aside>
+    )
+  }
+
+  return null
+}
+
+function PanelHeader({
+  kicker,
+  title,
+  meta,
+  onClose,
+  children,
+}: {
+  kicker: string
+  title: string
+  meta?: ReactNode
+  onClose: () => void
+  children?: ReactNode
+}) {
   return (
-    <aside className="detail-panel" aria-label="Detalle del mapa TO-BE">
-      <EmptyDetail />
-    </aside>
+    <header className="tobe-panel__header">
+      <div className="tobe-panel__heading">
+        <div>
+          <p className="detail-panel__kicker">{kicker}</p>
+          <h2>{title}</h2>
+          {meta}
+        </div>
+        <button type="button" className="map-filter" onClick={onClose}>
+          Cerrar
+        </button>
+      </div>
+      {children}
+    </header>
   )
 }
 
-function EmptyDetail() {
+function HelpDetail() {
   return (
-    <div className="detail-panel__content">
-      <p className="detail-panel__kicker">TO-BE</p>
-      <h2>Modelo operativo deseado</h2>
+    <>
       <p>Este mapa muestra cómo se quiere operar el rancho. No significa que cada solución ya se haya adoptado.</p>
       <ul>
         <li>Las familias de solución contienen alternativas. Ver una familia no es elegirla.</li>
         <li>Algunos controles siguen parciales, o con el método pendiente.</li>
         <li>La efectividad es una evaluación inicial del proyecto, no un cierre.</li>
       </ul>
-      <h3>Cómo leer el mapa</h3>
+      <h3>El mapa</h3>
       <ul>
         <li>Cada tarjeta es un proceso objetivo. Las capacidades y las opciones no son nodos.</li>
         <li>Línea continua: un proceso está pensado para ocurrir después de otro.</li>
         <li>Línea punteada: se relacionan, o el mismo evento produce otro hecho, sin orden de tiempo.</li>
         <li>A escala, en una opción, no significa que haya que adoptarla después.</li>
+        <li>Si un proceso queda fuera de la vista, se llega con el arrastre, el mapa pequeño o Ajustar vista.</li>
       </ul>
       <p className="detail-panel__note">Seleccione un proceso para ver el objetivo, la efectividad y las alternativas.</p>
-    </div>
+    </>
   )
 }
 
 function SectionDetail({ data }: { data: SectionNodeData }) {
   return (
-    <div className="detail-panel__content">
-      <p className="detail-panel__kicker">Grupo</p>
-      <h2>{data.title}</h2>
+    <>
       <p>{data.summary}</p>
       <h3>Procesos</h3>
       <ul>
@@ -84,22 +132,81 @@ function SectionDetail({ data }: { data: SectionNodeData }) {
           </li>
         ))}
       </ul>
-    </div>
+    </>
   )
 }
 
-function ProcessDetail({ process }: { process: TargetProcessData }) {
+function ProcessDetail({
+  process,
+  cardTitle,
+  onClose,
+}: {
+  process: TargetProcessData
+  cardTitle: string
+  onClose: () => void
+}) {
+  const [tab, setTab] = useState<DetailTab>('proceso')
   return (
-    <div className="detail-panel__content">
-      <p className="detail-panel__kicker">Proceso objetivo</p>
-      <h2>{process.title}</h2>
-      <p className="mono">{process.id}</p>
-      <p>
-        {horizonLabels[process.horizon]}
-        {process.visualRole === 'supporting' || process.visualRole === 'derived'
-          ? ` · ${roleLabels[process.visualRole]}`
-          : ''}
-      </p>
+    <>
+      <PanelHeader
+        kicker="Proceso objetivo"
+        title={cardTitle}
+        onClose={onClose}
+        meta={
+          <>
+            <p className="mono">{process.id}</p>
+            <p className="detail-panel__note">
+              {horizonLabels[process.horizon]}
+              {process.visualRole !== 'operational' ? ` · ${roleLabels[process.visualRole]}` : ''}
+            </p>
+            {cardTitle !== process.title ? (
+              <p className="detail-panel__note">Nombre de catálogo: {process.title}</p>
+            ) : null}
+          </>
+        }
+      >
+        <div className="tobe-tabs" role="tablist" aria-label="Detalle del proceso">
+          <TabButton id="proceso" active={tab} onSelect={setTab}>
+            Proceso
+          </TabButton>
+          <TabButton id="soluciones" active={tab} onSelect={setTab}>
+            Soluciones
+          </TabButton>
+          <TabButton id="pendientes" active={tab} onSelect={setTab}>
+            Pendientes
+          </TabButton>
+        </div>
+      </PanelHeader>
+      <div className="tobe-panel__body" role="tabpanel">
+        {tab === 'proceso' ? <ProcessTab process={process} /> : null}
+        {tab === 'soluciones' ? <SolutionsTab process={process} /> : null}
+        {tab === 'pendientes' ? <PendingTab process={process} /> : null}
+      </div>
+    </>
+  )
+}
+
+function TabButton({
+  id,
+  active,
+  onSelect,
+  children,
+}: {
+  id: DetailTab
+  active: DetailTab
+  onSelect: (tab: DetailTab) => void
+  children: string
+}) {
+  return (
+    <button type="button" role="tab" aria-selected={active === id} className={active === id ? 'is-active' : ''} onClick={() => onSelect(id)}>
+      {children}
+    </button>
+  )
+}
+
+function ProcessTab({ process }: { process: TargetProcessData }) {
+  return (
+    <>
       <Section title="Objetivo">
         <p>{process.objective}</p>
       </Section>
@@ -270,18 +377,40 @@ function ProcessDetail({ process }: { process: TargetProcessData }) {
             return (
               <article key={id} className="pain-card">
                 <p className="pain-card__header">
-                  <span className="mono">{id}</span>
                   <span>{pain?.title}</span>
+                  <span className="mono">{id}</span>
                 </p>
-                <p className={`pain-strip__effect is-${effect?.effectiveness ?? 'not_addressed'}`}>
-                  {effect ? effectivenessLabels[effect.effectiveness] : 'Sin lectura'}
+                <p>
+                  <span className={`effect-chip is-${effect?.effectiveness ?? 'not_addressed'}`}>
+                    {effect ? effectivenessLabels[effect.effectiveness] : 'Sin lectura'}
+                  </span>
                 </p>
-                {effect ? <p>{effect.remainingExposure}</p> : null}
               </article>
             )
           })}
         </div>
       </Section>
+    </>
+  )
+}
+
+function SolutionsTab({ process }: { process: TargetProcessData }) {
+  return (
+    <Section title="Familias de solución">
+      <p className="detail-panel__note">
+        Una familia muestra un enfoque y alternativas. Abrir una opción no significa que el rancho la haya adoptado.
+      </p>
+      {process.familyIds.map((id) => {
+        const family = solutionFamilyById[id]
+        return family ? <SolutionFamilyCard key={id} family={family} /> : null
+      })}
+    </Section>
+  )
+}
+
+function PendingTab({ process }: { process: TargetProcessData }) {
+  return (
+    <>
       <Section title="Qué sigue sin resolverse">
         <ul>
           {process.unresolved.map((item) => (
@@ -289,17 +418,31 @@ function ProcessDetail({ process }: { process: TargetProcessData }) {
           ))}
         </ul>
       </Section>
-      <Section title="Familias de solución">
-        <p className="detail-panel__note">
-          Una familia muestra un enfoque y alternativas. Abrir una opción no significa que el rancho la haya adoptado.
-        </p>
-        {process.familyIds.map((id) => {
-          const family = solutionFamilyById[id]
-          return family ? <SolutionFamilyCard key={id} family={family} /> : null
-        })}
+      <Section title="Exposición que permanece">
+        <p className="detail-panel__note">Evaluación inicial. No es un porcentaje ni un cierre.</p>
+        <div className="pain-list">
+          {process.painPointIds.map((id) => {
+            const pain = painPointById[id]
+            const effect = effectivenessByPainId[id]
+            return (
+              <article key={id} className="pain-card">
+                <p className="pain-card__header">
+                  <span>{pain?.title}</span>
+                  <span className="mono">{id}</span>
+                </p>
+                <p>
+                  <span className={`effect-chip is-${effect?.effectiveness ?? 'not_addressed'}`}>
+                    {effect ? effectivenessLabels[effect.effectiveness] : 'Sin lectura'}
+                  </span>
+                </p>
+                {effect ? <p>{effect.remainingExposure}</p> : null}
+              </article>
+            )
+          })}
+        </div>
       </Section>
-      {process.openQuestionIds.length > 0 ? (
-        <Section title="Preguntas abiertas">
+      <Section title="Preguntas abiertas">
+        {process.openQuestionIds.length > 0 ? (
           <ul>
             {process.openQuestionIds.map((id) => (
               <li key={id}>
@@ -307,9 +450,11 @@ function ProcessDetail({ process }: { process: TargetProcessData }) {
               </li>
             ))}
           </ul>
-        </Section>
-      ) : null}
-    </div>
+        ) : (
+          <p className="detail-panel__note">Este proceso no cita una pregunta abierta propia.</p>
+        )}
+      </Section>
+    </>
   )
 }
 

@@ -1,5 +1,6 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react'
 import { targetProcessById } from './lookups.ts'
+import { toBeCardCopy } from './toBePresentation.ts'
 import { assertToBeData } from './validateToBe.ts'
 import type { EdgeRelation, SectionNodeData } from '../../types/map.ts'
 import type { ToBeProcessNodeData } from '../../types/toBe.ts'
@@ -29,26 +30,81 @@ interface ProcessLayout {
 
 const sections: SectionLayout[] = [
   {
-    id: 'GRP-IDENTITY',
-    title: 'Alta / identidad',
-    summary:
-      'La ficha, la compra y la salida. La compra puede entrar como lote antes de la ficha de cada cabeza. La venta produce la salida en el mismo evento. A la parte no se traduce a un porcentaje.',
-    canvasNote: 'Tenencia y participación pueden quedar desconocidas.',
-    position: { x: 0, y: 0 },
-    width: 716,
-    height: 240,
-    processIds: ['TGT-ANIMAL-001', 'TGT-PUR-001', 'TGT-ANIMAL-EXIT-001'],
-  },
-  {
     id: 'GRP-REPRO',
     title: 'Reproducción',
     summary:
       'El nacimiento crea la ficha en un solo evento. La línea continua es una corrección posterior de la filiación, no un segundo alta. Un toro único no confirma la paternidad.',
     canvasNote: 'La corrección es posterior. No es otro alta.',
-    position: { x: 742, y: 0 },
-    width: 252,
-    height: 504,
+    position: { x: 0, y: 0 },
+    width: 264,
+    height: 404,
     processIds: ['TGT-BIRTH-001', 'TGT-REPRO-001'],
+  },
+  {
+    id: 'GRP-IDENTITY',
+    title: 'Alta / identidad',
+    summary:
+      'La ficha, la compra y la salida. La compra puede entrar como lote antes de la ficha de cada cabeza. La venta produce la salida en el mismo evento. A la parte no se traduce a un porcentaje.',
+    canvasNote: 'Tenencia y «a la parte» pueden quedar desconocidos.',
+    position: { x: 288, y: 0 },
+    width: 768,
+    height: 224,
+    processIds: ['TGT-ANIMAL-001', 'TGT-PUR-001', 'TGT-ANIMAL-EXIT-001'],
+  },
+  {
+    id: 'GRP-ENGORDA',
+    title: 'Operación ganadera / engorda',
+    summary:
+      'El pesaje, la nota sanitaria y el lugar esperado. El pesaje no verifica al hato. El lugar puede quedar desconocido. No hay GPS.',
+    canvasNote: 'Lugar desconocido es válido. No es GPS.',
+    position: { x: 288, y: 248 },
+    width: 768,
+    height: 224,
+    processIds: ['TGT-WEIGH-001', 'TGT-HEALTH-001', 'TGT-MOVE-001'],
+  },
+  {
+    id: 'GRP-FEED',
+    title: 'Bodega / alimentación',
+    summary:
+      'La compra de alimento es también la entrada de bodega. La línea punteada es el mismo evento, no un segundo trámite. La entrega declarada no es entrega medida.',
+    canvasNote: 'Declarado no es medido.',
+    position: { x: 0, y: 496 },
+    width: 508,
+    height: 224,
+    processIds: ['TGT-FEED-001', 'TGT-INV-001'],
+  },
+  {
+    id: 'GRP-FIN',
+    title: 'Finanzas',
+    summary:
+      'El ingreso y los gastos se registran sin calcular la parte del ranchero. La lectura provisional usa esos hechos y no es utilidad fiscal. No hace falta una flecha por cada costo.',
+    canvasNote: 'Lectura provisional. No es utilidad fiscal.',
+    position: { x: 532, y: 496 },
+    width: 768,
+    height: 224,
+    processIds: ['TGT-EXPENSE-001', 'TGT-SALE-001', 'TGT-PROFIT-001'],
+  },
+  {
+    id: 'GRP-SEC',
+    title: 'Presencia / seguridad',
+    summary:
+      'Ver un animal en la manga es la última observación, no la verificación del hato. Esa verificación sigue con método y cadencia pendientes. La intrusión es otro problema y no está atendida.',
+    canvasNote: 'Última vez visto no es el hato. Intrusión: no atendida.',
+    position: { x: 0, y: 744 },
+    width: 768,
+    height: 224,
+    processIds: ['TGT-SEC-001', 'TGT-HERD-VERIFY-001', 'TGT-SEC-002'],
+  },
+  {
+    id: 'GRP-GOV',
+    title: 'Gestión',
+    summary:
+      'El aviso crítico entra al mínimo. El resumen semanal es deseable. La evidencia de campo es el canal por el que llegan los otros eventos, no un paso junto al pesaje.',
+    canvasNote: 'El canal no es un paso de la engorda.',
+    position: { x: 792, y: 744 },
+    width: 508,
+    height: 224,
+    processIds: ['TGT-GOV-001', 'TGT-COMM-001'],
   },
   {
     id: 'GRP-MILK',
@@ -57,88 +113,33 @@ const sections: SectionLayout[] = [
       'No es operación vigente y no entra al paquete mínimo. Existe para preguntar, si la ordeña vuelve, si conviene.',
     canvasNote: 'Condicional. Fuera del flujo inicial.',
     variant: 'conditional',
-    position: { x: 1020, y: 0 },
-    width: 252,
-    height: 240,
+    position: { x: 1520, y: 24 },
+    width: 264,
+    height: 224,
     processIds: ['TGT-MILK-001'],
-  },
-  {
-    id: 'GRP-ENGORDA',
-    title: 'Operación ganadera / engorda',
-    summary:
-      'El pesaje, la nota sanitaria y el lugar esperado. El pesaje no verifica al hato. El lugar puede quedar desconocido. No hay GPS.',
-    canvasNote: 'El lugar desconocido es válido. Cerca de ocho potreros conocidos o identificados.',
-    position: { x: 0, y: 264 },
-    width: 716,
-    height: 240,
-    processIds: ['TGT-WEIGH-001', 'TGT-HEALTH-001', 'TGT-MOVE-001'],
-  },
-  {
-    id: 'GRP-FEED',
-    title: 'Bodega / alimentación',
-    summary:
-      'La compra de alimento es también la entrada de bodega. La línea punteada es el mismo evento, no un segundo trámite. La entrega declarada no es entrega medida.',
-    canvasNote: 'Declaración estructurada. La entrega medida sigue en investigar.',
-    position: { x: 0, y: 528 },
-    width: 484,
-    height: 240,
-    processIds: ['TGT-FEED-001', 'TGT-INV-001'],
-  },
-  {
-    id: 'GRP-FIN',
-    title: 'Finanzas',
-    summary:
-      'El ingreso y los gastos se registran sin calcular la parte del ranchero. La lectura provisional usa esos hechos y no es utilidad fiscal. No hace falta una flecha por cada costo.',
-    canvasNote: 'Lectura económica provisional. No es utilidad fiscal.',
-    position: { x: 510, y: 528 },
-    width: 716,
-    height: 240,
-    processIds: ['TGT-EXPENSE-001', 'TGT-SALE-001', 'TGT-PROFIT-001'],
-  },
-  {
-    id: 'GRP-SEC',
-    title: 'Presencia / seguridad',
-    summary:
-      'Ver un animal en la manga es la última observación, no la verificación del hato. Esa verificación sigue con método y cadencia pendientes. La intrusión es otro problema y no está atendida.',
-    canvasNote: 'Última vez observado no es verificación del hato. La intrusión no está elegida.',
-    position: { x: 0, y: 792 },
-    width: 716,
-    height: 240,
-    processIds: ['TGT-SEC-001', 'TGT-HERD-VERIFY-001', 'TGT-SEC-002'],
-  },
-  {
-    id: 'GRP-GOV',
-    title: 'Gestión',
-    summary:
-      'El aviso crítico entra al mínimo. El resumen semanal es deseable. La evidencia de campo es el canal por el que llegan los otros eventos, no un paso junto al pesaje.',
-    canvasNote: 'El canal no es una operación de la engorda.',
-    position: { x: 742, y: 792 },
-    width: 484,
-    height: 240,
-    processIds: ['TGT-GOV-001', 'TGT-COMM-001'],
   },
 ]
 
 const processLayouts: ProcessLayout[] = [
-  { processId: 'TGT-ANIMAL-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-PUR-001', position: { x: 248, y: 52 } },
-  { processId: 'TGT-ANIMAL-EXIT-001', position: { x: 480, y: 52 } },
-  { processId: 'TGT-BIRTH-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-REPRO-001', position: { x: 16, y: 232 } },
-  { processId: 'TGT-MILK-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-WEIGH-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-HEALTH-001', position: { x: 248, y: 52 } },
-  { processId: 'TGT-MOVE-001', position: { x: 480, y: 52 } },
-  { processId: 'TGT-FEED-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-INV-001', position: { x: 248, y: 52 } },
-  { processId: 'TGT-EXPENSE-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-SALE-001', position: { x: 248, y: 52 } },
-  { processId: 'TGT-PROFIT-001', position: { x: 480, y: 52 } },
-  { processId: 'TGT-SEC-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-HERD-VERIFY-001', position: { x: 248, y: 52 } },
-  { processId: 'TGT-SEC-002', position: { x: 480, y: 52 } },
-  { processId: 'TGT-GOV-001', position: { x: 16, y: 52 } },
-  { processId: 'TGT-COMM-001', position: { x: 248, y: 52 } },
+  { processId: 'TGT-BIRTH-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-REPRO-001', position: { x: 16, y: 252 } },
+  { processId: 'TGT-ANIMAL-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-PUR-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-ANIMAL-EXIT-001', position: { x: 504, y: 72 } },
+  { processId: 'TGT-WEIGH-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-HEALTH-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-MOVE-001', position: { x: 504, y: 72 } },
+  { processId: 'TGT-FEED-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-INV-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-EXPENSE-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-SALE-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-PROFIT-001', position: { x: 504, y: 72 } },
+  { processId: 'TGT-SEC-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-HERD-VERIFY-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-SEC-002', position: { x: 504, y: 72 } },
+  { processId: 'TGT-GOV-001', position: { x: 16, y: 72 } },
+  { processId: 'TGT-COMM-001', position: { x: 260, y: 72 } },
+  { processId: 'TGT-MILK-001', position: { x: 16, y: 72 } },
 ]
 
 const parentByProcess = new Map<string, string>()
@@ -167,6 +168,8 @@ function sectionNode(section: SectionLayout): ToBeSectionFlowNode {
 
 function processNode(layout: ProcessLayout): ToBeProcessFlowNode {
   const process = targetProcessById[layout.processId]
+  const card = toBeCardCopy[layout.processId]
+  if (!card) throw new Error(`Missing map card copy for ${layout.processId}`)
   return {
     id: layout.processId,
     type: 'toBeProcess',
@@ -179,6 +182,8 @@ function processNode(layout: ProcessLayout): ToBeProcessFlowNode {
     data: {
       processId: process.id,
       title: process.title,
+      cardTitle: card.cardTitle,
+      cardLine: card.cardLine,
       horizon: process.horizon,
       visualRole: process.visualRole,
       painPointIds: process.painPointIds,

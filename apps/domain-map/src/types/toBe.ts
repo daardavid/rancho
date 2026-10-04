@@ -145,7 +145,12 @@ export interface PainEffectiveness {
 
 export interface ToBeProcessNodeData extends Record<string, unknown> {
   processId: string
+  /** Catalog title. Shown in the detail panel, not as the map headline. */
   title: string
+  /** Ranch-language label for the map card. Does not replace the catalog title. */
+  cardTitle: string
+  /** One outcome or remaining-exposure line for the map card. */
+  cardLine: string
   horizon: TargetHorizon
   visualRole: VisualRole
   painPointIds: string[]

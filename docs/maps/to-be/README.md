@@ -95,20 +95,24 @@ El lugar puede quedar desconocido. La verificación del hato no entra, porque su
 
 Siguen en [../../domain/open-questions.md](../../domain/open-questions.md) y, las de diseño, en [decision-framework.md](decision-framework.md). Esta versión no las cierra. Las que bloquean una implementación posterior, y no el hecho de guardar «desconocido», son sobre todo `OQ-OWN-001`, `OQ-OWN-002` en su parte económica, `OQ-FEED-002`, `OQ-TRADE-001`, `OQ-SCALE-001` y `DQ-FIN-003`. `OQ-COUNT-001` y `OQ-SEC-001` dejan la presencia del hato y la intrusión sin método elegido.
 
-## Convenciones de la interfaz v0.1
+## Convenciones de la interfaz
 
-El mapa dibuja procesos objetivo (`TGT-*`). No dibuja cada capacidad, cada familia ni cada opción.
+El mapa dibuja procesos objetivo (`TGT-*`). No dibuja cada capacidad, cada familia ni cada opción. El plan de la pantalla es [../../plans/007-to-be-visual-refinement-v0.2.md](../../plans/007-to-be-visual-refinement-v0.2.md).
 
 | Convención | Cómo se ve | Qué significa |
 | --- | --- | --- |
-| Nodo de proceso objetivo | Tarjeta con nombre, horizonte y unos pocos dolores | Proceso deseado. No es una solución adoptada ni un estado resuelto. |
+| Nodo de proceso objetivo | Horizonte, un nombre de trabajo y una línea de resultado o de lo que sigue abierto | Proceso deseado. No es una solución adoptada ni un estado resuelto. El nombre de catálogo queda en el panel. |
+| Vista inicial | Entra por reproducción, alta y operación ganadera, con texto legible | El resto se alcanza arrastrando, con el mapa pequeño o con Ajustar vista. Ajustar vista no encoge el texto por debajo de un mínimo. |
+| Panel de detalle | Cerrado hasta que hay un proceso, un grupo o «Cómo leer» | Al abrirse ocupa cerca de un tercio. Se cierra sin cambiar los datos. Adentro: Proceso, Soluciones, Pendientes. |
+| Filtro | Atenúa lo que no entra y encuadra lo que sí | No borra procesos. Restablecer vuelve a la vista general. |
+| Comparación | En una familia, el enfoque principal y como mucho dos alternativas visibles | Tabla cualitativa. No es un puntaje y no lista las 52 opciones. |
 | Horizonte | Mínimo útil, Deseable ahora, Método pendiente, A escala, Condicional | Alcance de la intención. A escala, en una opción, no obliga a adoptarla después. |
 | Efectividad | Evaluación inicial: sustancialmente controlado, control parcial, solo mejora visibilidad, no atendido, condicional | Lectura del proyecto sobre el dolor. No es un porcentaje ni un cierre. |
 | Método pendiente | Etiqueta en la verificación del hato y en la intrusión | El control deseado está dicho. El método, o la implementación, no. |
-| Familia de solución | En el panel, o en la banda transversal | Enfoque principal y como mucho dos alternativas a la vista. El resto se abre por estante: recomendado ahora, investigar, a escala, no recomendado ahora. |
-| Principios transversales | Banda, no nodos hermanos | `CAP-DATA-002`, `CAP-COMM-001` y `CAP-CONN-001`: fuente, evidencia, canal, y asentar después. No describen una sincronización. |
+| Familia de solución | En el panel, o al abrir los principios | Enfoque principal y como mucho dos alternativas a la vista. El resto se abre por estante: recomendado ahora, investigar, a escala, no recomendado ahora. |
+| Principios transversales | Una fila, con «Ver detalles» | `CAP-DATA-002`, `CAP-COMM-001` y `CAP-CONN-001`: fuente, evidencia, canal, y asentar después. No describen una sincronización. |
 
-La leche queda en un marco aparte, marcado Condicional. Los aproximadamente 8 potreros se tratan como conocidos o identificados, no como nombres formales ya existentes.
+La posición de los grupos cuenta la operación: la reproducción y el alta quedan del lado de entrada, la engorda al centro, la venta hacia la salida, y bodega, finanzas, seguridad y gestión como apoyo. No se agregan flechas para contar esa historia. La leche queda en un marco aparte, marcado Condicional. Los aproximadamente 8 potreros se tratan como conocidos o identificados, no como nombres formales ya existentes.
 
 El catálogo completo de opciones sigue en [solution-catalog.md](solution-catalog.md). Esta sección no lo repite.
 
