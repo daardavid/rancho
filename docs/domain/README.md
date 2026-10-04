@@ -2,7 +2,7 @@
 
 Esta carpeta es la fuente de verdad del contexto del rancho mientras dura el descubrimiento. No es el diseño de la aplicación ni un alcance aprobado.
 
-El mapa AS-IS v0.2, descrito en [../maps/as-is/README.md](../maps/as-is/README.md), dibuja la operación actual a partir de este material. TO-BE y arquitectura siguen sin diseñarse. El mapa no es el diseño de la solución.
+El mapa AS-IS v0.2, descrito en [../maps/as-is/README.md](../maps/as-is/README.md), dibuja la operación actual a partir de este material. El diseño de dominio TO-BE v0.1 está en [../maps/to-be/README.md](../maps/to-be/README.md). No es alcance aprobado ni diseño de software. La arquitectura sigue sin diseñarse. La pestaña TO-BE de la aplicación sigue vacía.
 
 ## Cómo se clasifica el conocimiento
 
@@ -48,9 +48,11 @@ Ejemplos que no deben mezclarse:
 
 Este material se actualiza cuando una entrevista nueva cambie el entendimiento. Una versión posterior debe decir qué dejó de considerarse cierto. No se da por aprobada formalmente por el propietario: la validación sigue pendiente.
 
-La trazabilidad prevista, todavía no implementada en los mapas, es:
+La trazabilidad prevista es:
 
-proceso → punto de dolor → opción de solución → requerimiento → decisión de arquitectura
+proceso actual → punto de dolor → capacidad objetivo → proceso objetivo → opción de solución → requerimiento → decisión de arquitectura
+
+El tramo de diseño de dominio está en [../maps/to-be/README.md](../maps/to-be/README.md). El mapa interactivo TO-BE no está implementado. Requerimiento y arquitectura siguen después.
 
 Véase también [ADR-001](../architecture/adr/ADR-001-domain-maps-as-code.md).
 

@@ -46,7 +46,7 @@ La cadena prevista sigue siendo proceso → punto de dolor → opción → reque
 
 ## Aplicación
 
-La vista AS-IS de `apps/domain-map` dibuja este catálogo. TO-BE y ARCHITECTURE siguen vacías. Arrastrar un nodo no se guarda.
+La vista AS-IS de `apps/domain-map` dibuja este catálogo. La pestaña TO-BE de la aplicación y ARCHITECTURE siguen vacías. El diseño de dominio TO-BE, sin interfaz, está en [../to-be/README.md](../to-be/README.md). Arrastrar un nodo no se guarda.
 
 ## Estado del documento
 
