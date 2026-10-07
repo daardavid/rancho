@@ -27,6 +27,7 @@ Authority depends on the kind of question. There is no single document that outr
 | AS-IS and TO-BE | [docs/maps/as-is/](maps/as-is/README.md) and [docs/maps/to-be/](maps/to-be/README.md). |
 | Architecture | [docs/architecture/](architecture/README.md), accepted ADRs, and [docs/maps/architecture/](maps/architecture/README.md). |
 | Current design baseline | [docs/checkpoints/design-v1.md](checkpoints/design-v1.md). |
+| Repository delivery: branches, Pull Requests, CI, GitHub review, and merge | [docs/development/github-workflow.md](development/github-workflow.md). |
 | Current work | Direction and phase: [Master Plan](product/master-plan.md). Accepted product policy: [Product Decisions](product/decisions/README.md). Current product scope: the Product Increment, when one exists. A PR brief or linked issue may define the repository change. |
 
 The Master Plan provides direction. An Increment, when one exists, provides the current product scope. A prompt provides instructions. A prompt does not override the Increment, the Master Plan, or other governance.
@@ -65,6 +66,8 @@ Never invent ranch truth.
 **Architecture.** [docs/architecture/](architecture/README.md), the relevant ADRs, and the [architecture map](maps/architecture/README.md) as an explanation of the accepted baseline. The map does not replace the architecture documents.
 
 **Code or implementation.** When one exists, the current [Product Increment](product/increments/README.md) is the product scope. Also read its PR brief when the change is one PR of that increment; the relevant ADRs; the relevant module and domain documents; the Constitution; and the Uncertainty Protocol. For a meaningful product increment, also use the [Definition of Done](product/definition-of-done.md). Design Checkpoint v1 still bounds what has been accepted. No production application is the behavior specification. A trivial change does not need every Done section.
+
+**Repository delivery.** When the task creates a branch, prepares a commit meant for `main`, opens or reviews a Pull Request, or concerns merge, read the [GitHub delivery workflow](development/github-workflow.md). A task that does not touch delivery does not need it.
 
 **Review.** Check the change against the Constitution, the Uncertainty Protocol, the authoritative source for the question type, and the scope of the current work. A meaningful implementation review should also consider the [Definition of Done](product/definition-of-done.md). Look for invented ranch facts, collapsed uncertainty, duplicated capture, derived data written as truth, and future tools promoted into current requirements. A typo or an equivalent trivial fix does not need the full Definition of Done.
 
@@ -116,15 +119,15 @@ If required answers are unavailable, apply the [Uncertainty Protocol](product/un
 
 ## Current project state
 
-RANCHO Design Phase v1 is closed.
+RANCHO Design Phase v1 is closed. Accepted artifacts include AS-IS v1, TO-BE v1, Logical Architecture v1, Physical Architecture v1, and Architecture Map v1. Details and commit pins are in [checkpoints/design-v1.md](checkpoints/design-v1.md).
 
-Accepted artifacts include AS-IS v1, TO-BE v1, Logical Architecture v1, Physical Architecture v1, and Architecture Map v1.
+Governance v1 is closed. Details and commit pins are in [checkpoints/governance-v1.md](checkpoints/governance-v1.md).
 
-No production application has been scaffolded as of Design v1. The interactive domain map in `apps/domain-map` is not the ranch application.
+The current phase is MVP Framing. MVP Framing is the current phase, not an already decided MVP. No MVP scope has been selected yet.
+
+No production application has been scaffolded yet. The interactive domain map in `apps/domain-map` is not the ranch application.
 
 Direction and the current phase are in the [Master Plan](product/master-plan.md).
-
-Details and commit pins are in [checkpoints/design-v1.md](checkpoints/design-v1.md).
 
 ## Fundamental reminder
 

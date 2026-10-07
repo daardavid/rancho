@@ -2,7 +2,7 @@
 
 This playbook is a Reviewer prompt. It is not a source of truth. The Master Plan gives direction. When the current-work artifact is a Product Increment, that increment is the product scope. This prompt does not override the increment or other governance.
 
-Default behavior: read-only. Do not modify files unless the user explicitly asks for edits in a later step.
+Default behavior: read-only. Do not modify files unless the user explicitly asks for edits in a later step. Do not fix findings during the same review. A correction is a separate, explicit task.
 
 CURRENT WORK:
 <path, diff, or issue supplied by user>
@@ -44,8 +44,10 @@ Look specifically for:
 Use only these severities. Do not invent a numerical score.
 
 - `BLOCKER` — the change contradicts accepted governance, domain truth, architecture, or the approved scope, or it would ship an invented ranch rule.
-- `MAJOR` — the change is usable only with a serious product, UX, data, or design defect.
+- `MAJOR` — the change is usable only with a serious product, UX, data, or design defect, or it violates governance in a way that is not a `BLOCKER`.
 - `MINOR` — a limited defect that does not by itself make the change unsafe to accept.
+
+What each severity means for merge is in [../development/github-workflow.md](../development/github-workflow.md#review). Merge is a human decision. A review may recommend merge readiness.
 
 A review may conclude `NO BLOCKING FINDINGS`. Do not call the work perfect.
 

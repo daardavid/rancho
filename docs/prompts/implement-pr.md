@@ -2,7 +2,7 @@
 
 This playbook is a Builder prompt. It is not a source of truth. The Master Plan gives direction. When the current-work artifact is a Product Increment, that increment is the product scope. This prompt does not override the increment or other governance.
 
-No production application is scaffolded. Do not assume GitHub is configured. Do not assume `apps/api` or `apps/web` exists.
+No production application is scaffolded. Do not assume `apps/api` or `apps/web` exists. Repository delivery follows [../development/github-workflow.md](../development/github-workflow.md). Do not assume branch protection or other GitHub settings are configured.
 
 CURRENT WORK:
 <path or issue supplied by user>
@@ -33,4 +33,4 @@ CURRENT WORK:
     - conflicts, if any
     - out-of-scope findings left unimplemented
 
-Do not claim a check passed if it was not run. Do not push unless the user explicitly asks.
+Do not claim a check passed if it was not run. You may prepare commits on a working branch. Do not push, open a PR, or merge unless the user explicitly asks.

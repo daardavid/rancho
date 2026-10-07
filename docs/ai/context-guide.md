@@ -4,7 +4,7 @@
 
 - Status: ACCEPTED AI AGENT GOVERNANCE BASELINE
 - Version: v1
-- Last updated: 2026-10-04
+- Last updated: 2026-10-06
 
 This guide explains how an AI agent should work on RANCHO. It covers Cursor, ChatGPT, ChatGPT Work, and future coding or review agents.
 
@@ -39,6 +39,7 @@ A typical future implementation task should load:
 - the relevant ADRs
 - [UX Principles](../product/ux-principles.md), when the work is user-facing
 - [Definition of Done](../product/definition-of-done.md), for a meaningful review
+- the [GitHub delivery workflow](../development/github-workflow.md), when the work will become a branch, a PR, or a merge
 
 No production application has been scaffolded. Do not assume `apps/api` or `apps/web` exists. `apps/domain-map` is the discovery map, not the ranch application.
 
@@ -112,7 +113,18 @@ Use one mode for the task. Do not mix them.
 
 **Builder.** Implement the approved scope. Ask when blocked. Run the required checks. Leave unrelated improvements unbuilt.
 
-**Reviewer.** Stay read-only. Look for violations. Challenge assumptions. Compare the work with governance and the acceptance criteria. Do not modify files unless the user explicitly asks for edits.
+When the work becomes a repository change, it follows the [GitHub delivery workflow](../development/github-workflow.md):
+
+```
+current Increment or approved work
+    → working branch and PR
+        → validation and review
+            → human merge
+```
+
+A builder may prepare commits on a working branch. It does not push, open a PR, or merge unless a human explicitly asks.
+
+**Reviewer.** Stay read-only. Look for violations. Challenge assumptions. Compare the work with governance and the acceptance criteria. Do not modify files unless the user explicitly asks for targeted corrections.
 
 The same product may do both jobs. It must not do both ambiguously in one task. A review playbook stays read-only even when the agent is capable of editing.
 
@@ -149,6 +161,6 @@ These rules constrain Cursor. They are behavioral. The documents they cite remai
 | [10-domain-safety.mdc](../../.cursor/rules/10-domain-safety.mdc) | Agent-requested | Ranch meaning, facts, source quality, or open questions are in play. |
 | [20-product-ux.mdc](../../.cursor/rules/20-product-ux.mdc) | Agent-requested | User-facing behavior or product priority is in play. |
 | [30-architecture.mdc](../../.cursor/rules/30-architecture.mdc) | Agent-requested | Boundaries, persistence, APIs, or ADRs are in play. |
-| [40-development-workflow.mdc](../../.cursor/rules/40-development-workflow.mdc) | Agent-requested | Files, checks, commits, or scope of a change are in play. |
+| [40-development-workflow.mdc](../../.cursor/rules/40-development-workflow.mdc) | Agent-requested | Files, checks, commits, branches, PRs, or scope of a change are in play. |
 
 An agent outside Cursor should follow this guide and Start Here. It should open a playbook only when the task matches that playbook.

@@ -4,7 +4,7 @@
 
 - Status: ACCEPTED PRODUCT DIRECTION GOVERNANCE BASELINE
 - Version: v1
-- Last updated: 2026-10-04
+- Last updated: 2026-10-06
 
 The Master Plan is the canonical repository view of RANCHO's direction and current phase.
 
@@ -43,29 +43,23 @@ No production application was scaffolded.
 
 ### Governance v1
 
+Closed at [../checkpoints/governance-v1.md](../checkpoints/governance-v1.md).
+
 | Task | State | Record |
 | --- | --- | --- |
 | GOV-001 Product governance baseline | Complete | `ef67778` |
 | GOV-002 UX, evaluation, and Definition of Done | Complete | `c3e04f2` |
 | GOV-003 AI agent and Cursor governance | Complete | `eb6d1fe` |
-| GOV-004 Product direction governance | Current | This plan |
-| GOV-005 | Remaining | Not started. Its contents are not defined here. |
+| GOV-004 Product direction governance | Complete | `2c688c2` |
+| GOV-005 GitHub delivery governance | Complete | Closure commit containing the Governance v1 checkpoint |
 
 ## NOW
 
-Finish Governance v1.
+MVP Framing.
 
-The current task is GOV-004. The next governance task is GOV-005.
+No MVP scope has been selected. No Product Increment exists. No production application has been scaffolded.
 
 NOW does not include MVP features, an implementation backlog, or a production application.
-
-## NEXT
-
-After Governance v1, the expected sequence is:
-
-1. MVP Framing
-2. Pilot Design
-3. Define the first product increments and the implementation plan
 
 MVP Framing still has to answer, and this plan does not answer:
 
@@ -76,7 +70,14 @@ MVP Framing still has to answer, and this plan does not answer:
 - Which data foundation is actually needed?
 - Which explicit non-goals keep the MVP focused?
 
-Those questions stay open. Answering them is later work.
+Those questions stay open. Answering them is the work of MVP Framing.
+
+## NEXT
+
+After MVP Framing, the expected sequence is:
+
+1. Pilot Design
+2. Define the first product increments and the implementation plan
 
 ## LATER
 
@@ -127,7 +128,7 @@ Do not copy the same learning into every artifact.
 | Product Increment | A coherent unit of product value or learning |
 | PR | A reviewable repository or code change |
 | Prompt | An execution instruction, not project truth |
-| GitHub | Execution and history, once it is configured |
+| GitHub | Execution and history. How work moves through it: [../development/github-workflow.md](../development/github-workflow.md) |
 | Repository documents | Accepted durable project memory |
 
 ```
