@@ -6,14 +6,17 @@ import { useEffect, useState } from 'react'
  * Es lo que pide la tarea: si la sesión vence a media ficha, la aplicación
  * manda al inicio de sesión y al volver la URL sigue siendo la de la ficha, así
  * que la pantalla de destino no se pierde. También hace que el botón de atrás
- * del celular se comporte como se espera. No se agrega un enrutador: son tres
- * pantallas.
+ * del celular se comporte como se espera. No se agrega un enrutador: son unas
+ * pocas pantallas.
  */
 
 export type Ruta =
   | { readonly nombre: 'hato' }
   | { readonly nombre: 'alta' }
   | { readonly nombre: 'ficha'; readonly animalId: string }
+  | { readonly nombre: 'pesaje' }
+  | { readonly nombre: 'crecimiento' }
+  | { readonly nombre: 'sesion'; readonly sesionId: string }
 
 export const RUTA_DEL_HATO: Ruta = { nombre: 'hato' }
 
@@ -21,6 +24,16 @@ export function leerRuta(hash: string): Ruta {
   const limpio = hash.replace(/^#/, '')
   if (limpio === '/alta') {
     return { nombre: 'alta' }
+  }
+  if (limpio === '/pesaje') {
+    return { nombre: 'pesaje' }
+  }
+  if (limpio === '/crecimiento') {
+    return { nombre: 'crecimiento' }
+  }
+  const sesion = /^\/sesion\/([0-9a-fA-F-]{36})$/.exec(limpio)
+  if (sesion !== null && sesion[1] !== undefined) {
+    return { nombre: 'sesion', sesionId: sesion[1] }
   }
   const ficha = /^\/animal\/([0-9a-fA-F-]{36})$/.exec(limpio)
   if (ficha !== null && ficha[1] !== undefined) {
@@ -35,6 +48,12 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/'
     case 'alta':
       return '#/alta'
+    case 'pesaje':
+      return '#/pesaje'
+    case 'crecimiento':
+      return '#/crecimiento'
+    case 'sesion':
+      return `#/sesion/${ruta.sesionId}`
     case 'ficha':
       return `#/animal/${ruta.animalId}`
   }

@@ -71,15 +71,26 @@ export function Hato() {
               : `${total} ${total === 1 ? 'animal activo' : 'animales activos'}`}
           </p>
         </div>
-        <button
-          type="button"
-          className="boton boton--principal boton--compacto"
-          onClick={() => {
-            irA({ nombre: 'alta' })
-          }}
-        >
-          Dar de alta
-        </button>
+        <div className="encabezado__acciones">
+          <button
+            type="button"
+            className="boton boton--principal boton--compacto"
+            onClick={() => {
+              irA({ nombre: 'pesaje' })
+            }}
+          >
+            Pesaje
+          </button>
+          <button
+            type="button"
+            className="boton boton--secundario boton--compacto"
+            onClick={() => {
+              irA({ nombre: 'alta' })
+            }}
+          >
+            Dar de alta
+          </button>
+        </div>
       </header>
 
       {total === 0 ? (

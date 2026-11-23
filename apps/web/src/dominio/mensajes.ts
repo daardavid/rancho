@@ -98,6 +98,42 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Algo falló y no sabemos exactamente qué.',
     queHacer: 'Vuelve a intentar. Si se repite, avísale a quien te da soporte.',
   },
+  animal_repetido: {
+    quePaso: 'Un animal aparece dos veces en esta vuelta.',
+    queHacer: 'Deja una sola vez a cada animal y vuelve a guardar.',
+  },
+  fila_repetida: {
+    quePaso: 'Un renglón de la vuelta se repitió.',
+    queHacer: 'Vuelve a abrir la pantalla del pesaje y captura de nuevo.',
+  },
+  peso_sin_calidad: {
+    quePaso: 'Falta decir cómo se obtuvo un peso.',
+    queHacer: 'Escoge «medido en la báscula», «visto, no medido» o «me lo dijeron».',
+  },
+  peso_invalido: {
+    quePaso: 'Un peso no se pudo leer.',
+    queHacer: 'Escríbelo en kilos, con punto y hasta 3 decimales. Por ejemplo 351.5',
+  },
+  animal_ausente: {
+    quePaso: 'Un animal de esta vuelta ya no existe en el rancho.',
+    queHacer: 'Quítalo de la vuelta y vuelve a guardar.',
+  },
+  animal_inactivo: {
+    quePaso: 'Un animal de esta vuelta ya está dado de baja.',
+    queHacer: 'Quítalo de la vuelta y vuelve a guardar.',
+  },
+  no_es_peso: {
+    quePaso: 'Ese renglón no es un peso, es un «no se pesó».',
+    queHacer: 'Abre la sesión de nuevo y corrige el renglón que sí se pesó.',
+  },
+  sesion_ya_existe: {
+    quePaso: 'Esta vuelta ya estaba guardada.',
+    queHacer: 'Abre la sesión guardada en vez de capturarla otra vez.',
+  },
+  fila_ya_existe: {
+    quePaso: 'Uno de los renglones ya estaba guardado en esta vuelta.',
+    queHacer: 'Abre la sesión guardada para revisarla.',
+  },
 }
 
 const GENERICO: { quePaso: string; queHacer: string } = MENSAJES.error_desconocido ?? {
