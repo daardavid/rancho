@@ -18,7 +18,7 @@ The working ranch context is in [docs/domain/README.md](docs/domain/README.md). 
 
 ## Repository areas
 
-- `apps/api` — the modular monolith (`@rancho/api`). Fastify at the edge, the shared kernel, and the ranch modules. Today it is a skeleton: no database, no session, no herd rules.
+- `apps/api` — the modular monolith (`@rancho/api`). Fastify at the edge, the shared kernel, and the ranch modules. The HTTP server is still a skeleton: no session and no herd rules. PostgreSQL is applied with `npm run db:migrate -w @rancho/api`, not when the process starts.
 - `apps/web` — the owner-facing application (`@rancho/web`). React, Vite, TanStack Query. Today it only shows whether the API responds.
 - `packages/api-contracts` — the Zod contracts shared by the API and the web (`@rancho/api-contracts`).
 - `apps/domain-map` — interactive map for AS-IS processes, future TO-BE alternatives, and software architecture. It is not the ranch application.
@@ -53,7 +53,7 @@ Open [http://localhost:5173/](http://localhost:5173/). The web app asks the API 
 
 If the API is not running, the web app says it could not reach it and offers a retry. That is the expected behavior, not a bug in the page.
 
-The API reads two optional variables: `PORT` (default `3000`) and `HOST` (default `127.0.0.1`). It has no `.env` file yet and no database connection.
+The API reads two optional variables: `PORT` (default `3000`) and `HOST` (default `127.0.0.1`). It does not open a database and does not apply migrations when it starts. Database commands read `DATABASE_URL` from the environment; the local placeholders are in `.env.example`. `docker compose up -d` starts a development PostgreSQL. Tests run without it.
 
 Check the API by hand:
 
