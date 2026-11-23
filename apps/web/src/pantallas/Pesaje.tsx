@@ -147,6 +147,7 @@ function EditorDeSesion({
   const [busqueda, setBusqueda] = useState('')
   const [masDatos, setMasDatos] = useState(borrador.nota !== '' || borrador.reportedBy !== '')
   const [intentado, setIntentado] = useState(false)
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
 
   const filas = borrador.filas
   const capturados = filas.filter(
@@ -390,6 +391,43 @@ function EditorDeSesion({
         >
           Regresar al hato
         </BotonGrande>
+
+        {/*
+          Descartar la vuelta a medias. Va al final y pide un segundo toque: es
+          lo único de esta pantalla que tira trabajo, y el dueño tiene que
+          querer hacerlo ([UX-15](../../../../../docs/product/ux-principles.md)).
+        */}
+        {confirmandoDescarte ? (
+          <div className="aviso aviso--ojo" role="alert">
+            <p className="aviso__titulo">¿Tirar esta vuelta a medias?</p>
+            <p className="aviso__quehacer">
+              Se borra lo que llevas capturado en este celular. Lo que ya se guardó en el rancho no
+              se toca.
+            </p>
+            <BotonGrande
+              alTocar={() => {
+                borrarBorrador()
+                alCambiar(nuevoBorrador([]))
+                setIntentado(false)
+                setConfirmandoDescarte(false)
+                registrar.reset()
+              }}
+            >
+              Sí, empezar de cero
+            </BotonGrande>
+            <BotonGrande secundario alTocar={() => setConfirmandoDescarte(false)}>
+              Seguir capturando
+            </BotonGrande>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="enlace"
+            onClick={() => setConfirmandoDescarte(true)}
+          >
+            Empezar una vuelta nueva
+          </button>
+        )}
       </form>
     </main>
   )

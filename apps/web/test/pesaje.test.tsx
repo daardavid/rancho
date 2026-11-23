@@ -428,6 +428,29 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     expect(valores).toContain('190')
   })
 
+  it('la vuelta a medias se puede tirar, con un segundo toque', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '215')
+
+    // Tirar trabajo pide dos toques: el primero solo pregunta.
+    await usuario.click(screen.getByRole('button', { name: 'Empezar una vuelta nueva' }))
+    expect(screen.getByText('¿Tirar esta vuelta a medias?')).toBeDefined()
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).not.toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Sí, empezar de cero' }))
+
+    expect(await screen.findByText('Todavía no hay animales en la sesión.')).toBeDefined()
+    expect(screen.queryAllByLabelText('Kilos')).toHaveLength(0)
+  })
+
   it('el choque de idempotencia se explica y no se ofrece guardar otra vez', async () => {
     const usuario = userEvent.setup()
     montarApi({
