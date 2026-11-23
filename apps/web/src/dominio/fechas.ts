@@ -78,6 +78,29 @@ export function kilosLegibles(kilos: string | null): string {
   return `${recortado} kg`
 }
 
+/**
+ * El día de hoy en el rancho, como `"2026-11-22"`.
+ *
+ * Es el valor por omisión de la fecha de un pesaje. Se lee con la zona del
+ * rancho y no con la del celular: un celular mal configurado no debe hacer que
+ * el pesaje quede anotado en otro día. La fecha la puede cambiar el dueño en
+ * cualquier momento; esto solo es el renglón que ya viene contestado
+ * ([UX-06](../../../../../docs/product/ux-principles.md)).
+ */
+export function hoyEnElRancho(ahora: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_DEL_RANCHO,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(ahora)
+
+  const valor = (tipo: Intl.DateTimeFormatPartTypes): string =>
+    partes.find((parte) => parte.type === tipo)?.value ?? ''
+
+  return `${valor('year')}-${valor('month')}-${valor('day')}`
+}
+
 /** Días: `0` es «hoy», `1` es «ayer». */
 export function diasLegibles(dias: number | null): string {
   if (dias === null) {
