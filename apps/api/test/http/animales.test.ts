@@ -8,7 +8,7 @@ import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { crearHerd } from '../../src/modules/herd'
 import { nuevoId } from '../../src/shared-kernel/ids'
-import { abrirBaseDePruebas } from '../db/base-de-pruebas'
+import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 const CONTRASENA = 'contrasena-de-prueba'
 const USUARIO = 'propietario-ficha'
@@ -50,7 +50,7 @@ describe('ficha por HTTP', () => {
     await sembrarRancho(db, 'Rancho de prueba')
     await crearCuenta(db, { rol: 'owner', usuario: USUARIO, contrasena: CONTRASENA })
     app = construirApp({
-      identidad: crearIdentidad(db),
+      identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       herd: crearHerd(db),
       nivelDeLog: 'silent',
     })

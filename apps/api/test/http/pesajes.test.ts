@@ -9,7 +9,7 @@ import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { crearGrowth } from '../../src/modules/growth'
 import { crearHerd } from '../../src/modules/herd'
 import { nuevoId } from '../../src/shared-kernel/ids'
-import { abrirBaseDePruebas } from '../db/base-de-pruebas'
+import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 const CONTRASENA = 'contrasena-de-prueba'
 const USUARIO = 'propietario-pesaje'
@@ -62,7 +62,7 @@ describe('pesaje por HTTP', () => {
     cerrar = base.cerrar
     await sembrarRancho(db, 'Rancho de prueba')
     await crearCuenta(db, { rol: 'owner', usuario: USUARIO, contrasena: CONTRASENA })
-    const identidad = crearIdentidad(db)
+    const identidad = crearIdentidad(db, SECRETO_DE_PRUEBA)
     const herd = crearHerd(db)
     app = construirApp({
       identidad,

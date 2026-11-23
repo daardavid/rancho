@@ -6,6 +6,16 @@ import { Pool } from 'pg'
 import { aplicarMigraciones } from '../../src/infrastructure/db/migrar'
 
 /**
+ * El secreto de sesión de las pruebas.
+ *
+ * No es un secreto: la prueba necesita uno del largo que exige
+ * [`cargarConfiguracion`](../../src/infrastructure/configuracion.ts) para poder
+ * armar la identidad. Cualquier valor sirve mientras todas las pruebas que
+ * comparten una base usen el mismo, porque la huella guardada depende de él.
+ */
+export const SECRETO_DE_PRUEBA = 'secreto-de-prueba-para-la-fabrica-0001'
+
+/**
  * Una sola fábrica para las pruebas de persistencia (ADR-014).
  *
  * Con `TEST_DATABASE_URL` se conecta a ese PostgreSQL. Sin ella arranca PGlite

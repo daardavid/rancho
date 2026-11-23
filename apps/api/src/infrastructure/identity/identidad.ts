@@ -18,10 +18,23 @@ export type IdentidadHttp = {
   resolver(token: string): Promise<SesionActiva | null>
 }
 
-export function crearIdentidad(db: EjecutorSql): IdentidadHttp {
+/**
+ * La identidad tal como la usa el borde HTTP, con el secreto de la instalación
+ * cerrado adentro.
+ *
+ * El secreto no se pasa en cada llamada ni se lee de `process.env` aquí: entra
+ * una vez, al armar la aplicación, y quien llama no lo ve. En producción el
+ * proceso se niega a arrancar si falta ([`cargarConfiguracion`](../../main.ts));
+ * en las pruebas llega desde `abrirBaseDePruebas`.
+ */
+export function crearIdentidad(db: EjecutorSql, secretoDeSesion: string): IdentidadHttp {
+  if (secretoDeSesion.trim() === '') {
+    throw new Error('Falta el secreto de sesión: sin él no se puede firmar ninguna cookie.')
+  }
+
   return {
-    iniciar: (entrada) => iniciarSesion(db, entrada),
-    cerrar: (token) => cerrarSesion(db, token),
-    resolver: (token) => resolverSesion(db, token),
+    iniciar: (entrada) => iniciarSesion(db, secretoDeSesion, entrada),
+    cerrar: (token) => cerrarSesion(db, secretoDeSesion, token),
+    resolver: (token) => resolverSesion(db, secretoDeSesion, token),
   }
 }

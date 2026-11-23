@@ -12,7 +12,7 @@ import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { MAX_INTENTOS_FALLIDOS, VENTANA_DE_INTENTOS_MS } from '../../src/infrastructure/identity/parametros'
 import { huellaDeToken } from '../../src/infrastructure/identity/tokens'
 import { nuevoId } from '../../src/shared-kernel/ids'
-import { abrirBaseDePruebas } from '../db/base-de-pruebas'
+import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 const CONTRASENA = 'contrasena-de-prueba'
 const USUARIO_OWNER = 'propietario-prueba'
@@ -75,7 +75,7 @@ describe('sesión', () => {
     await crearCuenta(db, { rol: 'owner', usuario: USUARIO_BLOQUEO, contrasena: CONTRASENA })
     await crearCuenta(db, { rol: 'support', usuario: USUARIO_VENTANA, contrasena: CONTRASENA })
 
-    app = construirApp({ identidad: crearIdentidad(db), nivelDeLog: 'silent' })
+    app = construirApp({ identidad: crearIdentidad(db, SECRETO_DE_PRUEBA), nivelDeLog: 'silent' })
     app.post(
       '/api/prueba/hecho',
       { preHandler: exigirRol(['owner', 'support']) },
@@ -148,11 +148,11 @@ describe('sesión', () => {
       await db.execute(sql`
         SELECT ranch_id, rol, account_id, token_hash
         FROM identity.session
-        WHERE token_hash = ${huellaDeToken(token)}
+        WHERE token_hash = ${huellaDeToken(token, SECRETO_DE_PRUEBA)}
       `),
     )
     expect(filas).toEqual([
-      { ranch_id: ranchId, rol: 'owner', account_id: owner.id, token_hash: huellaDeToken(token) },
+      { ranch_id: ranchId, rol: 'owner', account_id: owner.id, token_hash: huellaDeToken(token, SECRETO_DE_PRUEBA) },
     ])
     expect(filas[0]?.token_hash).not.toBe(token)
 
@@ -187,7 +187,7 @@ describe('sesión', () => {
   it('cerrar sesión borra la fila y la cookie deja de servir', async () => {
     const entrada = await entrar(USUARIO_OWNER)
     const { cookie, token } = cookieEnviada(setCookieDe(entrada.headers))
-    const huella = huellaDeToken(token)
+    const huella = huellaDeToken(token, SECRETO_DE_PRUEBA)
 
     const cierre = await app.inject({
       method: 'DELETE',
@@ -225,7 +225,7 @@ describe('sesión', () => {
         ${owner.id},
         ${ranchId},
         'owner',
-        ${huellaDeToken(token)},
+        ${huellaDeToken(token, SECRETO_DE_PRUEBA)},
         ${new Date(Date.now() - 1000)},
         ${new Date(Date.now() - 2000)}
       )
@@ -240,7 +240,7 @@ describe('sesión', () => {
 
     const filas = filasDe<{ id: string }>(
       await db.execute(sql`
-        SELECT id FROM identity.session WHERE token_hash = ${huellaDeToken(token)}
+        SELECT id FROM identity.session WHERE token_hash = ${huellaDeToken(token, SECRETO_DE_PRUEBA)}
       `),
     )
     expect(filas).toEqual([])
@@ -303,7 +303,7 @@ describe('sesión', () => {
 
   it('en producción la cookie es HttpOnly, Secure y SameSite=Lax', async () => {
     const publicada = construirApp({
-      identidad: crearIdentidad(db),
+      identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       nivelDeLog: 'silent',
       produccion: true,
     })

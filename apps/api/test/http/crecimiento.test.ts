@@ -8,7 +8,7 @@ import { crearGrowth } from '../../src/modules/growth'
 import { crearHerd } from '../../src/modules/herd'
 import { crearModelosDeCrecimiento } from '../../src/read-models'
 import { nuevoId } from '../../src/shared-kernel/ids'
-import { abrirBaseDePruebas } from '../db/base-de-pruebas'
+import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 const CONTRASENA = 'contrasena-de-prueba'
 const USUARIO = 'propietario-crecimiento'
@@ -77,7 +77,7 @@ describe('vistas de crecimiento por HTTP', () => {
     await crearCuenta(db, { rol: 'owner', usuario: USUARIO, contrasena: CONTRASENA })
     const herd = crearHerd(db)
     app = construirApp({
-      identidad: crearIdentidad(db),
+      identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       herd,
       growth: crearGrowth(db, herd),
       crecimiento: crearModelosDeCrecimiento(db),
