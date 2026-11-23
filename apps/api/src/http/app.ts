@@ -1,8 +1,10 @@
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 
+import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
+import { registrarRutasDeAnimales } from './routes/animales'
 import { registrarRutaDeSalud } from './routes/health'
 import { registrarRutasDeSesion } from './routes/sesion'
 
@@ -13,6 +15,8 @@ export type OpcionesApp = {
   readonly identidad?: IdentidadHttp
   /** `Secure` en la cookie solo cuando esto es verdadero. */
   readonly produccion?: boolean
+  /** Si falta, las rutas de la ficha no se montan. */
+  readonly herd?: Herd
 }
 
 /**
@@ -63,6 +67,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
       identidad: opciones.identidad,
       produccion: opciones.produccion === true,
     })
+  }
+  if (opciones.herd !== undefined) {
+    registrarRutasDeAnimales(app, opciones.herd)
   }
 
   return app

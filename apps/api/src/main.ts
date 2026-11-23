@@ -2,6 +2,7 @@ import { construirApp } from './http/app'
 import { abrirCliente } from './infrastructure/db/cliente'
 import { cargarEnvLocal, exigirVariable } from './infrastructure/db/entorno'
 import { crearIdentidad } from './infrastructure/identity/identidad'
+import { crearHerd } from './modules/herd'
 
 const PUERTO_POR_OMISION = 3000
 const HOST_POR_OMISION = '127.0.0.1'
@@ -25,6 +26,7 @@ async function arrancar(): Promise<void> {
   const cliente = abrirCliente(url)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db),
+    herd: crearHerd(cliente.db),
     produccion: process.env['NODE_ENV'] === 'production',
   })
 
