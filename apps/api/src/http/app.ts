@@ -1,11 +1,18 @@
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 
+import type { IdentidadHttp } from '../infrastructure/identity/identidad'
+import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutaDeSalud } from './routes/health'
+import { registrarRutasDeSesion } from './routes/sesion'
 
 export type OpcionesApp = {
   /** Baja el nivel de log en las pruebas. */
   readonly nivelDeLog?: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent'
+  /** Si falta, las rutas de sesión no se montan. La salud sigue sin base. */
+  readonly identidad?: IdentidadHttp
+  /** `Secure` en la cookie solo cuando esto es verdadero. */
+  readonly produccion?: boolean
 }
 
 /**
@@ -26,15 +33,20 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
       // arquitectura pide Pino con id de petición.
       level: opciones.nivelDeLog ?? 'info',
       redact: {
-        paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
+        paths: [
+          'req.headers.cookie',
+          'req.headers.authorization',
+          'req.body.contrasena',
+          'res.headers["set-cookie"]',
+        ],
         censor: '[redactado]',
       },
     },
     logController: new LogController({ requestIdLogLabel: 'requestId' }),
     // El id sale de aquí y se repite en cada línea de log de la petición.
     genReqId: (peticion) => idDePeticion(peticion.headers['x-request-id']),
-    // Nunca se confía en un proxy por omisión: la IP del cliente se usará en el
-    // límite de intentos de inicio de sesión cuando exista la sesión.
+    // Nunca se confía en un proxy por omisión. El límite de intentos cuenta por
+    // usuario escrito, no por una IP que un proxy podría inventar.
     trustProxy: false,
   })
 
@@ -44,7 +56,14 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
     respuesta.header('x-request-id', peticion.id)
   })
 
+  registrarResolucionDeSesion(app, opciones.identidad)
   registrarRutaDeSalud(app)
+  if (opciones.identidad !== undefined) {
+    registrarRutasDeSesion(app, {
+      identidad: opciones.identidad,
+      produccion: opciones.produccion === true,
+    })
+  }
 
   return app
 }

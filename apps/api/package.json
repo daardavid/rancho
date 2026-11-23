@@ -12,9 +12,11 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/infrastructure/db/cli-migrar.ts",
     "db:reset": "tsx src/infrastructure/db/cli-reset.ts",
-    "db:seed": "tsx src/infrastructure/db/cli-semilla.ts"
+    "db:seed": "tsx src/infrastructure/db/cli-semilla.ts",
+    "cuenta:crear": "tsx src/infrastructure/identity/cli-cuenta.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "@rancho/api-contracts": "*",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",

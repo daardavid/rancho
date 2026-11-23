@@ -13,6 +13,8 @@
  * 2. Un archivo de `domain/` que importa Fastify, Drizzle, una librería de
  *    autenticación, código de la web o cualquier otro módulo.
  * 3. Un archivo del núcleo compartido que importa un módulo.
+ * 4. Cualquier archivo de un módulo (`domain`, `application` o `persistence`) que
+ *    importa la librería de autenticación. Esa librería se queda en el borde.
  *
  * Lo que no codifica: que un módulo llame a la escritura de otro, que un servicio
  * de aplicación reciba la transacción de Drizzle, o que una consulta lea tablas
@@ -56,6 +58,18 @@ const PAQUETES_PROHIBIDOS_EN_DOMINIO = [
   'react-dom',
   '@tanstack/react-query',
   '@rancho/web',
+] as const
+
+/** La librería de autenticación no entra a ningún módulo, no solo al dominio. */
+const LIBRERIAS_DE_AUTENTICACION = [
+  'better-auth',
+  '@better-auth/',
+  'lucia',
+  '@lucia-auth/',
+  'bcrypt',
+  'bcryptjs',
+  'argon2',
+  '@node-rs/argon2',
 ] as const
 
 const EXTENSIONES_FUENTE = ['.ts', '.tsx', '.mts', '.cts'] as const
@@ -169,8 +183,8 @@ function lineaDe(contenido: string, especificador: string): number | null {
   return indice === -1 ? null : indice + 1
 }
 
-function paqueteProhibidoEnDominio(especificador: string): string | null {
-  for (const prohibido of PAQUETES_PROHIBIDOS_EN_DOMINIO) {
+function paqueteDeLista(especificador: string, lista: readonly string[]): string | null {
+  for (const prohibido of lista) {
     if (prohibido.endsWith('/')) {
       if (especificador.startsWith(prohibido)) {
         return prohibido
@@ -183,6 +197,10 @@ function paqueteProhibidoEnDominio(especificador: string): string | null {
   }
 
   return null
+}
+
+function paqueteProhibidoEnDominio(especificador: string): string | null {
+  return paqueteDeLista(especificador, PAQUETES_PROHIBIDOS_EN_DOMINIO)
 }
 
 /**
@@ -218,6 +236,18 @@ export function revisarArchivo(archivo: ArchivoFuente): Hallazgo[] {
           linea,
           regla: 'dominio-sin-otro-modulo',
           detalle: `Un archivo de domain/ del módulo «${moduloPropio ?? '?'}» importa el módulo «${moduloDestino}».`,
+        })
+      }
+    }
+
+    if (moduloPropio !== null && !esDeDominio) {
+      const libreria = paqueteDeLista(especificador, LIBRERIAS_DE_AUTENTICACION)
+      if (libreria !== null) {
+        hallazgos.push({
+          archivo: archivo.ruta,
+          linea,
+          regla: 'modulo-sin-autenticacion',
+          detalle: `El módulo «${moduloPropio}» importa «${libreria}». La autenticación se queda en el borde HTTP y en infrastructure/identity.`,
         })
       }
     }
