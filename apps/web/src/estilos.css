@@ -74,6 +74,13 @@ body {
   gap: 0.75rem;
 }
 
+.encabezado__acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: none;
+}
+
 .saludo {
   margin: 0;
   font-size: 0.8rem;
@@ -450,3 +457,226 @@ h2.seccion__titulo {
   gap: 1.25rem;
   margin-top: 0.35rem;
 }
+
+/* Barra inferior ------------------------------------------------------- */
+
+/*
+ * Las pantallas del trabajo, abajo y al alcance del pulgar. Se queda pegada al
+ * fondo del celular, respetando el área segura del iPhone.
+ */
+.barra-inferior {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: 0.35rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.barra-inferior__enlace {
+  flex: 1;
+  min-height: 3rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.barra-inferior__enlace--activa {
+  border-color: var(--bien);
+  background: var(--bien-fondo);
+  color: var(--texto);
+}
+
+/* Captura del pesaje --------------------------------------------------- */
+
+.renglon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.7rem;
+  background: var(--superficie);
+}
+
+.renglon__encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.renglon__nombre {
+  font-weight: 600;
+}
+
+.renglon__quitar {
+  flex: none;
+}
+
+.renglon__datos {
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+}
+
+.renglon__captura {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.renglon__hueco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--borde);
+  border-radius: 0.6rem;
+  background: var(--espera-fondo);
+}
+
+.renglon__hueco-texto {
+  margin: 0;
+  color: var(--ojo);
+  font-weight: 600;
+}
+
+.peso__hueco {
+  color: var(--ojo);
+  font-weight: 600;
+}
+
+/* Campos con algo que corregir ---------------------------------------- */
+
+.campo__entrada--mal {
+  border-color: var(--mal);
+  background: var(--mal-fondo);
+}
+
+.campo__error {
+  margin: 0;
+  color: var(--mal);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* Tabla de crecimiento ------------------------------------------------- */
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.tabla__leyenda {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 0.6rem;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.6rem 0.4rem;
+  border-bottom: 1px solid var(--borde);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabla th {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--texto-suave);
+}
+
+.tabla td {
+  display: table-cell;
+}
+
+.tabla__detalle {
+  display: block;
+  color: var(--texto-suave);
+  font-size: 0.84rem;
+}
+
+.tabla__hueco {
+  display: block;
+  color: var(--ojo);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.tabla__ojo {
+  display: block;
+  color: var(--ojo);
+  font-size: 0.84rem;
+}
+
+.tabla__fila--hueco {
+  background: var(--espera-fondo);
+}
+
+/* Gráfica -------------------------------------------------------------- */
+
+.grafica {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.7rem;
+  background: var(--superficie);
+}
+
+.grafica__lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.grafica__linea {
+  fill: none;
+  stroke: var(--bien);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.grafica__punto {
+  fill: var(--bien);
+}
+
+/* Un peso que no se midió: el punto se ve hueco, no se esconde ([UX-10]). */
+.grafica__punto--declarado {
+  fill: var(--superficie);
+  stroke: var(--ojo);
+  stroke-width: 2.5;
+}
+
+.grafica__guia {
+  stroke: var(--borde);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.grafica__etiqueta {
+  fill: var(--texto-suave);
+  font-size: 11px;
+}
+
+.grafica__pie {
+  margin-top: 0.4rem;
+  color: var(--texto-suave);
+  font-size: 0.82rem;
+}
+

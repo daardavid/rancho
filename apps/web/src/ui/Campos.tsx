@@ -18,7 +18,9 @@ export function CampoDeTexto({
   valor,
   alCambiar,
   ayuda,
+  error,
   tipo = 'text',
+  inputMode,
   autoComplete,
   requerido = false,
   maxLength,
@@ -27,12 +29,23 @@ export function CampoDeTexto({
   readonly valor: string
   readonly alCambiar: (valor: string) => void
   readonly ayuda?: string
-  readonly tipo?: 'text' | 'password'
+  /** Lo que hay que corregir. No es rojo de castigo: dice qué escribir. */
+  readonly error?: string
+  readonly tipo?: 'text' | 'password' | 'date'
+  /**
+   * Teclado del celular. Los kilos usan `decimal`: el teclado numérico sin
+   * perder el texto, que es como viaja y se guarda un peso.
+   */
+  readonly inputMode?: 'text' | 'decimal' | 'numeric'
   readonly autoComplete?: string
   readonly requerido?: boolean
   readonly maxLength?: number
 }) {
   const id = useId()
+  const descrito = [ayuda === undefined ? null : `${id}-ayuda`, error === undefined ? null : `${id}-error`]
+    .filter((parte) => parte !== null)
+    .join(' ')
+
   return (
     <div className="campo">
       <label className="campo__etiqueta" htmlFor={id}>
@@ -46,16 +59,107 @@ export function CampoDeTexto({
       )}
       <input
         id={id}
-        className="campo__entrada"
+        className={error === undefined ? 'campo__entrada' : 'campo__entrada campo__entrada--mal'}
         type={tipo}
         value={valor}
         onChange={(evento) => {
           alCambiar(evento.target.value)
         }}
-        autoComplete={autoComplete}
-        aria-describedby={ayuda === undefined ? undefined : `${id}-ayuda`}
+        {...(inputMode === undefined ? {} : { inputMode })}
+        {...(autoComplete === undefined ? {} : { autoComplete })}
+        aria-describedby={descrito === '' ? undefined : descrito}
+        {...(error === undefined ? {} : { 'aria-invalid': true })}
         maxLength={maxLength}
       />
+      {error === undefined ? null : (
+        <p className="campo__error" id={`${id}-error`}>
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Una fecha del rancho, sin hora. El valor viaja como `YYYY-MM-DD`, igual que
+ * en el contrato: el `input` de fecha del celular ya habla ese idioma y no hay
+ * que convertir nada.
+ */
+export function CampoDeFecha({
+  etiqueta,
+  valor,
+  alCambiar,
+  ayuda,
+}: {
+  readonly etiqueta: string
+  readonly valor: string
+  readonly alCambiar: (valor: string) => void
+  readonly ayuda?: string
+}) {
+  const id = useId()
+  return (
+    <div className="campo">
+      <label className="campo__etiqueta" htmlFor={id}>
+        {etiqueta}
+      </label>
+      {ayuda === undefined ? null : (
+        <p className="campo__ayuda" id={`${id}-ayuda`}>
+          {ayuda}
+        </p>
+      )}
+      <input
+        id={id}
+        className="campo__entrada"
+        type="date"
+        value={valor}
+        onChange={(evento) => {
+          alCambiar(evento.target.value)
+        }}
+        aria-describedby={ayuda === undefined ? undefined : `${id}-ayuda`}
+      />
+    </div>
+  )
+}
+
+/**
+ * Una lista corta de opciones, con un toque.
+ *
+ * Es el campo del renglón de pesaje: la calidad de un peso tiene tres
+ * respuestas y no cabe apilarlas diez veces en un celular. La lista nativa del
+ * celular se abre grande y se maneja con el pulgar, y sigue funcionando con el
+ * lector de pantalla.
+ */
+export function CampoDeSeleccion({
+  etiqueta,
+  opciones,
+  valor,
+  alCambiar,
+}: {
+  readonly etiqueta: string
+  readonly opciones: readonly Opcion[]
+  readonly valor: string
+  readonly alCambiar: (valor: string) => void
+}) {
+  const id = useId()
+  return (
+    <div className="campo">
+      <label className="campo__etiqueta" htmlFor={id}>
+        {etiqueta}
+      </label>
+      <select
+        id={id}
+        className="campo__entrada"
+        value={valor}
+        onChange={(evento) => {
+          alCambiar(evento.target.value)
+        }}
+      >
+        {opciones.map((opcion) => (
+          <option key={opcion.codigo} value={opcion.codigo}>
+            {opcion.texto}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
