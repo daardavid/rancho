@@ -2,8 +2,9 @@ import { sql } from 'drizzle-orm'
 import { check, index, pgSchema, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * Esquemas del primer incremento. Herd y Growth se crean vacíos: las tablas de
- * animales y de pesos llegan en sus tareas. Identity no es un módulo de dominio.
+ * Esquemas del primer incremento. Las tablas de la ficha viven en
+ * `modules/herd/persistence` y entran en esta misma secuencia. Growth sigue
+ * vacío hasta su tarea. Identity no es un módulo de dominio.
  */
 export const esquemaHerd = pgSchema('herd')
 export const esquemaGrowth = pgSchema('growth')
