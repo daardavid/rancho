@@ -18,8 +18,15 @@ describe('cargarConfiguracion', () => {
       puerto: 8080,
       host: '127.0.0.1',
       secretoDeSesion: SECRETO,
+      maxConexiones: 10,
       produccion: true,
     })
+  })
+
+  it('DB_POOL baja el pool y un valor que no es entero no pasa', () => {
+    expect(cargarConfiguracion(entorno({ DB_POOL: '1' })).maxConexiones).toBe(1)
+    expect(() => cargarConfiguracion(entorno({ DB_POOL: '0' }))).toThrow(/DB_POOL/)
+    expect(() => cargarConfiguracion(entorno({ DB_POOL: 'muchas' }))).toThrow(/DB_POOL/)
   })
 
   it('el puerto y el host tienen omisión; el secreto y la base no', () => {

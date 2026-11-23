@@ -1,0 +1,5 @@
+{
+  "name": "@rancho/e2e",
+  "private": true,
+  "type": "module"
+}

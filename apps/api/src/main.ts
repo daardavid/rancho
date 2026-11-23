@@ -1,3 +1,6 @@
+import type { FastifyInstance } from 'fastify'
+import { pathToFileURL } from 'node:url'
+
 import { construirApp } from './http/app'
 import { carpetaDeLaWeb } from './http/estaticos'
 import { servirLaWeb } from './http/servir-web'
@@ -18,15 +21,20 @@ import { crearModelosDeCrecimiento } from './read-models'
  * En desarrollo Vite sirve la web y manda `/api` aquí, así que la carpeta de la
  * web no existe y solo se montan las rutas de la API.
  *
- * Arrancar no migra ni siembra
- * ([arranque.test.ts](../test/infrastructure/arranque.test.ts)): la base se
- * prepara con `db:migrate` y `db:seed`, que son comandos explícitos.
+ * Arrancar no migra ni siembra ([arranque.test.ts](../test/infrastructure/arranque.test.ts)):
+ * la base se prepara con `db:migrate` y `db:seed`, que son comandos explícitos.
+ *
+ * `arrancar` se exporta para que las pruebas de punta a punta levanten **este**
+ * código, el compilado, dentro de su propio proceso
+ * ([`e2e/servidor.ts`](../../../../e2e/servidor.ts)). Un hijo aparte quedaría
+ * vivo en Windows después de que muera quien lo lanzó, y la corrida siguiente
+ * probaría contra un `dist` viejo.
  */
-async function arrancar(): Promise<void> {
+export async function arrancar(): Promise<FastifyInstance> {
   cargarEnvLocal()
   const configuracion = cargarConfiguracion()
 
-  const cliente = abrirCliente(configuracion.databaseUrl)
+  const cliente = abrirCliente(configuracion.databaseUrl, configuracion.maxConexiones)
   const herd = crearHerd(cliente.db)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db, configuracion.secretoDeSesion),
@@ -46,6 +54,18 @@ async function arrancar(): Promise<void> {
     await cliente.cerrar()
   })
 
+  try {
+    await app.listen({ port: configuracion.puerto, host: configuracion.host })
+  } catch (error) {
+    await app.close()
+    throw error
+  }
+
+  return app
+}
+
+/** Cierra con la señal del sistema, para un despliegue que para el proceso. */
+function cerrarConSenales(app: FastifyInstance): void {
   for (const senal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(senal, () => {
       app.log.info({ senal }, 'Cerrando la API')
@@ -60,16 +80,30 @@ async function arrancar(): Promise<void> {
       )
     })
   }
+}
 
+/**
+ * Sigue el mismo patrón que `cuenta:crear`: solo arranca solo cuando es el
+ * archivo que se ejecutó. Importado desde una prueba, exporta `arrancar` y no
+ * se queda escuchando.
+ */
+function esElArchivoEjecutado(): boolean {
+  const entrada = process.argv[1]
+  if (entrada === undefined) {
+    return false
+  }
   try {
-    await app.listen({ port: configuracion.puerto, host: configuracion.host })
-  } catch (error) {
-    await app.close()
-    throw error
+    return import.meta.url === pathToFileURL(entrada).href
+  } catch {
+    return false
   }
 }
 
-arrancar().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
-})
+if (esElArchivoEjecutado()) {
+  arrancar()
+    .then(cerrarConSenales)
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exit(1)
+    })
+}

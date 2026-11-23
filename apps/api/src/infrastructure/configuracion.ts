@@ -4,12 +4,15 @@ export type Configuracion = {
   readonly puerto: number
   readonly host: string
   readonly secretoDeSesion: string
+  /** Conexiones del pool. 1 cuando la base atiende una sola a la vez. */
+  readonly maxConexiones: number
   /** `true` cuando `NODE_ENV=production`: la cookie lleva `Secure` y el nivel de log baja. */
   readonly produccion: boolean
 }
 
 const PUERTO_POR_OMISION = 3000
 const HOST_POR_OMISION = '127.0.0.1'
+const POOL_POR_OMISION = 10
 
 /**
  * El largo mínimo del secreto de sesión.
@@ -51,8 +54,32 @@ export function cargarConfiguracion(fuente: NodeJS.ProcessEnv = process.env): Co
     puerto: leerPuerto(fuente['PORT']),
     host: fuente['HOST'] ?? HOST_POR_OMISION,
     secretoDeSesion,
+    maxConexiones: leerMaxConexiones(fuente['DB_POOL']),
     produccion: fuente['NODE_ENV'] === 'production',
   }
+}
+
+/**
+ * Tamaño del pool. Diez por omisión: un rancho de veintiuna cabezas y dos
+ * usuarios no necesita más.
+ *
+ * Se puede bajar a 1 con `DB_POOL=1`, que es lo que usan las pruebas de punta a
+ * punta. El motor embebido atiende una consulta a la vez y multiplexa las
+ * conexiones sobre la misma sesión, así que dos consultas simultáneas por
+ * conexiones distintas se pisan los parámetros. Un pool de uno las turna y
+ * reproduce el comportamiento de un PostgreSQL de verdad.
+ */
+function leerMaxConexiones(valor: string | undefined): number {
+  if (valor === undefined || valor.trim() === '') {
+    return POOL_POR_OMISION
+  }
+
+  const conexiones = Number(valor)
+  if (!Number.isInteger(conexiones) || conexiones <= 0) {
+    throw new Error(`DB_POOL tiene que ser un entero mayor que cero: ${valor}`)
+  }
+
+  return conexiones
 }
 
 function exigir(fuente: NodeJS.ProcessEnv, nombre: string, razon: string): string {

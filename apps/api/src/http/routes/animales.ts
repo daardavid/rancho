@@ -3,7 +3,6 @@ import {
   consultaDeAnimalesSchema,
   corregirAnimalSchema,
   errorDeAnimalSchema,
-  fichaAnimalSchema,
   fichaConHistoriaSchema,
   listaDeAnimalesSchema,
   marcarPerdidaSchema,
@@ -38,7 +37,7 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
       return cuerpoInvalido(respuesta)
     }
 
-    return enviar(respuesta, 201, fichaAnimalSchema, () =>
+    return enviar(respuesta, 201, fichaConHistoriaSchema, () =>
       herd.registrar({
         commandId: cuerpo.data.commandId,
         id: cuerpo.data.id,
@@ -70,7 +69,7 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
       return cuerpoInvalido(respuesta)
     }
 
-    return enviar(respuesta, 200, fichaAnimalSchema, () =>
+    return enviar(respuesta, 200, fichaConHistoriaSchema, () =>
       herd.corregir({
         commandId: cuerpo.data.commandId,
         ranchId: sesion.ranchId,

@@ -123,6 +123,10 @@ describe('ficha por HTTP', () => {
       marcas: [],
     })
     expect(alta.json()).not.toHaveProperty('porcentaje')
+    // La ficha que sale de un alta es el mismo recurso que la de una lectura:
+    // trae su historia, vacía al nacer. La web pinta la ficha con esa forma y
+    // sin ella fallaba con «respuesta_invalida».
+    expect(alta.json().correcciones).toEqual([])
 
     const repetida = await app.inject({
       method: 'POST',
@@ -159,6 +163,15 @@ describe('ficha por HTTP', () => {
     })
     expect(correccion.statusCode).toBe(200)
     expect(correccion.json()).toMatchObject({ nombre: 'Seña de prueba', version: 2 })
+    // La corrección recién guardada ya viene en la respuesta, con el valor
+    // anterior: quien corrigió no tiene que volver a pedir la ficha.
+    expect(correccion.json().correcciones).toEqual([
+      expect.objectContaining({
+        campo: 'nombre',
+        valorAnterior: null,
+        motivo: 'tenía seña',
+      }),
+    ])
 
     const vieja = await app.inject({
       method: 'POST',

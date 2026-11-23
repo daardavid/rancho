@@ -20,7 +20,7 @@
     "build:web": "npm run build -w @rancho/web",
     "build:api": "npm run build -w @rancho/api",
     "start": "npm start -w @rancho/api",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run build && playwright test",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
