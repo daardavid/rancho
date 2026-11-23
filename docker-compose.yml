@@ -1,0 +1,18 @@
+# PostgreSQL solo para datos de desarrollo.
+# Las pruebas no lo necesitan: sin TEST_DATABASE_URL arrancan PGlite en el proceso.
+# Usuario, contraseña y base son marcadores locales, no secretos del rancho.
+
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: rancho
+      POSTGRES_PASSWORD: rancho
+      POSTGRES_DB: rancho
+    volumes:
+      - rancho-postgres:/var/lib/postgresql/data
+
+volumes:
+  rancho-postgres:
