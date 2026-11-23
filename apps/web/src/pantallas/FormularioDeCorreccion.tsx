@@ -24,9 +24,11 @@ import { CampoDeArea, CampoDeOpciones, CampoDeTexto } from '../ui/Campos'
 export function FormularioDeCorreccion({
   ficha,
   alRecargar,
+  alGuardar,
 }: {
   readonly ficha: FichaCompleta
   readonly alRecargar: () => void
+  readonly alGuardar: () => void
 }) {
   const [nombre, setNombre] = useState(ficha.nombre ?? '')
   const [sexo, setSexo] = useState<string>(ficha.sexo)
@@ -81,6 +83,10 @@ export function FormularioDeCorreccion({
         onSuccess: () => {
           comandos.current = null
           setMotivo('')
+          // La versión que tenía abierta ya no sirve: la corrección la subió.
+          // Se cierra el formulario para que la pantalla vuelva a leer la ficha
+          // en vez de que la segunda corrección choque contra sí misma.
+          alGuardar()
         },
       },
     )
@@ -194,7 +200,12 @@ function construirCambios(borrador: Borrador): Omit<CorregirAnimal, 'commandId' 
       : {}),
     tenencia: borrador.tenencia as 'ranch' | 'a_la_parte' | 'third_party' | 'unknown',
     participacionEconomica: borrador.participacion as 'known' | 'partially_known' | 'unknown',
-    notaDelArreglo: borrador.tenencia === 'a_la_parte' ? texto(borrador.notaDelArreglo) : null,
+    // La nota del arreglo solo se toca cuando la tenencia es «a la parte». Si
+    // la tenencia cambia, la nota se queda como estaba: no se borra un dato del
+    // rancho porque el campo dejó de mostrarse.
+    ...(borrador.tenencia === 'a_la_parte'
+      ? { notaDelArreglo: texto(borrador.notaDelArreglo) }
+      : {}),
     nota: texto(borrador.nota),
   }
 }

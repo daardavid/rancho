@@ -124,6 +124,50 @@ describe('Ficha: corregir', () => {
     expect(screen.queryByLabelText('¿Por qué se corrige?')).toBeNull()
   })
 
+  it('después de guardar, vuelve a la ficha con la versión nueva para la siguiente corrección', async () => {
+    const usuario = userEvent.setup()
+    let corregidas = 0
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaConNombre('Canelo', corregidas === 0 ? 1 : 2),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+      [`POST /api/animals/${ANIMAL}/corrections`]: () => {
+        corregidas += 1
+        return { estado: 200, cuerpo: fichaConNombre('Canelo II', 2) }
+      },
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    await usuario.click(await screen.findByRole('button', { name: 'Corregir la ficha' }))
+    await usuario.clear(screen.getByLabelText('Nombre o seña'))
+    await usuario.type(screen.getByLabelText('Nombre o seña'), 'Canelo II')
+    await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'Nombre completo')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar corrección' }))
+
+    // Vuelve a la ficha, avisa que se guardó y releyó con la versión nueva.
+    expect(await screen.findByText(/Corrección guardada/)).toBeDefined()
+    expect(screen.queryByLabelText('¿Por qué se corrige?')).toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Corregir la ficha' }))
+    await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'Otra cosa')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar corrección' }))
+
+    await waitFor(() => {
+      expect(
+        api.peticiones.filter((peticion) => peticion.metodo === 'POST'),
+      ).toHaveLength(2)
+    })
+
+    const segunda = api.peticiones.filter((peticion) => peticion.metodo === 'POST')[1]
+    const cuerpoDeLaSegunda = (segunda?.cuerpo ?? {}) as Record<string, unknown>
+    // La segunda corrección manda la versión que la primera dejó, no la vieja.
+    expect(cuerpoDeLaSegunda.version).toBe(2)
+  })
+
   it('enseña los aretes y la historia de correcciones que ya tenía', async () => {
     montarApi({
       'GET /api/session': sesionAbierta(),

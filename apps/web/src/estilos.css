@@ -284,6 +284,11 @@ h2.seccion__titulo {
   background: var(--ojo-fondo);
 }
 
+.aviso--bien {
+  border-left-color: var(--bien);
+  background: var(--bien-fondo);
+}
+
 .aviso__titulo {
   margin: 0;
   font-weight: 600;

@@ -30,6 +30,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
   const [corrigiendo, setCorrigiendo] = useState(false)
+  const [guardado, setGuardado] = useState(false)
 
   if (ficha.isPending) {
     return (
@@ -82,15 +83,26 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               setCorrigiendo(false)
               void ficha.refetch()
             }}
+            alGuardar={() => {
+              setCorrigiendo(false)
+              setGuardado(true)
+            }}
           />
         </Seccion>
       ) : (
         <>
+          {guardado ? (
+            <p className="aviso aviso--bien" role="status">
+              Corrección guardada. El valor anterior quedó en la historia.
+            </p>
+          ) : null}
+
           <Seccion titulo="Qué se sabe">
             <Datos animal={animal} />
             <BotonGrande
               secundario
               alTocar={() => {
+                setGuardado(false)
                 setCorrigiendo(true)
               }}
             >
