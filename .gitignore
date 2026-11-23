@@ -26,6 +26,10 @@ pnpm-debug.log*
 # Test and coverage
 coverage/
 
+# Playwright: artefactos de una corrida (trazas, capturas, reporte)
+test-results/
+playwright-report/
+
 # Editor and IDE
 .vscode/*
 !.vscode/extensions.json

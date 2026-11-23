@@ -177,6 +177,18 @@ Reasoning: it is the foundation every critical pain needs, it is not blocked by 
 
 Executed by the factory, one PR per task, against `integracion`. Tasks: `fabrica/tareas/R-01.md` to `R-09.md`, in the order of `fabrica/tareas/orden.txt`.
 
+| Task | Pull Request | What it delivered |
+| --- | --- | --- |
+| R-01 | [#3](https://github.com/daardavid/rancho/pull/3) Esqueleto de la app | npm workspaces, Fastify edge, the shared kernel, the import-boundary test, the web shell with TanStack Query, and the Zod contracts package |
+| R-02 | [#4](https://github.com/daardavid/rancho/pull/4) Persistencia base | Drizzle, the one reviewed migration stream, `ranch_id` scope, the command-id idempotency store, and the explicit migrate/reset/seed commands |
+| R-03 | [#5](https://github.com/daardavid/rancho/pull/5) Identidad: cuenta del propietario y sesión | `identity` schema, owner and support accounts, Argon2id passwords, cookie sessions in PostgreSQL, and the login rate limit |
+| R-04 | [#6](https://github.com/daardavid/rancho/pull/6) Herd: ficha del animal y marcas | `herd` module: `Animal`, unknown-valued ficha, reasoned corrections with history, marks with replace/lost, and search by a previous tag |
+| R-05 | [#7](https://github.com/daardavid/rancho/pull/7) Growth: sesiones de pesaje y pesos | `growth` module: weighing sessions with measured/observed/declared weights, gaps, weight corrections, and idempotent saves |
+| R-06 | [#8](https://github.com/daardavid/rancho/pull/8) Vistas de crecimiento | `AnimalGrowthView` and the herd growth summary, with interval gain computed in PostgreSQL over `numeric` |
+| R-07 | [#9](https://github.com/daardavid/rancho/pull/9) Web: inicio de sesión y hato | Login, Hato, and animal registration in Spanish, mobile first, with "No sé" as an ordinary choice |
+| R-08 | [#10](https://github.com/daardavid/rancho/pull/10) Web: pesaje y crecimiento | Pesaje, Sesion, Crecimiento, and weight correction screens, plus the offline-safe weighing draft |
+| R-09 | [#11](https://github.com/daardavid/rancho/pull/11) Listo para probar en vivo | One production process serving API and web, `npm run build` / `npm start`, Playwright flows, and `docs/development/correr-local.md` |
+
 ## Learning after validation
 
 (empty)

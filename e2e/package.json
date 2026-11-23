@@ -1,5 +1,10 @@
 {
   "name": "@rancho/e2e",
   "private": true,
-  "type": "module"
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint"
+  }
 }
