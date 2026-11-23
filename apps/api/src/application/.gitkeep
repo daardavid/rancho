@@ -1,0 +1,5 @@
+Orquestadores que escriben en más de un módulo dentro de una sola transacción
+([ADR-003](../../../docs/architecture/adr/ADR-003-application-orchestration.md)).
+
+Una captura que toca Herd y Growth vive aquí, no en un módulo ni en el núcleo
+compartido. Vacío hasta que exista la primera captura de varios módulos.

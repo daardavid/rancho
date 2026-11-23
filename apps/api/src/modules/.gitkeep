@@ -1,0 +1,8 @@
+Módulos del rancho (`herd`, `growth`) según
+[repository-structure.md](../../../docs/architecture/repository-structure.md).
+
+Cada módulo, cuando exista, tiene `domain/`, `application/`, `persistence/` e
+`index.ts`, y su `index.ts` es el único camino de importación permitido desde
+fuera ([ADR-012](../../../docs/architecture/adr/ADR-012-repository-module-enforcement.md)).
+Este archivo solo mantiene la carpeta en el repositorio; la tarea R-02 en adelante
+la llena.

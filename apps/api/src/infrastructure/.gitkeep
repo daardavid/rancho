@@ -1,0 +1,5 @@
+Adaptadores técnicos: fábricas de Drizzle, identidad en el borde, almacenamiento
+de evidencia y cualquier otro puerto hacia afuera.
+
+No contiene reglas del rancho: esas viven en su módulo. Vacío hasta R-02
+(persistencia) y R-03 (identidad).
