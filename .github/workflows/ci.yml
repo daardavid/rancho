@@ -25,9 +25,17 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run lint:map
+      - name: Lint de todos los workspaces
+        run: npm run lint
 
-      - run: npm run build:map
+      - name: Tipos de todos los workspaces
+        run: npm run typecheck
+
+      - name: Pruebas de todos los workspaces
+        run: npm test
+
+      - name: Build del mapa de dominio
+        run: npm run build:map
 
   fabrica:
     name: Reglas de la fábrica

@@ -1,0 +1,5 @@
+Consultas de lectura que cruzan módulos, calculadas al momento
+([ADR-007](../../../docs/architecture/adr/ADR-007-postgresql.md)).
+
+Solo leen: no escriben ni importan repositorios de escritura. Vacío hasta que
+exista la primera pantalla que necesite juntar datos de dos módulos.
