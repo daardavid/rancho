@@ -8,7 +8,11 @@ import { defineConfig } from 'drizzle-kit'
 export default defineConfig({
   // Las tablas de un módulo viven en su persistencia. Drizzle las junta en una
   // sola secuencia con las de infraestructura.
-  schema: ['./src/infrastructure/db/esquema.ts', './src/modules/herd/persistence/tablas.ts'],
+  schema: [
+    './src/infrastructure/db/esquema.ts',
+    './src/modules/herd/persistence/tablas.ts',
+    './src/modules/growth/persistence/tablas.ts',
+  ],
   out: './drizzle',
   dialect: 'postgresql',
 })
