@@ -278,6 +278,30 @@ describe('regla 2: el dominio no conoce HTTP, persistencia, autenticación ni la
   })
 })
 
+describe('regla 4: ningún módulo importa la librería de autenticación', () => {
+  it.each([
+    'modules/herd/application/registrar.ts',
+    'modules/herd/persistence/cuentas.ts',
+  ])('falla cuando %s importa la librería de contraseñas', (ruta) => {
+    const hallazgos = revisarArchivo(
+      ejemplo(ruta, "import { hash } from '@node-rs/argon2'"),
+    )
+
+    expect(hallazgos.map((hallazgo) => hallazgo.regla)).toEqual(['modulo-sin-autenticacion'])
+  })
+
+  it('pasa cuando infrastructure/identity importa la librería de contraseñas', () => {
+    const hallazgos = revisarArchivo(
+      ejemplo(
+        'infrastructure/identity/contrasena.ts',
+        "import { hash } from '@node-rs/argon2'",
+      ),
+    )
+
+    expect(hallazgos).toEqual([])
+  })
+})
+
 describe('regla 3: el núcleo compartido no conoce módulos', () => {
   it('falla cuando shared-kernel importa un módulo', () => {
     const hallazgos = revisarArchivo(

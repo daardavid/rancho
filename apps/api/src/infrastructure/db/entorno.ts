@@ -4,8 +4,8 @@ import { resolve } from 'node:path'
 /**
  * Lee un `.env` local sin pisar lo que ya vino del proceso.
  *
- * Lo usan los comandos de base. El servidor no lo carga: así un `.env` de
- * desarrollo no hace que el proceso HTTP migre ni siembre al arrancar.
+ * Lo usan los comandos de base y el proceso HTTP, solo para leer variables.
+ * El servidor no migra ni siembra al arrancar.
  */
 export function cargarEnvLocal(): void {
   const candidatos = [resolve(process.cwd(), '.env'), resolve(process.cwd(), '../../.env')]
