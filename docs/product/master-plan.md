@@ -4,7 +4,7 @@
 
 - Status: ACCEPTED PRODUCT DIRECTION GOVERNANCE BASELINE
 - Version: v1
-- Last updated: 2026-10-06
+- Last updated: 2026-11-22
 
 The Master Plan is the canonical repository view of RANCHO's direction and current phase.
 
@@ -55,29 +55,18 @@ Closed at [../checkpoints/governance-v1.md](../checkpoints/governance-v1.md).
 
 ## NOW
 
-MVP Framing.
+MVP Framing, proposed in [mvp-framing.md](mvp-framing.md), and the first increment, [INC-001 — Ficha del hato y pesaje de becerros](increments/INC-001-ficha-y-pesaje.md).
 
-No MVP scope has been selected. No Product Increment exists. No production application has been scaffolded.
+Both become accepted when David merges them into `main`. Until then this section still reads: no MVP scope has been selected and no production application has been scaffolded.
 
-NOW does not include MVP features, an implementation backlog, or a production application.
+Done means the whole TO-BE in the end, and the MVP is the first done (David, 2026-11-22). The MVP path and its non-goals are in [mvp-framing.md](mvp-framing.md).
 
-MVP Framing still has to answer, and this plan does not answer:
-
-- Which ranch decisions should the first MVP improve?
-- Which economic or control problems offer the highest current value?
-- What do we want to learn from real use?
-- Which UX assumptions need validation?
-- Which data foundation is actually needed?
-- Which explicit non-goals keep the MVP focused?
-
-Those questions stay open. Answering them is the work of MVP Framing.
+INC-001 is executed by the repository factory (`fabrica/`). The interview answers that unblock the critical pains are collected with [../domain/cuestionario-002.md](../domain/cuestionario-002.md).
 
 ## NEXT
 
-After MVP Framing, the expected sequence is:
-
-1. Pilot Design
-2. Define the first product increments and the implementation plan
+1. INC-002, pilot readiness: hosting, backups, loading the notebook or Excel history if it exists, and the owner's first real weighing sessions.
+2. Feed, profitability, and herd-control increments, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path").
 
 ## LATER
 

@@ -6,7 +6,7 @@ Lo que esta versión no responde. No se completa con suposiciones.
 - P1 importa pronto, sin impedir un primer relato del rancho.
 - P2 sirve más adelante.
 
-Conteo de esta versión: P0 = 7, P1 = 11, P2 = 7.
+Conteo de esta versión: P0 = 7, P1 = 14, P2 = 8.
 
 ## P0
 
@@ -35,6 +35,9 @@ Conteo de esta versión: P0 = 7, P1 = 11, P2 = 7.
 | OQ-MILK-001 | ¿Cuál fue la economía real de la leche: precio, volumen sostenido, costos, frecuencia de entrega y acuerdo con la quesería? El máximo de aproximadamente 150 litros con 22 vacas es un recuerdo, no esa economía. |
 | OQ-FIN-001 | ¿Qué comprobantes existen de hecho y cómo separa hoy el propietario, si es que lo hace, un gasto operativo de una inversión? |
 | OQ-PEOPLE-001 | ¿De qué se compone el pago semanal y qué apoyos adicionales existen? No hay montos en la entrevista. |
+| OQ-DATA-001 | ¿Existe todavía el Excel que hubo en algún momento? ¿Qué contiene y de qué fechas? Podría ser historial cargable. |
+| OQ-WEIGH-001 | ¿Quién está presente cuando se pesa: el trabajador solo o alguien más? ¿Quién anota el número? Afecta qué calidad se le da a cada peso. |
+| OQ-AGE-001 | ¿Se conoce la fecha de nacimiento o solo la edad aproximada de cada animal? En los comprados, ¿el vendedor da algún dato? |
 
 ## P2
 
@@ -47,6 +50,7 @@ Conteo de esta versión: P0 = 7, P1 = 11, P2 = 7.
 | OQ-NET-001 | ¿Se instalará internet de sitio, y con qué medio? Starlink es un ejemplo, no una decisión. |
 | OQ-HEALTH-001 | ¿Cuál es el calendario real de vacunas, baños y medicamentos? |
 | OQ-REPRO-001 | ¿Se contempla más de un toro o inseminación? Mientras haya un solo toro, la paternidad sigue siendo relativamente simple y aun así no está registrada. |
+| OQ-REPRO-002 | ¿El toro está siempre con las vacas o entra por temporadas? |
 
 ## Ambigüedades que se dejan abiertas a propósito
 
@@ -59,8 +63,8 @@ Conteo de esta versión: P0 = 7, P1 = 11, P2 = 7.
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Descubrimiento
-- Última actualización: 2026-10-03
-- Fuente: Entrevistas iniciales de descubrimiento del rancho
+- Última actualización: 2026-11-22
+- Fuente: Entrevistas iniciales de descubrimiento del rancho. La v0.2 agrega `OQ-DATA-001`, `OQ-WEIGH-001`, `OQ-AGE-001` y `OQ-REPRO-002`: preguntas de la segunda ronda del chat de descubrimiento que no se contestaron y no habían entrado al registro.
 - Validación: Pendiente de validación iterativa con el propietario del rancho

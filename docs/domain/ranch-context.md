@@ -41,12 +41,13 @@ La cadencia de gestión preferida es aproximadamente una revisión semanal. Robo
 - Identificación: aretes SINIIGA, nombres y reconocimiento de los trabajadores. Algunos becerros pueden estar un tiempo sin arete y sin nombre. No hay aretes secundarios propios del rancho.
 - Reproducción: monta natural. Hay un solo toro, así que la paternidad es hoy relativamente simple, pero no hay un registro genealógico formal. Los partos no se registran de forma formal.
 - Pesaje: los becerros se pesan aproximadamente cada 15 días con una báscula electrónica de ganado marca IBN ARGON. El modelo y la conectividad no están confirmados. El peso se ha anotado a mano, por ejemplo en cuadernos. Las vacas adultas no se pesan de rutina.
-- Alimentación: además del pasto hay una dieta preparada. Los animales comen juntos. No se mide el consumo individual. El seguimiento por grupo se considera viable.
+- Alimentación: además del pasto hay una dieta preparada, que en la entrevista se llamó «acelerador ruminal». El propietario compra la materia prima y la lleva al rancho; ahí se mete al tambo y se revuelve. Los animales comen juntos. No se mide el consumo individual. El seguimiento por grupo se considera viable.
 - Compras de ganado: por kilogramo, o en grupos más grandes «por bulto». El significado económico de «bulto» requiere validación. El flete lo paga el comprador.
 - Ventas actuales principales: becerros por kilogramo de peso vivo. Una venta por bulto es posibilidad futura, no el modelo descrito como vigente.
 - Sanidad: control limitado, apoyado en memoria y conocimiento informal.
 - Bodega: hay una bodega cerrada para insumos. El inventario formal es limitado.
-- Finanzas: se conservan la mayoría de los tickets o recibos. Las compras se pagan comúnmente con tarjeta y la nómina comúnmente en efectivo. No hay todavía una contabilidad de gestión. Esto no sustituye la contabilidad fiscal.
+- Finanzas: los gastos importantes nombrados son nómina, alimento, combustible e inversión en mejoras del rancho; a futuro, compra de animales. El combustible se usa principalmente en camionetas y tractores. Se conservan la mayoría de los tickets o recibos. Las compras se pagan comúnmente con tarjeta y la nómina comúnmente en efectivo. No hay todavía una contabilidad de gestión. Esto no sustituye la contabilidad fiscal. Esporádicamente se vende grava del rancho; es una actividad aparte de la ganadería, no un ingreso del ganado.
+- Datos: hoy viven en libretas, WhatsApp y la memoria. En algún momento hubo un Excel con algunos datos; no se sabe si existe todavía ni qué contiene (`OQ-DATA-001`).
 - Conectividad: no hay Wi-Fi. La cobertura celular se describe de formas no del todo consistentes. La conclusión permitida es que es limitada y poco confiable, y que requiere validación.
 
 Preguntas que el propietario ya formula, y que sirven como evidencia para reportes futuros, no como pantallas comprometidas:
@@ -67,8 +68,8 @@ Esa dirección se detalla como objetivos, no como alcance, en [future-capabiliti
 
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.2
 - Estado: Descubrimiento
-- Última actualización: 2026-10-03
-- Fuente: Entrevistas iniciales de descubrimiento del rancho
+- Última actualización: 2026-11-22
+- Fuente: Entrevistas iniciales de descubrimiento del rancho. La v0.2 recupera del chat de descubrimiento (exportado el 2026-11-22) cuatro respuestas que la v0.1 no registró: el nombre de la dieta, el uso del combustible, la venta esporádica de grava y el Excel histórico. El uso del combustible se había quitado en `docs/plans/003-as-is-refinement-v0.2.md` como afirmación sin respaldo; sí estaba en la respuesta 16 de la segunda ronda.
 - Validación: Pendiente de validación iterativa con el propietario del rancho

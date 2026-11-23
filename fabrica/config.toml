@@ -1,0 +1,97 @@
+# Configuración de la fábrica de RANCHO. Cambia aquí comandos, modelos y límites sin tocar el código.
+# Las llaves {modelo}, {esquema} y {salida} las llena correr.py.
+
+[repo]
+rama_base = "integracion"     # aquí hace merge la fábrica
+rama_final = "main"           # solo entra el PR final que revisa David
+prefijo_rama = "fabrica/"
+# Identidad que debe tener la terminal que corre esta fábrica (docs/development/dos-cuentas.md).
+# Si gh o el correo de git no coinciden, la fábrica no arranca.
+cuenta_gh = "daardavid"
+correo_contiene = "daardavid"   # 93949861+daardavid@users.noreply.github.com
+
+[revisor]
+# Orquestador y revisor de primera línea: "respaldo" = Gemini (Antigravity, agy); "chatgpt" = Codex.
+# En RANCHO, Gemini 4 Neon High reemplaza a ChatGPT (David, 22-nov). ChatGPT está apagado en [chatgpt].
+primero = "respaldo"
+
+[cursor]
+# Confirma el id exacto del modelo con:  agent --list-models
+# Ejecutor. Barato en lo normal, más fuerte donde un error cuesta caro (dominio, persistencia, sesión).
+# Alternativas que David consideró: "deepseek-v41-flash-1017-low" (más barato) o grok-4.7-high en todo.
+modelo = "deepseek-v41-flash-1017-medium"   # tareas normales (vistas, pantallas, pruebas e2e)
+modelo_critica = "grok-4.7-high"            # tareas de [escalamiento] tareas_criticas
+comando = ["agent", "-p", "--force", "--output-format", "text", "--model", "{modelo}"]
+timeout_min = 90
+# Si Cursor ya dejó su nota y su proceso no sale, se detiene tras estos minutos.
+espera_tras_nota_min = 5
+# Si Cursor falla al arrancar sin hacer cambios, se reintenta una vez tras esta pausa.
+espera_reintento_s = 30
+
+[chatgpt]
+# Apagado en RANCHO: Gemini hace su papel. Pon activo = true para volver a usar Codex como respaldo.
+activo = false
+# El prompt entra por la entrada estándar (el "-" final lo agrega correr.py).
+# Esfuerzo de razonamiento: high. Va sin comillas a propósito (Codex lo toma como texto
+# y así no se pierde en el lanzador de Windows).
+comando = ["codex", "exec", "--sandbox", "read-only", "-c", "model_reasoning_effort=high",
+           "--output-schema", "{esquema}", "--output-last-message", "{salida}"]
+timeout_min = 30
+# Si codex falla, espera esto antes de reintentar una vez.
+espera_reintento_s = 60
+
+[respaldo]
+# Antigravity (Gemini). En RANCHO es el orquestador y revisor: revisa cada entrega, le da las
+# instrucciones a Cursor y decide cuándo preguntarle a Claude. Si el primer modelo no responde
+# (por ejemplo, por cuota), se intenta el segundo. Quita el segundo si solo quieres Neon High.
+# Antigravity CLI (agy) con la suscripción Google AI Pro. Se prueba cada modelo en orden;
+# deja la lista vacía para desactivarlo. El prompt se pasa con -p al final porque agy no
+# lo lee de la entrada estándar. --mode plan + --sandbox para que no pueda escribir;
+# además la fábrica aparta cualquier cambio que haga un revisor.
+modelos = ["gemini-4-neon-high", "gemini-3.8-flash-high"]
+comando = ["agy", "--model", "{modelo}", "--mode", "plan", "--sandbox", "--output-format", "json",
+           "--json-schema", "{esquema}", "-p", "{prompt}"]
+timeout_min = 30
+
+[claude]
+modelo = "claude-opus-5-5"
+# Solo entra en dudas claras (ver [escalamiento] motivos). Esfuerzo high, como pidió David.
+comando = ["claude", "-p", "--output-format", "json", "--effort", "high", "--allowedTools", "Read,Grep,Glob"]
+timeout_min = 20
+
+[pruebas]
+instalar_con_lock = ["npm", "ci"]
+instalar_sin_lock = ["npm", "install"]
+comandos = [
+  ["npm", "run", "lint"],
+  ["npm", "run", "typecheck"],
+  ["npm", "test"],
+]
+timeout_min = 20
+
+[limites]
+ciclos_max = 4                 # ciclos de corrección por tarea antes de marcarla como atorada
+ciclo_cierre = 3               # desde este ciclo (contando corridas anteriores), solo bloquea lo que afecta datos reales
+max_instrucciones = 10         # puntos máximos por ronda de correcciones a Cursor
+diff_max_kb = 400              # el diff que leen los revisores se recorta arriba de esto
+
+[escalamiento]
+# Qué hace entrar a Claude. Opciones: "preguntas" (el revisor trae una duda concreta), "p0",
+# "critica" (Claude confirma antes de aprobar una tarea crítica), "rojos" y "desacuerdo".
+# En RANCHO, solo dudas claras (David, 22-nov).
+motivos = ["preguntas"]
+# Críticas: el modelo de dominio y la seguridad. Con motivos = ["preguntas"] solo eligen el modelo
+# más fuerte de Cursor (modelo_critica); ya no obligan a pasar por Claude.
+tareas_criticas = ["R-02", "R-03", "R-04", "R-05"]
+ciclos_rojos_para_escalar = 2  # ciclos seguidos con pruebas en rojo
+
+[fila]
+archivo_orden = "fabrica/tareas/orden.txt"
+# Pausa para que David revise el modelo de dominio (Herd y Growth) antes de construir pantallas encima.
+pausas_despues_de = ["R-05"]
+motivo_pausa = "David revisa en integracion el modelo de Herd y Growth (fichas, pesajes, correcciones) antes de las pantallas."
+
+[verificar]
+# Variables de .env que exige --verificar. RANCHO no necesita ninguna para correr las pruebas
+# (usan PostgreSQL embebido, ADR-014).
+variables_requeridas = []

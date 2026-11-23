@@ -28,3 +28,17 @@ jobs:
       - run: npm run lint:map
 
       - run: npm run build:map
+
+  fabrica:
+    name: Reglas de la fábrica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m unittest discover -s fabrica -p "test_*.py" -v

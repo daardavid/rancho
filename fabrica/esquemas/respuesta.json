@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["respuestas", "veredicto", "resumen"],
+  "properties": {
+    "respuestas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "postura", "razon"],
+        "properties": {
+          "id": {"type": "string"},
+          "postura": {"type": "string", "enum": ["acepta", "sostiene", "rechaza"]},
+          "razon": {"type": "string"}
+        }
+      }
+    },
+    "veredicto": {"type": "string", "enum": ["aprobar", "cambios"]},
+    "resumen": {"type": "string"}
+  }
+}
