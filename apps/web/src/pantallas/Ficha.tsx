@@ -214,7 +214,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
           <Seccion titulo="Huecos de pesaje">
             {pesos.data === undefined || pesos.data.huecos.length === 0 ? (
               <p className="campo__ayuda">
-                No se le ha esperado en ninguna vuelta sin que pasara por la báscula.
+                En ninguna vuelta se le esperó y se quedó sin pesar.
               </p>
             ) : (
               <ul className="lista lista--planas">
