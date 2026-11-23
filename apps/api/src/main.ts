@@ -6,6 +6,7 @@ import { carpetaDeLaWeb } from './http/estaticos'
 import { servirLaWeb } from './http/servir-web'
 import { abrirCliente } from './infrastructure/db/cliente'
 import { cargarEnvLocal } from './infrastructure/db/entorno'
+import { comprobacionDeBase } from './infrastructure/db/salud'
 import { cargarConfiguracion } from './infrastructure/configuracion'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
@@ -41,6 +42,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     herd,
     growth: crearGrowth(cliente.db, herd),
     crecimiento: crearModelosDeCrecimiento(cliente.db),
+    base: comprobacionDeBase(cliente.db),
     produccion: configuracion.produccion,
   })
 

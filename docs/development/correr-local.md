@@ -212,10 +212,13 @@ pruebas pasarían contra ese proceso y no contra lo recién construido.
 | `Falta RANCH_NAME…` | La semilla no inventa el nombre | Ponlo en `.env` |
 | `db:reset solo corre contra una base local` | Apuntaste a un host que no es esta máquina | Es a propósito; usa una base local |
 | El navegador dice que no hay conexión | La API no está arriba, o está en otro puerto | Revisa la terminal del proceso; `GET /api/health` debe responder `{"ok":true}` |
+| `GET /api/health/ready` contesta 503 | El proceso vive pero no llega a PostgreSQL | Revisa `DATABASE_URL` y que la base esté arriba; si ya está bien, arranca el proceso de nuevo |
 
 Hay dos endpoints de salud: `GET /api/health` dice que el proceso responde;
-`GET /api/health/ready` revisa PostgreSQL. Ninguno imprime cadenas de conexión
-ni secretos.
+`GET /api/health/ready` pregunta si además llega a PostgreSQL y contesta `503`
+con `{"ok":false,"base":"no_responde"}` cuando no. Eso es lo que mira un
+despliegue antes de mandarle tráfico. Ninguno imprime cadenas de conexión ni
+secretos.
 
 ## Datos
 

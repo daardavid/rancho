@@ -66,6 +66,8 @@ The process refuses to start and says which variable is missing when `DATABASE_U
 
 Migrations are never applied at process start. Run `npm run db:migrate -w @rancho/api` before starting a new process ([deployment-strategy.md](docs/architecture/deployment-strategy.md)).
 
+Two health endpoints exist. `GET /api/health` reports that the process answers. `GET /api/health/ready` also checks PostgreSQL and returns `503` with `{"ok":false,"base":"no_responde"}` when the database does not answer; that is what a deployment checks before sending traffic. Neither prints a connection string.
+
 The full first-time setup on a laptop — database, migrations, seeded ranch, owner account, build, start — is in [docs/development/correr-local.md](docs/development/correr-local.md).
 
 ## Run the API and the web app in development

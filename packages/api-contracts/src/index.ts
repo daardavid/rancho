@@ -1,4 +1,4 @@
-export { healthResponseSchema, type HealthResponse } from './health'
+export { healthResponseSchema, readinessResponseSchema, type HealthResponse, type ReadinessResponse } from './health'
 export {
   animalGrowthViewSchema,
   codigoDeErrorDeCrecimientoSchema,
