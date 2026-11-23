@@ -14,6 +14,8 @@
   --bien-fondo: #eaf3e8;
   --mal: #8a2f26;
   --mal-fondo: #fbeae7;
+  --ojo: #6a4a12;
+  --ojo-fondo: #fbf3e0;
   --espera: #6a5b2f;
   --espera-fondo: #f7f1de;
 
@@ -50,11 +52,26 @@ body {
   max-width: 34rem;
   /* Respeta el área segura del celular y da aire arriba y abajo. */
   padding: max(1.25rem, env(safe-area-inset-top)) 1rem
-    max(2rem, env(safe-area-inset-bottom));
+    max(2.5rem, env(safe-area-inset-bottom));
+}
+
+.barra {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .encabezado {
   margin-bottom: 1.5rem;
+}
+
+.encabezado--con-accion {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .saludo {
@@ -72,48 +89,129 @@ h1 {
   line-height: 1.25;
 }
 
+h2.seccion__titulo {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
 .subtitulo {
   margin: 0.3rem 0 0;
   color: var(--texto-suave);
 }
 
-.tarjeta {
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-left-width: 5px;
-  border-radius: 0.75rem;
-  padding: 1rem;
+/* Formularios ---------------------------------------------------------- */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 
-.tarjeta h2 {
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   margin: 0;
-  font-size: 1.05rem;
+  padding: 0;
+  border: 0;
 }
 
-.tarjeta p {
-  margin: 0.4rem 0 0;
+.campo__etiqueta {
+  font-weight: 600;
+  font-size: 0.98rem;
+  padding: 0;
+}
+
+.campo__requerido {
+  font-weight: 400;
   color: var(--texto-suave);
 }
 
-.tarjeta--bien {
-  border-left-color: var(--bien);
+.campo__ayuda {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+}
+
+.campo__entrada {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.6rem;
+  background: var(--superficie);
+  color: var(--texto);
+  /* 16px o más: iOS no hace zoom al enfocar. */
+  font: inherit;
+}
+
+.campo__entrada--area {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.campo__entrada:focus-visible,
+.boton:focus-visible,
+.fila:focus-visible,
+.opcion:focus-within,
+.enlace:focus-visible {
+  outline: 3px solid var(--espera);
+  outline-offset: 2px;
+}
+
+/* Opciones ------------------------------------------------------------- */
+
+.opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.6rem;
+  background: var(--superficie);
+  cursor: pointer;
+}
+
+.opcion input {
+  width: 1.35rem;
+  height: 1.35rem;
+  accent-color: var(--bien);
+  flex: none;
+}
+
+.opcion:has(input:checked) {
+  border-color: var(--bien);
   background: var(--bien-fondo);
+  font-weight: 600;
 }
 
-.tarjeta--mal {
-  border-left-color: var(--mal);
-  background: var(--mal-fondo);
+/*
+ * «No sé» se ve como una respuesta válida, no como un hueco ni como un error
+ * ([UX-04](../../docs/product/ux-principles.md)). Se distingue por la letra
+ * suave, no por el rojo.
+ */
+.opcion--nose {
+  color: var(--texto-suave);
 }
 
-.tarjeta--espera {
-  border-left-color: var(--espera);
+.opcion--nose:has(input:checked) {
+  border-color: var(--texto-suave);
   background: var(--espera-fondo);
+  color: var(--texto);
 }
+
+/* Botones -------------------------------------------------------------- */
 
 .boton {
   /* Área táctil cómoda con el pulgar. */
-  min-height: 2.75rem;
-  margin-top: 0.9rem;
+  min-height: 3rem;
   padding: 0 1.1rem;
   border: 1px solid var(--borde);
   border-radius: 0.6rem;
@@ -121,14 +219,234 @@ h1 {
   color: var(--texto);
   font: inherit;
   font-weight: 600;
+  cursor: pointer;
+}
+
+.boton--principal {
+  border-color: var(--bien);
+  background: var(--bien);
+  color: #fffdf9;
+}
+
+.boton--secundario {
+  background: transparent;
+}
+
+.boton--compacto {
+  min-height: 2.75rem;
+  flex: none;
+  white-space: nowrap;
 }
 
 .boton:active {
   background: var(--fondo);
 }
 
-.nota {
-  margin-top: 1.5rem;
+.boton--principal:active {
+  background: #24552d;
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.enlace {
+  min-height: 2.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bien);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Avisos --------------------------------------------------------------- */
+
+.aviso {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--borde);
+  border-left-width: 5px;
+  border-radius: 0.75rem;
+  background: var(--superficie);
+}
+
+.aviso--mal {
+  border-left-color: var(--mal);
+  background: var(--mal-fondo);
+}
+
+.aviso--ojo {
+  border-left-color: var(--ojo);
+  background: var(--ojo-fondo);
+}
+
+.aviso--bien {
+  border-left-color: var(--bien);
+  background: var(--bien-fondo);
+}
+
+.aviso__titulo {
+  margin: 0;
+  font-weight: 600;
+}
+
+.aviso__quehacer {
+  margin: 0.4rem 0 0;
+  color: var(--texto);
+}
+
+.aviso__codigo {
+  margin: 0.6rem 0 0;
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+}
+
+.cargando {
+  color: var(--texto-suave);
+}
+
+/* Hato ----------------------------------------------------------------- */
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.lista--planas {
+  gap: 0.75rem;
+}
+
+.fila {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: 4.25rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.7rem;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fila:active {
+  background: var(--fondo);
+}
+
+.fila__nombre {
+  font-weight: 600;
+}
+
+.fila__datos {
   color: var(--texto-suave);
   font-size: 0.9rem;
+}
+
+.fila__peso {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.fila__hueco {
+  color: var(--ojo);
+  font-weight: 600;
+}
+
+.vacio {
+  margin-top: 1rem;
+  padding: 1.1rem;
+  border: 1px dashed var(--borde);
+  border-radius: 0.75rem;
+  background: var(--superficie);
+}
+
+.vacio__titulo {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.vacio p {
+  margin: 0.4rem 0 0;
+  color: var(--texto-suave);
+}
+
+/* Ficha ---------------------------------------------------------------- */
+
+.seccion {
+  margin-bottom: 1.75rem;
+}
+
+.datos {
+  margin: 0 0 1rem;
+}
+
+.dato {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.dato:last-child {
+  border-bottom: 0;
+}
+
+.dato__etiqueta {
+  min-width: 9rem;
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.dato__valor {
+  margin: 0;
+  flex: 1;
+}
+
+.arete,
+.peso,
+.correccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.6rem;
+  background: var(--superficie);
+}
+
+.arete__valor,
+.peso__kilos {
+  font-weight: 600;
+}
+
+.arete__estado,
+.peso__fecha,
+.peso__calidad,
+.peso__intervalo,
+.correccion__motivo,
+.correccion__cuando {
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+}
+
+.correccion__campo {
+  margin: 0;
+}
+
+.arete__acciones {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.35rem;
 }

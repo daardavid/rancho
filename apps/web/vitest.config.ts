@@ -6,7 +6,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['test/**/*.test.tsx'],
-    // `@testing-library` se limpia solo con esto entre pruebas.
+    setupFiles: ['test/setup.ts'],
+    // Limpia lo pintado entre una prueba y otra. El `fetch` falso se quita a
+    // mano en cada archivo para que una prueba no herede la API de la anterior.
     globals: false,
     restoreMocks: true,
   },

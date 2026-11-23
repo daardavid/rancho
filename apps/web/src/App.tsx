@@ -1,65 +1,83 @@
-import { useSaludDeLaApi } from './api/salud'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
-type EstadoApi = {
-  readonly titulo: string
-  readonly detalle: string
-  readonly tono: 'bien' | 'mal' | 'espera'
-}
+import { alVencerLaSesion } from './api/aviso'
+import { LLAVE_DE_SESION, useSalir, useSesion } from './api/sesion'
+import { AvisoDeError, BotonGrande, Cargando } from './ui/Avisos'
+import { Alta } from './pantallas/Alta'
+import { Ficha } from './pantallas/Ficha'
+import { Hato } from './pantallas/Hato'
+import { IniciarSesion } from './pantallas/IniciarSesion'
+import { useRuta } from './ruta'
 
-function estadoDeLaApi(
-  estaCargando: boolean,
-  hayError: boolean,
-  responde: boolean | undefined,
-): EstadoApi {
-  if (estaCargando) {
-    return { titulo: 'Revisando la conexión…', detalle: '', tono: 'espera' }
-  }
-
-  if (hayError) {
-    return {
-      titulo: 'No se pudo hablar con la API',
-      detalle: 'Revisa que la API esté corriendo y vuelve a intentar.',
-      tono: 'mal',
-    }
-  }
-
-  if (responde === true) {
-    return { titulo: 'La API responde', detalle: 'Todo listo para empezar.', tono: 'bien' }
-  }
-
-  return {
-    titulo: 'La API contestó algo que no entendemos',
-    detalle: 'El servicio está arriba, pero su respuesta no es la esperada.',
-    tono: 'mal',
-  }
-}
-
+/**
+ * La aplicación entera: sesión, ruta y la pantalla que toca.
+ *
+ * Si no hay sesión se muestra el inicio de sesión y la URL no se toca. Al
+ * volver a entrar, la ruta sigue siendo la de antes, así que el dueño regresa a
+ * la pantalla de destino en vez de empezar otra vez en el hato.
+ */
 export function App() {
-  const { data, isPending, isError, refetch, isFetching } = useSaludDeLaApi()
-  const estado = estadoDeLaApi(isPending, isError, data?.ok)
+  const sesion = useSesion()
+  const ruta = useRuta()
+  const cache = useQueryClient()
+
+  // La API avisa cuando contesta 401 a cualquier consulta o comando. La sesión
+  // se marca como ausente aquí, en la caché de esta aplicación.
+  useEffect(
+    () =>
+      alVencerLaSesion(() => {
+        cache.setQueryData(LLAVE_DE_SESION, null)
+      }),
+    [cache],
+  )
+
+  if (sesion.isPending) {
+    return (
+      <main className="pantalla">
+        <Cargando que="Revisando la sesión…" />
+      </main>
+    )
+  }
+
+  if (sesion.isError) {
+    return (
+      <main className="pantalla">
+        <AvisoDeError error={sesion.error} />
+        <BotonGrande alTocar={() => void sesion.refetch()}>Volver a intentar</BotonGrande>
+      </main>
+    )
+  }
+
+  if (sesion.data === null) {
+    return <IniciarSesion />
+  }
 
   return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">RANCHO</p>
-        <h1>Ficha del hato y pesaje</h1>
-        <p className="subtitulo">Balancán, Tabasco</p>
-      </header>
+    <>
+      <BarraDeSesion />
+      {ruta.nombre === 'hato' ? <Hato /> : null}
+      {ruta.nombre === 'alta' ? <Alta /> : null}
+      {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}
+    </>
+  )
+}
 
-      <section className={`tarjeta tarjeta--${estado.tono}`} aria-live="polite">
-        <h2>{estado.titulo}</h2>
-        {estado.detalle === '' ? null : <p>{estado.detalle}</p>}
+function BarraDeSesion() {
+  const salir = useSalir()
 
-        {isError ? (
-          <button type="button" className="boton" onClick={() => void refetch()}>
-            {isFetching ? 'Reintentando…' : 'Reintentar'}
-          </button>
-        ) : null}
-      </section>
-
-      <p className="nota">
-        Todavía no hay pantallas del rancho. Esta es la base de la aplicación.
-      </p>
-    </main>
+  return (
+    <div className="barra">
+      <button
+        type="button"
+        className="enlace"
+        onClick={() => {
+          salir.mutate()
+        }}
+        disabled={salir.isPending}
+      >
+        {salir.isPending ? 'Saliendo…' : 'Salir'}
+      </button>
+    </div>
   )
 }
