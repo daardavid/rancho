@@ -15,6 +15,13 @@
       "when": 1795400573580,
       "tag": "0001_cuentas_y_sesiones",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795403170061,
+      "tag": "0002_ficha_del_animal",
+      "breakpoints": true
     }
   ]
 }

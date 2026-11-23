@@ -1,5 +1,27 @@
 export { healthResponseSchema, type HealthResponse } from './health'
 export {
+  agregarMarcaSchema,
+  consultaDeAnimalesSchema,
+  corregirAnimalSchema,
+  errorDeAnimalSchema,
+  fichaAnimalSchema,
+  fichaConHistoriaSchema,
+  listaDeAnimalesSchema,
+  marcarPerdidaSchema,
+  marcaSchema,
+  registrarAnimalSchema,
+  reemplazarMarcaSchema,
+  reemplazoDeMarcaSchema,
+  type AgregarMarca,
+  type CorregirAnimal,
+  type ErrorDeAnimal,
+  type FichaAnimal,
+  type FichaConHistoria,
+  type MarcarPerdida,
+  type RegistrarAnimal,
+  type ReemplazarMarca,
+} from './animales'
+export {
   LARGO_MAXIMO_CONTRASENA,
   LARGO_MAXIMO_USUARIO,
   codigoDeErrorDeSesionSchema,

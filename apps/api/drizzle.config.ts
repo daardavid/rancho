@@ -6,7 +6,9 @@ import { defineConfig } from 'drizzle-kit'
  * No aplica nada: eso es `db:migrate`.
  */
 export default defineConfig({
-  schema: './src/infrastructure/db/esquema.ts',
+  // Las tablas de un módulo viven en su persistencia. Drizzle las junta en una
+  // sola secuencia con las de infraestructura.
+  schema: ['./src/infrastructure/db/esquema.ts', './src/modules/herd/persistence/tablas.ts'],
   out: './drizzle',
   dialect: 'postgresql',
 })
