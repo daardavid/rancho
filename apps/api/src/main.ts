@@ -1,44 +1,73 @@
+import type { FastifyInstance } from 'fastify'
+import { pathToFileURL } from 'node:url'
+
 import { construirApp } from './http/app'
+import { carpetaDeLaWeb } from './http/estaticos'
+import { servirLaWeb } from './http/servir-web'
 import { abrirCliente } from './infrastructure/db/cliente'
-import { cargarEnvLocal, exigirVariable } from './infrastructure/db/entorno'
+import { cargarEnvLocal } from './infrastructure/db/entorno'
+import { comprobacionDeBase } from './infrastructure/db/salud'
+import { cargarConfiguracion } from './infrastructure/configuracion'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
 import { crearModelosDeCrecimiento } from './read-models'
 
-const PUERTO_POR_OMISION = 3000
-const HOST_POR_OMISION = '127.0.0.1'
-
-function leerPuerto(valor: string | undefined): number {
-  if (valor === undefined) {
-    return PUERTO_POR_OMISION
-  }
-
-  const puerto = Number(valor)
-  if (!Number.isInteger(puerto) || puerto <= 0 || puerto > 65_535) {
-    throw new Error(`PORT no es un puerto válido: ${valor}`)
-  }
-
-  return puerto
-}
-
-async function arrancar(): Promise<void> {
+/**
+ * El proceso de la aplicación: una base, una sesión y un servidor.
+ *
+ * En producción este mismo proceso sirve la API en `/api` y la web construida
+ * en `/`, para que la cookie de sesión sea de primera parte
+ * ([deployment-strategy.md](../../docs/architecture/deployment-strategy.md)).
+ * En desarrollo Vite sirve la web y manda `/api` aquí, así que la carpeta de la
+ * web no existe y solo se montan las rutas de la API.
+ *
+ * Arrancar no migra ni siembra ([arranque.test.ts](../test/infrastructure/arranque.test.ts)):
+ * la base se prepara con `db:migrate` y `db:seed`, que son comandos explícitos.
+ *
+ * `arrancar` se exporta para que las pruebas de punta a punta levanten **este**
+ * código, el compilado, dentro de su propio proceso
+ * ([`e2e/servidor.ts`](../../../../e2e/servidor.ts)). Un hijo aparte quedaría
+ * vivo en Windows después de que muera quien lo lanzó, y la corrida siguiente
+ * probaría contra un `dist` viejo.
+ */
+export async function arrancar(): Promise<FastifyInstance> {
   cargarEnvLocal()
-  const url = exigirVariable('DATABASE_URL')
-  const cliente = abrirCliente(url)
+  const configuracion = cargarConfiguracion()
+
+  const cliente = abrirCliente(configuracion.databaseUrl, configuracion.maxConexiones)
   const herd = crearHerd(cliente.db)
   const app = construirApp({
-    identidad: crearIdentidad(cliente.db),
+    identidad: crearIdentidad(cliente.db, configuracion.secretoDeSesion),
     herd,
     growth: crearGrowth(cliente.db, herd),
     crecimiento: crearModelosDeCrecimiento(cliente.db),
-    produccion: process.env['NODE_ENV'] === 'production',
+    base: comprobacionDeBase(cliente.db),
+    produccion: configuracion.produccion,
   })
+
+  const carpeta = carpetaDeLaWeb()
+  if (carpeta !== null) {
+    servirLaWeb(app, carpeta)
+    app.log.info({ carpeta }, 'Sirviendo la web construida desde el mismo proceso')
+  }
 
   app.addHook('onClose', async () => {
     await cliente.cerrar()
   })
 
+  try {
+    await app.listen({ port: configuracion.puerto, host: configuracion.host })
+  } catch (error) {
+    await app.close()
+    throw error
+  }
+
+  return app
+}
+
+/** Cierra con la señal del sistema, para un despliegue que para el proceso. */
+function cerrarConSenales(app: FastifyInstance): void {
   for (const senal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(senal, () => {
       app.log.info({ senal }, 'Cerrando la API')
@@ -53,19 +82,30 @@ async function arrancar(): Promise<void> {
       )
     })
   }
+}
 
-  const puerto = leerPuerto(process.env['PORT'])
-  const host = process.env['HOST'] ?? HOST_POR_OMISION
-
+/**
+ * Sigue el mismo patrón que `cuenta:crear`: solo arranca solo cuando es el
+ * archivo que se ejecutó. Importado desde una prueba, exporta `arrancar` y no
+ * se queda escuchando.
+ */
+function esElArchivoEjecutado(): boolean {
+  const entrada = process.argv[1]
+  if (entrada === undefined) {
+    return false
+  }
   try {
-    await app.listen({ port: puerto, host })
-  } catch (error) {
-    await app.close()
-    throw error
+    return import.meta.url === pathToFileURL(entrada).href
+  } catch {
+    return false
   }
 }
 
-arrancar().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
-})
+if (esElArchivoEjecutado()) {
+  arrancar()
+    .then(cerrarConSenales)
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exit(1)
+    })
+}

@@ -99,8 +99,13 @@ export type { CorreccionPublica, FichaAnimal, FichaConHistoria, MarcaPublica }
 /**
  * Registra la ficha. El mismo comando con el mismo contenido devuelve la ficha
  * ya guardada; otro contenido con ese id es `idempotency_mismatch`.
+ *
+ * Devuelve la ficha **con su historia**, igual que `GET /api/animals/:id`: es el
+ * mismo recurso y quien acaba de crearlo puede pintarlo sin una segunda
+ * lectura. Al nacer no hay correcciones, y esa lista vacía es un hecho, no un
+ * hueco.
  */
-export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Promise<FichaAnimal> {
+export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Promise<FichaConHistoria> {
   return ejecutarComandoIdempotente(
     deps.idempotencia,
     entrada.commandId,
@@ -136,12 +141,17 @@ export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Pr
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
       })
       await deps.animales.insertar(animal)
-      return publicarAnimal(animal, [])
+      return { ...publicarAnimal(animal, []), correcciones: [] }
     },
   )
 }
 
-export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Promise<FichaAnimal> {
+/**
+ * Corrige la ficha y devuelve la ficha con su historia ya actualizada, igual
+ * que `GET /api/animals/:id`. La corrección que se acaba de guardar aparece en
+ * la lista: quien corrigió ve el valor anterior sin volver a pedir la ficha.
+ */
+export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Promise<FichaConHistoria> {
   return ejecutarComandoIdempotente(
     deps.idempotencia,
     entrada.commandId,
@@ -175,7 +185,11 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
         correctedAt: new Date(),
       })
       const marcas = await deps.animales.marcasDe(ranchId, [animalId])
-      return publicarAnimal(corregida.animal, marcas)
+      const correcciones = await deps.animales.correccionesDe(ranchId, animalId)
+      return {
+        ...publicarAnimal(corregida.animal, marcas),
+        correcciones: correcciones.map(publicarCorreccion),
+      }
     },
   )
 }

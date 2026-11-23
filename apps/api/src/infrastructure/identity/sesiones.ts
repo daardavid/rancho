@@ -34,9 +34,14 @@ type FilaSesion = {
  *
  * El rancho y el rol salen de la fila de la cuenta, nunca del que llama.
  * Un usuario que no existe y una contraseña mal puesta responden igual.
+ *
+ * `secreto` es el de la instalación (`SESSION_SECRET`): con él se calcula la
+ * huella que se guarda. Sin secreto no se abre ni se resuelve ninguna sesión,
+ * porque una huella sin secreto se podría fabricar con solo leer la base.
  */
 export async function iniciarSesion(
   db: EjecutorSql,
+  secreto: string,
   entrada: { usuario: string; contrasena: string },
   ahora: Date = new Date(),
 ): Promise<ResultadoDeInicio> {
@@ -56,23 +61,24 @@ export async function iniciarSesion(
 
   await olvidarIntentos(db, usuario)
   const token = nuevoTokenDeSesion()
-  const sesion = await guardarSesion(db, cuenta, token, ahora)
+  const sesion = await guardarSesion(db, secreto, cuenta, token, ahora)
   return { tipo: 'ok', token, sesion }
 }
 
-export async function cerrarSesion(db: EjecutorSql, token: string): Promise<void> {
+export async function cerrarSesion(db: EjecutorSql, secreto: string, token: string): Promise<void> {
   if (token === '') {
     return
   }
 
   await db.execute(sql`
     DELETE FROM identity.session
-    WHERE token_hash = ${huellaDeToken(token)}
+    WHERE token_hash = ${huellaDeToken(token, secreto)}
   `)
 }
 
 export async function resolverSesion(
   db: EjecutorSql,
+  secreto: string,
   token: string,
   ahora: Date = new Date(),
 ): Promise<SesionActiva | null> {
@@ -84,7 +90,7 @@ export async function resolverSesion(
     await db.execute(sql`
       SELECT id, account_id, ranch_id, rol, expires_at
       FROM identity.session
-      WHERE token_hash = ${huellaDeToken(token)}
+      WHERE token_hash = ${huellaDeToken(token, secreto)}
     `),
   )
   const fila = filas[0]
@@ -139,6 +145,7 @@ async function olvidarIntentos(db: EjecutorSql, usuario: string): Promise<void> 
 
 async function guardarSesion(
   db: EjecutorSql,
+  secreto: string,
   cuenta: CuentaCargada,
   token: string,
   ahora: Date,
@@ -154,7 +161,7 @@ async function guardarSesion(
       ${cuenta.id},
       ${cuenta.ranchId},
       ${cuenta.rol},
-      ${huellaDeToken(token)},
+      ${huellaDeToken(token, secreto)},
       ${vence},
       ${ahora}
     )

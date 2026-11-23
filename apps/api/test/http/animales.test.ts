@@ -8,7 +8,7 @@ import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { crearHerd } from '../../src/modules/herd'
 import { nuevoId } from '../../src/shared-kernel/ids'
-import { abrirBaseDePruebas } from '../db/base-de-pruebas'
+import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 const CONTRASENA = 'contrasena-de-prueba'
 const USUARIO = 'propietario-ficha'
@@ -50,7 +50,7 @@ describe('ficha por HTTP', () => {
     await sembrarRancho(db, 'Rancho de prueba')
     await crearCuenta(db, { rol: 'owner', usuario: USUARIO, contrasena: CONTRASENA })
     app = construirApp({
-      identidad: crearIdentidad(db),
+      identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       herd: crearHerd(db),
       nivelDeLog: 'silent',
     })
@@ -123,6 +123,10 @@ describe('ficha por HTTP', () => {
       marcas: [],
     })
     expect(alta.json()).not.toHaveProperty('porcentaje')
+    // La ficha que sale de un alta es el mismo recurso que la de una lectura:
+    // trae su historia, vacía al nacer. La web pinta la ficha con esa forma y
+    // sin ella fallaba con «respuesta_invalida».
+    expect(alta.json().correcciones).toEqual([])
 
     const repetida = await app.inject({
       method: 'POST',
@@ -159,6 +163,15 @@ describe('ficha por HTTP', () => {
     })
     expect(correccion.statusCode).toBe(200)
     expect(correccion.json()).toMatchObject({ nombre: 'Seña de prueba', version: 2 })
+    // La corrección recién guardada ya viene en la respuesta, con el valor
+    // anterior: quien corrigió no tiene que volver a pedir la ficha.
+    expect(correccion.json().correcciones).toEqual([
+      expect.objectContaining({
+        campo: 'nombre',
+        valorAnterior: null,
+        motivo: 'tenía seña',
+      }),
+    ])
 
     const vieja = await app.inject({
       method: 'POST',

@@ -8,7 +8,7 @@ import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
 import { registrarRutasDeCrecimiento } from './routes/crecimiento'
-import { registrarRutaDeSalud } from './routes/health'
+import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDeSesion } from './routes/sesion'
 
@@ -25,6 +25,11 @@ export type OpcionesApp = {
   readonly growth?: Growth
   /** Si falta, las rutas de crecimiento no se montan. */
   readonly crecimiento?: ModelosDeCrecimiento
+  /**
+   * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
+   * base corren así; el proceso de verdad siempre la monta.
+   */
+  readonly base?: ComprobacionDeBase
 }
 
 /**
@@ -69,7 +74,7 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   })
 
   registrarResolucionDeSesion(app, opciones.identidad)
-  registrarRutaDeSalud(app)
+  registrarRutaDeSalud(app, opciones.base)
   if (opciones.identidad !== undefined) {
     registrarRutasDeSesion(app, {
       identidad: opciones.identidad,
