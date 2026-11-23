@@ -3,9 +3,11 @@ import Fastify, { type FastifyInstance, LogController } from 'fastify'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
+import type { ModelosDeCrecimiento } from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
+import { registrarRutasDeCrecimiento } from './routes/crecimiento'
 import { registrarRutaDeSalud } from './routes/health'
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDeSesion } from './routes/sesion'
@@ -21,6 +23,8 @@ export type OpcionesApp = {
   readonly herd?: Herd
   /** Si falta, las rutas de pesaje no se montan. */
   readonly growth?: Growth
+  /** Si falta, las rutas de crecimiento no se montan. */
+  readonly crecimiento?: ModelosDeCrecimiento
 }
 
 /**
@@ -77,6 +81,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)
+  }
+  if (opciones.crecimiento !== undefined) {
+    registrarRutasDeCrecimiento(app, opciones.crecimiento)
   }
 
   return app

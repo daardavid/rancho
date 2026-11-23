@@ -1,5 +1,26 @@
 export { healthResponseSchema, type HealthResponse } from './health'
 export {
+  animalGrowthViewSchema,
+  codigoDeErrorDeCrecimientoSchema,
+  crecimientoDelHatoSchema,
+  errorDeCrecimientoSchema,
+  filaDeCrecimientoSchema,
+  huecoDePesajeSchema,
+  intervaloDeCrecimientoSchema,
+  kilosConSignoSchema,
+  pesoEnLaVistaSchema,
+  puntoDeCrecimientoSchema,
+  type AnimalGrowthView,
+  type CrecimientoDelHato,
+  type ErrorDeCrecimiento,
+  type FilaDeCrecimiento,
+  type HuecoDePesaje,
+  type IntervaloDeCrecimiento,
+  type KilosConSigno,
+  type PesoEnLaVista,
+  type PuntoDeCrecimiento,
+} from './crecimiento'
+export {
   agregarMarcaSchema,
   consultaDeAnimalesSchema,
   corregirAnimalSchema,

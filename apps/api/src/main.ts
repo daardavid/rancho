@@ -4,6 +4,7 @@ import { cargarEnvLocal, exigirVariable } from './infrastructure/db/entorno'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
+import { crearModelosDeCrecimiento } from './read-models'
 
 const PUERTO_POR_OMISION = 3000
 const HOST_POR_OMISION = '127.0.0.1'
@@ -30,6 +31,7 @@ async function arrancar(): Promise<void> {
     identidad: crearIdentidad(cliente.db),
     herd,
     growth: crearGrowth(cliente.db, herd),
+    crecimiento: crearModelosDeCrecimiento(cliente.db),
     produccion: process.env['NODE_ENV'] === 'production',
   })
 
