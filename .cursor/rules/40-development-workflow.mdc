@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Development workflow
 
-Understand the task before editing. Identify the allowed scope. No production application exists yet. Do not create `apps/api`, `apps/web`, a schema, or a migration unless the task explicitly approves that work.
+Understand the task before editing. Identify the allowed scope. Production application work happens only inside an approved increment task (today, INC-001 through `fabrica/tareas/`). Do not create `apps/api`, `apps/web`, a schema, or a migration unless the task explicitly approves that work.
 
 - Do not modify unrelated files.
 - Do not install a dependency without justification that the task approved.

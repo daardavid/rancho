@@ -22,4 +22,4 @@ Hold these together: profitability and sustainable ranch value; realistic UX and
 
 A review stays read-only unless the user explicitly asks for edits. Humans retain the authority defined in the Constitution.
 
-This rule does not replace those documents. No production application is scaffolded. Do not assume `apps/api` or `apps/web` exists.
+This rule does not replace those documents. The production application is being scaffolded by INC-001 through the factory (`fabrica/`, rules in `AGENTS.md`). Check whether `apps/api` and `apps/web` exist before assuming either way.

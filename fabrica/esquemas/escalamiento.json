@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["veredicto", "por_hallazgo", "hallazgos_nuevos", "respuestas_a_preguntas", "resumen"],
+  "properties": {
+    "veredicto": {"type": "string", "enum": ["aprobar", "cambios"]},
+    "por_hallazgo": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "postura", "razon", "instruccion"],
+        "properties": {
+          "id": {"type": "string"},
+          "postura": {"type": "string", "enum": ["de_acuerdo", "desacuerdo", "matiz"]},
+          "razon": {"type": "string"},
+          "instruccion": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "hallazgos_nuevos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severidad", "archivo", "linea", "problema", "instruccion", "prueba"],
+        "properties": {
+          "id": {"type": "string"},
+          "severidad": {"type": "string", "enum": ["P0", "P1", "P2", "P3"]},
+          "archivo": {"type": "string"},
+          "linea": {"type": ["integer", "null"]},
+          "problema": {"type": "string"},
+          "instruccion": {"type": "string"},
+          "prueba": {"type": "string"}
+        }
+      }
+    },
+    "respuestas_a_preguntas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pregunta", "respuesta"],
+        "properties": {
+          "pregunta": {"type": "string"},
+          "respuesta": {"type": "string"}
+        }
+      }
+    },
+    "resumen": {"type": "string"}
+  }
+}

@@ -123,9 +123,9 @@ RANCHO Design Phase v1 is closed. Accepted artifacts include AS-IS v1, TO-BE v1,
 
 Governance v1 is closed. Details and commit pins are in [checkpoints/governance-v1.md](checkpoints/governance-v1.md).
 
-The current phase is MVP Framing. MVP Framing is the current phase, not an already decided MVP. No MVP scope has been selected yet.
+The current phase is MVP Framing, with a proposed MVP and first increment awaiting David's merge.
 
-No production application has been scaffolded yet. The interactive domain map in `apps/domain-map` is not the ranch application.
+MVP Framing is proposed in [product/mvp-framing.md](product/mvp-framing.md) and the first increment is [INC-001](product/increments/INC-001-ficha-y-pesaje.md). The production application is built by the repository factory (`fabrica/`, rules in `AGENTS.md`). The interactive domain map in `apps/domain-map` is not the ranch application.
 
 Direction and the current phase are in the [Master Plan](product/master-plan.md).
 

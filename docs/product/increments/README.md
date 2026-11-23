@@ -4,7 +4,7 @@ A Product Increment is a coherent unit of product value, learning, or both. It s
 
 It is not automatically one screen, one domain entity, one module, one database table, or exactly one PR.
 
-No increment exists yet. The first real increment comes after MVP Framing. Copy [TEMPLATE.md](TEMPLATE.md) only when an increment is actually being framed. Do not turn a TO-BE capability into an increment from this folder.
+The first increment is [INC-001](INC-001-ficha-y-pesaje.md), framed in [../mvp-framing.md](../mvp-framing.md). Copy [TEMPLATE.md](TEMPLATE.md) only when an increment is actually being framed. Do not turn a TO-BE capability into an increment from this folder.
 
 Direction lives in the [Master Plan](../master-plan.md). This folder does not choose what comes first.
 
@@ -46,7 +46,7 @@ Do not mark an increment `READY` until:
 
 ## Identifiers
 
-Use `INC-001`, `INC-002`, and so on, in file names such as `INC-001-short-title.md`. Do not reserve numbers for imagined features. The next id is `INC-001`. None exist yet.
+Use `INC-001`, `INC-002`, and so on, in file names such as `INC-001-short-title.md`. Do not reserve numbers for imagined features. The next id is `INC-002`.
 
 ## Learning
 

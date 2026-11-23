@@ -39,6 +39,12 @@ Thumbs.db
 Desktop.ini
 ehthumbs.db
 
+# Factory working files (per laptop)
+.fabrica/
+
+# Python
+__pycache__/
+
 # Local caches
 .cache/
 *.local

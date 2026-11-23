@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["veredicto", "duda", "preguntas_para_claude", "desacuerdo_con_cursor", "falla_de_entorno", "hallazgos", "resumen"],
+  "properties": {
+    "veredicto": {"type": "string", "enum": ["aprobar", "cambios"]},
+    "duda": {"type": "boolean"},
+    "preguntas_para_claude": {"type": "array", "items": {"type": "string"}},
+    "desacuerdo_con_cursor": {"type": "boolean"},
+    "falla_de_entorno": {"type": "boolean"},
+    "hallazgos": {"type": "array", "items": {"$ref": "#/$defs/hallazgo"}},
+    "resumen": {"type": "string"}
+  },
+  "$defs": {
+    "hallazgo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severidad", "archivo", "linea", "problema", "instruccion", "prueba"],
+      "properties": {
+        "id": {"type": "string"},
+        "severidad": {"type": "string", "enum": ["P0", "P1", "P2", "P3"]},
+        "archivo": {"type": "string"},
+        "linea": {"type": ["integer", "null"]},
+        "problema": {"type": "string"},
+        "instruccion": {"type": "string"},
+        "prueba": {"type": "string"}
+      }
+    }
+  }
+}

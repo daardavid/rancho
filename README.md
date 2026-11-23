@@ -10,7 +10,7 @@ Read [docs/START-HERE.md](docs/START-HERE.md) before product, domain, architectu
 
 The design phase is closed. The frozen baseline is [docs/checkpoints/design-v1.md](docs/checkpoints/design-v1.md).
 
-The production ranch application is not implemented. This repository holds the discovery notes, the domain map, and the architecture documents. It does not yet include a backend, authentication, or a database.
+The current phase is MVP Framing, proposed in [docs/product/mvp-framing.md](docs/product/mvp-framing.md). The first increment, [INC-001](docs/product/increments/INC-001-ficha-y-pesaje.md), is built by the repository factory in [fabrica/](fabrica/README.md), with agent rules in [AGENTS.md](AGENTS.md).
 
 ## Domain discovery
 
