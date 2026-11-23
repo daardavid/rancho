@@ -34,7 +34,7 @@ afterAll(async () => {
 })
 
 describe('migración inicial', () => {
-  it('crea la ficha en herd, growth vacío, identity.ranch y el recibo de comando', async () => {
+  it('crea la ficha en herd, el pesaje en growth, identity.ranch y el recibo de comando', async () => {
     const esquemas = filasDe<{ schema_name: string }>(
       await db.execute(sql`
         SELECT schema_name
@@ -63,7 +63,11 @@ describe('migración inicial', () => {
       'animal_correction',
       'animal_mark',
     ])
-    expect(tablasGrowth).toEqual([])
+    expect(tablasGrowth.map((fila) => fila.table_name).sort()).toEqual([
+      'weighing_line',
+      'weighing_session',
+      'weight_correction',
+    ])
 
     const columnas = filasDe<{ column_name: string; data_type: string }>(
       await db.execute(sql`

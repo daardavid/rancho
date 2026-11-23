@@ -22,6 +22,28 @@ export {
   type ReemplazarMarca,
 } from './animales'
 export {
+  LARGO_MAXIMO_MOTIVO_DE_PESAJE,
+  LARGO_MAXIMO_NOTA_DE_PESAJE,
+  LARGO_MAXIMO_REPORTED_BY,
+  calidadDePesoSchema,
+  codigoDeErrorDePesajeSchema,
+  correccionDePesoSchema,
+  crearCorregirPesoSchema,
+  crearRegistrarSesionSchema,
+  errorDePesajeSchema,
+  filaDeSesionSchema,
+  kilosConTresDecimalesSchema,
+  pesoSchema,
+  pesosDeAnimalSchema,
+  sesionDePesajeSchema,
+  type CorregirPeso,
+  type ErrorDePesaje,
+  type Peso,
+  type PesosDeAnimal,
+  type RegistrarSesion,
+  type SesionDePesaje,
+} from './pesajes'
+export {
   LARGO_MAXIMO_CONTRASENA,
   LARGO_MAXIMO_USUARIO,
   codigoDeErrorDeSesionSchema,

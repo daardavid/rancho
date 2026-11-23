@@ -1,11 +1,13 @@
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 
+import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
 import { registrarRutaDeSalud } from './routes/health'
+import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDeSesion } from './routes/sesion'
 
 export type OpcionesApp = {
@@ -17,6 +19,8 @@ export type OpcionesApp = {
   readonly produccion?: boolean
   /** Si falta, las rutas de la ficha no se montan. */
   readonly herd?: Herd
+  /** Si falta, las rutas de pesaje no se montan. */
+  readonly growth?: Growth
 }
 
 /**
@@ -70,6 +74,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.herd !== undefined) {
     registrarRutasDeAnimales(app, opciones.herd)
+  }
+  if (opciones.growth !== undefined) {
+    registrarRutasDePesaje(app, opciones.growth)
   }
 
   return app

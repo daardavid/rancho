@@ -2,6 +2,7 @@ import { construirApp } from './http/app'
 import { abrirCliente } from './infrastructure/db/cliente'
 import { cargarEnvLocal, exigirVariable } from './infrastructure/db/entorno'
 import { crearIdentidad } from './infrastructure/identity/identidad'
+import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
 
 const PUERTO_POR_OMISION = 3000
@@ -24,9 +25,11 @@ async function arrancar(): Promise<void> {
   cargarEnvLocal()
   const url = exigirVariable('DATABASE_URL')
   const cliente = abrirCliente(url)
+  const herd = crearHerd(cliente.db)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db),
-    herd: crearHerd(cliente.db),
+    herd,
+    growth: crearGrowth(cliente.db, herd),
     produccion: process.env['NODE_ENV'] === 'production',
   })
 

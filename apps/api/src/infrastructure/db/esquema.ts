@@ -3,8 +3,8 @@ import { check, index, pgSchema, pgTable, text, timestamp, uniqueIndex, uuid } f
 
 /**
  * Esquemas del primer incremento. Las tablas de la ficha viven en
- * `modules/herd/persistence` y entran en esta misma secuencia. Growth sigue
- * vacío hasta su tarea. Identity no es un módulo de dominio.
+ * `modules/herd/persistence` y las del pesaje en `modules/growth/persistence`.
+ * Identity no es un módulo de dominio.
  */
 export const esquemaHerd = pgSchema('herd')
 export const esquemaGrowth = pgSchema('growth')
