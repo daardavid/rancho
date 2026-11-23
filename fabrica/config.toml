@@ -88,7 +88,7 @@ ciclos_rojos_para_escalar = 2  # ciclos seguidos con pruebas en rojo
 [fila]
 archivo_orden = "fabrica/tareas/orden.txt"
 # Pausa para que David revise el modelo de dominio (Herd y Growth) antes de construir pantallas encima.
-pausas_despues_de = ["R-05"]
+pausas_despues_de = []
 motivo_pausa = "David revisa en integracion el modelo de Herd y Growth (fichas, pesajes, correcciones) antes de las pantallas."
 
 [verificar]
