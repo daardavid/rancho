@@ -1,5 +1,5 @@
 import type { RegistrarSesion } from '@rancho/api-contracts'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import { useHato } from '../api/hato'
 import { ErrorDeApi } from '../api/http'
@@ -142,7 +142,7 @@ function EditorDeSesion({
   readonly animales: readonly Animal[]
   readonly porAnimal: ReadonlyMap<string, Animal>
   readonly huboVueltaAnterior: boolean
-  readonly alCambiar: (borrador: BorradorDePesaje) => void
+  readonly alCambiar: Dispatch<SetStateAction<BorradorDePesaje | null>>
 }) {
   const registrar = useRegistrarPesaje()
   const [busqueda, setBusqueda] = useState('')
@@ -168,10 +168,30 @@ function EditorDeSesion({
     )
   }, [animales, filas, busqueda])
 
+  // La foto termina de subir después de que el dueño ya siguió capturando.
+  // El cambio se aplica al borrador de ahora: si se usara el de cuando se
+  // eligió el archivo, se borrarían los kilos escritos mientras tanto.
+  const borradorVigente = useRef(borrador)
+  useEffect(() => {
+    borradorVigente.current = borrador
+  }, [borrador])
+
   const cambiarFila = (id: string, cambios: Partial<FilaBorrador>): void => {
-    alCambiar({
-      ...borrador,
-      filas: filas.map((fila) => (fila.id === id ? { ...fila, ...cambios } : fila)),
+    alCambiar((actual) => {
+      const base = actual ?? borradorVigente.current
+      return {
+        ...base,
+        filas: base.filas.map((fila) => {
+          if (fila.id !== id) {
+            return fila
+          }
+          // Una foto que llega tarde no revive un renglón quitado ni un hueco.
+          if ('evidenciaId' in cambios && fila.resultado !== 'pesado') {
+            return fila
+          }
+          return { ...fila, ...cambios }
+        }),
+      }
     })
   }
 

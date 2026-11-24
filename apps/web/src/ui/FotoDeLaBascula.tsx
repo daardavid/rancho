@@ -1,5 +1,5 @@
 import { AUSENCIA_DE_FOTO } from '@rancho/api-contracts'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { subirFoto } from '../api/evidencia'
 import { AvisoDeError } from './Avisos'
@@ -12,11 +12,11 @@ import { AvisoDeError } from './Avisos'
  */
 
 export function FotoVisible({ evidenciaId }: { readonly evidenciaId: string | null | undefined }) {
-  const [falla, setFalla] = useState(false)
+  const [idFallido, setIdFallido] = useState<string | null>(null)
   if (evidenciaId === null || evidenciaId === undefined || evidenciaId === AUSENCIA_DE_FOTO) {
     return null
   }
-  if (falla) {
+  if (idFallido === evidenciaId) {
     return <p className="campo__ayuda">La foto se registró, pero no se encuentra.</p>
   }
 
@@ -26,7 +26,7 @@ export function FotoVisible({ evidenciaId }: { readonly evidenciaId: string | nu
       alt="Foto de la báscula"
       src={`/api/evidencia/${evidenciaId}`}
       onError={() => {
-        setFalla(true)
+        setIdFallido(evidenciaId)
       }}
     />
   )
@@ -45,10 +45,31 @@ export function FotoDeLaBascula({
   const id = useId()
   const [ocupada, setOcupada] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const alCambiarVigente = useRef(alCambiar)
+  const alOcuparseVigente = useRef(alOcuparse)
+  const montado = useRef(true)
+  const subiendo = useRef(false)
+
+  useEffect(() => {
+    alCambiarVigente.current = alCambiar
+    alOcuparseVigente.current = alOcuparse
+  }, [alCambiar, alOcuparse])
+
+  useEffect(() => {
+    montado.current = true
+    return () => {
+      montado.current = false
+      if (subiendo.current) {
+        subiendo.current = false
+        alOcuparseVigente.current?.(false)
+      }
+    }
+  }, [])
 
   const ocupar = (valor: boolean): void => {
+    subiendo.current = valor
     setOcupada(valor)
-    alOcuparse?.(valor)
+    alOcuparseVigente.current?.(valor)
   }
 
   const elegir = (archivo: File | undefined): void => {
@@ -59,10 +80,19 @@ export function FotoDeLaBascula({
     ocupar(true)
     void subirFoto(archivo).then(
       (fotoId) => {
-        alCambiar(fotoId)
+        // Si el renglón se quitó o pasó a «No se pesó», este componente ya no
+        // está. La subida no vuelve a escribir el peso; el botón de guardar
+        // se soltó al desmontar.
+        if (!montado.current) {
+          return
+        }
+        alCambiarVigente.current(fotoId)
         ocupar(false)
       },
       (fallo: unknown) => {
+        if (!montado.current) {
+          return
+        }
         setError(fallo)
         ocupar(false)
       },
