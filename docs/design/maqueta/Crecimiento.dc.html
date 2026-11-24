@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Crecimiento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F5C3F}a:hover{color:#163F2B}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F5F3EE;font-family:Inter,system-ui,sans-serif;color:#1C1F1A;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <header style="padding:20px 20px 10px">
+    <p style="margin:0;font-size:13px;font-weight:600;color:#5C6258;letter-spacing:0.04em">ÚLTIMA VUELTA · 24 NOV</p>
+    <h1 style="margin:2px 0 0;font-family:Archivo,sans-serif;font-size:30px;font-weight:800">Crecimiento</h1>
+  </header>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px">
+    <div style="background:#1F5C3F;color:#fff;border-radius:16px;padding:12px">
+      <p style="margin:0;font-size:12px;opacity:0.85">Ganancia media</p>
+      <p style="margin:4px 0 0;font-family:Archivo,sans-serif;font-weight:800;font-size:22px">0.78</p>
+      <p style="margin:0;font-size:12px;opacity:0.85">kg por día</p>
+    </div>
+    <div style="background:#fff;border:1px solid #ECE9E2;border-radius:16px;padding:12px">
+      <p style="margin:0;font-size:12px;color:#5C6258">Pesados</p>
+      <p style="margin:4px 0 0;font-family:Archivo,sans-serif;font-weight:800;font-size:22px">7 / 9</p>
+      <p style="margin:0;font-size:12px;color:#5C6258">becerros</p>
+    </div>
+    <div style="background:#FDF1DE;border-radius:16px;padding:12px">
+      <p style="margin:0;font-size:12px;color:#7A4A12">Van atrás</p>
+      <p style="margin:4px 0 0;font-family:Archivo,sans-serif;font-weight:800;font-size:22px;color:#6B3A00">3</p>
+      <p style="margin:0;font-size:12px;color:#7A4A12">revisar</p>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow:hidden;padding:16px 20px 0">
+    <h2 style="margin:0 0 8px;font-size:15px;font-weight:600">Revisar primero</h2>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{atras}}" as="f" hint-placeholder-count="3">
+        <div style="background:#fff;border-radius:14px;padding:12px 14px;border:1px solid #ECE9E2">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-weight:600;font-size:15px">{{f.nombre}}</span>
+            <span style="font-size:14px;font-weight:600;color:#8A4B00">{{f.valor}}</span>
+          </div>
+          <div style="margin-top:8px;height:8px;border-radius:99px;background:#F1EEE8;overflow:hidden">
+            <span style="display:block;height:8px;width:{{f.ancho}};background:#D9A55B;border-radius:99px"></span>
+          </div>
+          <p style="margin:6px 0 0;font-size:12px;color:#5C6258">{{f.nota}}</p>
+        </div>
+      </sc-for>
+    </div>
+    <h2 style="margin:16px 0 8px;font-size:15px;font-weight:600">Van bien</h2>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{bien}}" as="f" hint-placeholder-count="2">
+        <div style="background:#fff;border-radius:14px;padding:12px 14px;border:1px solid #ECE9E2">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-weight:600;font-size:15px">{{f.nombre}}</span>
+            <span style="font-size:14px;font-weight:600;color:#1F5C3F">{{f.valor}}</span>
+          </div>
+          <div style="margin-top:8px;height:8px;border-radius:99px;background:#F1EEE8;overflow:hidden">
+            <span style="display:block;height:8px;width:{{f.ancho}};background:#1F5C3F;border-radius:99px"></span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <nav style="position:absolute;left:0;right:0;bottom:0;height:72px;background:#fff;border-top:1px solid #E3E0D8;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))">
+    <a href="Hato.dc.html" style="text-decoration:none;color:#5C6258;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Hato</a>
+    <a href="Pesaje.dc.html" style="text-decoration:none;color:#5C6258;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20h12l-1.5-11h-9z"/><circle cx="12" cy="5" r="2"/><path d="M12 7v2"/></svg>Pesaje</a>
+    <a href="Crecimiento.dc.html" style="text-decoration:none;color:#1F5C3F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F5C3F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Crecimiento</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      atras: [
+        { nombre: 'Negra', valor: 'No se pesó', ancho: '0%', nota: 'Se esperaba en esta vuelta · último peso hace 30 días' },
+        { nombre: 'Pinto', valor: '0.33 kg/día', ancho: '28%', nota: 'Bajó de 0.71 a 0.33 respecto a la vuelta anterior' },
+        { nombre: 'Tordillo', valor: '0.41 kg/día', ancho: '35%', nota: 'Peso declarado: me lo dijeron, no medido' }
+      ],
+      bien: [
+        { nombre: 'Canela', valor: '0.92 kg/día', ancho: '78%' },
+        { nombre: 'Lucero', valor: '0.81 kg/día', ancho: '69%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
