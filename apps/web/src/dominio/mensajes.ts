@@ -28,7 +28,7 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   demasiados_intentos: {
     quePaso: 'Hubo varios intentos fallidos seguidos.',
-    queHacer: 'Espera quince minutos y vuelve a intentar.',
+    queHacer: 'Espera un momento y vuelve a intentar. Los intentos buenos no se bloquean para siempre.',
   },
   no_autenticado: {
     quePaso: 'La sesión venció.',
@@ -161,12 +161,33 @@ export function mensajeDeError(error: unknown): MensajeDeError {
   if (error instanceof ErrorDeApi) {
     const conocido = MENSAJES[error.codigo]
     if (conocido !== undefined) {
-      return { ...conocido, codigo: error.codigo }
+      const queHacer =
+        error.codigo === 'demasiados_intentos' && error.segundos !== null
+          ? esperaEnPalabras(error.segundos)
+          : conocido.queHacer
+      return { quePaso: conocido.quePaso, queHacer, codigo: error.codigo }
     }
     return { ...GENERICO, codigo: error.codigo }
   }
 
   return { ...GENERICO, codigo: 'error_desconocido' }
+}
+
+/**
+ * Cuánto esperar, dicho como se dice en el rancho.
+ *
+ * La API manda los segundos que le faltan; la pantalla no inventa un plazo. Si
+ * la espera es de minutos se redondea hacia arriba, para no prometer un momento
+ * en el que todavía no se puede.
+ */
+function esperaEnPalabras(segundos: number): string {
+  if (segundos < 60) {
+    return 'Espera medio minuto y vuelve a intentar.'
+  }
+  const minutos = Math.ceil(segundos / 60)
+  return minutos === 1
+    ? 'Espera un minuto y vuelve a intentar.'
+    : `Espera ${String(minutos)} minutos y vuelve a intentar.`
 }
 
 export function esConflictoDeVersion(error: unknown): boolean {

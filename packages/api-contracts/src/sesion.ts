@@ -42,8 +42,14 @@ export const codigoDeErrorDeSesionSchema = z.enum([
   'prohibido',
 ])
 
+/**
+ * `segundos` solo viene con `demasiados_intentos`: es lo que falta para poder
+ * volver a intentar. La pantalla lo usa para decir cuánto esperar en vez de
+ * inventar un plazo.
+ */
 export const errorDeSesionSchema = z.strictObject({
   codigo: codigoDeErrorDeSesionSchema,
+  segundos: z.number().int().positive().optional(),
 })
 
 export type ErrorDeSesion = z.infer<typeof errorDeSesionSchema>

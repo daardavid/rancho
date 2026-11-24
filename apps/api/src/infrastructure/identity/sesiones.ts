@@ -6,7 +6,11 @@ import { nuevoId, ranchIdSchema, type RanchId } from '../../shared-kernel/ids'
 import { filasDe, type EjecutorSql } from '../db/filas'
 import { contrasenaCoincide, hashDeRelleno } from './contrasena'
 import { buscarCuentaPorUsuario, type CuentaCargada } from './cuentas'
-import { DURACION_DE_SESION_MS, MAX_INTENTOS_FALLIDOS, VENTANA_DE_INTENTOS_MS } from './parametros'
+import { esperarHasta, segundosDeEspera, type Fallos } from './limite'
+import {
+  DURACION_DE_SESION_MS,
+  VENTANA_DE_INTENTOS_MS,
+} from './parametros'
 import { huellaDeToken, nuevoTokenDeSesion } from './tokens'
 
 export type SesionActiva = {
@@ -19,7 +23,7 @@ export type SesionActiva = {
 export type ResultadoDeInicio =
   | { readonly tipo: 'ok'; readonly token: string; readonly sesion: SesionActiva }
   | { readonly tipo: 'credenciales_invalidas' }
-  | { readonly tipo: 'demasiados_intentos' }
+  | { readonly tipo: 'esperar'; readonly segundos: number }
 
 type FilaSesion = {
   id: string
@@ -35,6 +39,11 @@ type FilaSesion = {
  * El rancho y el rol salen de la fila de la cuenta, nunca del que llama.
  * Un usuario que no existe y una contraseña mal puesta responden igual.
  *
+ * `direccion` es la IP desde la que llega el intento. Se guarda con cada fallo
+ * para poder esperar por pareja usuario + IP sin cerrarle la puerta al
+ * propietario que entra desde otro aparato. Es un dato técnico del intento, no
+ * del rancho.
+ *
  * `secreto` es el de la instalación (`SESSION_SECRET`): con él se calcula la
  * huella que se guarda. Sin secreto no se abre ni se resuelve ninguna sesión,
  * porque una huella sin secreto se podría fabricar con solo leer la base.
@@ -43,23 +52,27 @@ export async function iniciarSesion(
   db: EjecutorSql,
   secreto: string,
   entrada: { usuario: string; contrasena: string },
+  direccion: string,
   ahora: Date = new Date(),
 ): Promise<ResultadoDeInicio> {
   const usuario = usuarioSchema.parse(entrada.usuario)
 
-  if ((await intentosRecientes(db, usuario, ahora)) >= MAX_INTENTOS_FALLIDOS) {
-    return { tipo: 'demasiados_intentos' }
+  const castigo = esperarHasta(await fallosRecientes(db, usuario, direccion, ahora))
+  if (castigo !== null && castigo.getTime() > ahora.getTime()) {
+    return { tipo: 'esperar', segundos: segundosDeEspera(castigo, ahora) }
   }
 
   const cuenta = await buscarCuentaPorUsuario(db, usuario)
   const hash = cuenta?.passwordHash ?? (await hashDeRelleno())
   const coincide = await contrasenaCoincide(hash, entrada.contrasena)
   if (cuenta === null || !coincide) {
-    await registrarIntento(db, usuario, ahora)
+    await registrarIntento(db, usuario, direccion, ahora)
     return { tipo: 'credenciales_invalidas' }
   }
 
-  await olvidarIntentos(db, usuario)
+  // Un ingreso bueno olvida lo que esta IP falló con este usuario; lo que falló
+  // con otros nombres se queda y se vence solo.
+  await olvidarIntentos(db, usuario, direccion)
   const token = nuevoTokenDeSesion()
   const sesion = await guardarSesion(db, secreto, cuenta, token, ahora)
   return { tipo: 'ok', token, sesion }
@@ -107,39 +120,69 @@ export async function resolverSesion(
   return sesionDesde(fila)
 }
 
-async function intentosRecientes(db: EjecutorSql, usuario: string, ahora: Date): Promise<number> {
+/**
+ * Los fallos que todavía cuentan para la espera.
+ *
+ * De paso tira los de fuera de la ventana: son filas técnicas, no historia del
+ * rancho, y sin este barrido crecerían sin fin.
+ */
+async function fallosRecientes(
+  db: EjecutorSql,
+  usuario: string,
+  direccion: string,
+  ahora: Date,
+): Promise<Fallos> {
   const desde = new Date(ahora.getTime() - VENTANA_DE_INTENTOS_MS)
   await db.execute(sql`
     DELETE FROM identity.login_attempt
     WHERE occurred_at <= ${desde}
   `)
-  const filas = filasDe<{ total: unknown }>(
+
+  const filas = filasDe<{
+    del_usuario_en_esta_direccion: unknown
+    de_esta_direccion: unknown
+    ultimo: unknown
+  }>(
     await db.execute(sql`
-      SELECT COUNT(*)::int AS total
+      SELECT
+        COUNT(*) FILTER (
+          WHERE usuario = ${usuario} AND direccion = ${direccion}
+        )::int AS del_usuario_en_esta_direccion,
+        COUNT(*)::int AS de_esta_direccion,
+        MAX(occurred_at) AS ultimo
       FROM identity.login_attempt
-      WHERE usuario = ${usuario}
+      WHERE direccion = ${direccion}
         AND occurred_at > ${desde}
     `),
   )
-  const total = filas[0]?.total
-  const numero = typeof total === 'number' ? total : Number(total)
-  if (!Number.isFinite(numero)) {
-    return MAX_INTENTOS_FALLIDOS
+  const fila = filas[0]
+  return {
+    delUsuarioEnEstaDireccion: numero(fila?.del_usuario_en_esta_direccion),
+    deEstaDireccion: numero(fila?.de_esta_direccion),
+    ultimoFallo: instante(fila?.ultimo),
   }
-  return numero
 }
 
-async function registrarIntento(db: EjecutorSql, usuario: string, ahora: Date): Promise<void> {
+async function registrarIntento(
+  db: EjecutorSql,
+  usuario: string,
+  direccion: string,
+  ahora: Date,
+): Promise<void> {
   await db.execute(sql`
-    INSERT INTO identity.login_attempt (id, usuario, occurred_at)
-    VALUES (${nuevoId()}, ${usuario}, ${ahora})
+    INSERT INTO identity.login_attempt (id, usuario, direccion, occurred_at)
+    VALUES (${nuevoId()}, ${usuario}, ${direccion}, ${ahora})
   `)
 }
 
-async function olvidarIntentos(db: EjecutorSql, usuario: string): Promise<void> {
+async function olvidarIntentos(
+  db: EjecutorSql,
+  usuario: string,
+  direccion: string,
+): Promise<void> {
   await db.execute(sql`
     DELETE FROM identity.login_attempt
-    WHERE usuario = ${usuario}
+    WHERE usuario = ${usuario} AND direccion = ${direccion}
   `)
 }
 
@@ -200,4 +243,16 @@ function instante(valor: unknown): Date | null {
     return Number.isNaN(fecha.getTime()) ? null : fecha
   }
   return null
+}
+
+/** Un contador que el driver no devuelva como número se lee como cero, no como bloqueo. */
+function numero(valor: unknown): number {
+  if (typeof valor === 'number') {
+    return Number.isFinite(valor) ? valor : 0
+  }
+  if (typeof valor === 'string') {
+    const leido = Number(valor)
+    return Number.isFinite(leido) ? leido : 0
+  }
+  return 0
 }
