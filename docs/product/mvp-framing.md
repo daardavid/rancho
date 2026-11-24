@@ -3,8 +3,8 @@
 ## Status
 
 - Status: PROPOSED. Accepted when David merges this document into `main`
-- Version: v0.2
-- Last updated: 2026-11-22
+- Version: v0.3
+- Last updated: 2026-11-24
 - Owner of the decision: David (product), with the ranch owner for ranch facts
 
 This document closes MVP Framing. It produces the five outputs proposed at the end of the design conversation (MVP North Star, Decision Map, Value Map, Data Foundation, MVP Boundaries) and, through them, answers the six questions the [Master Plan](master-plan.md) left open. It does not add ranch facts: every ranch statement points to the domain source that holds it, and open sources stay open.
@@ -85,12 +85,13 @@ The occasional gravel sale ([ranch-context.md](../domain/ranch-context.md), "Fin
 | Increment | Outcome | Depends on |
 | --- | --- | --- |
 | [INC-001](increments/INC-001-ficha-y-pesaje.md) | Animal ficha and calf weighing with growth view, usable by the owner | Nothing blocking |
-| INC-002 | Pilot readiness: hosting on David's personal Supabase plus an app host, backups, loading the notebook or Excel history, evidence photos, the owner's first real sessions | David's hosting decision; INC-001 |
+| [INC-002](increments/INC-002-todo-en-local.md) | Todo en local: one command on the laptop, the phone on the same Wi-Fi, backup and restore, photo of the scale | INC-001 |
+| Later migration increment | Publication: the app leaves the laptop (hosting). Its id is assigned when it is framed | INC-002 |
 | INC-003 | Feed: purchase, preparation, delivery, each with its quality, and warehouse count | `OQ-FEED-001`, `OQ-FEED-002` answered |
 | INC-004 | Expenses, purchases, sales, and provisional profitability view | `OQ-OWN-001`, `OQ-OWN-002`, `OQ-TRADE-001` answered |
 | INC-005 | Births, exits, location, herd verification, health notes, missing-animal risk | `OQ-ID-001`, `OQ-COUNT-001` answered |
 
-MVP v1 is INC-001 through INC-005 in real use. Only INC-001 is framed now. The others are direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
+MVP v1 is INC-001 through INC-005 in real use. INC-002 is Todo en local (draft). Publication is a later migration increment, after local use. Feed, money, and herd control stay direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
 
 ## How the Master Plan's six questions are answered
 
