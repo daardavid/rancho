@@ -42,6 +42,16 @@ export const diaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(esDiaRea
 
 const instanteSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
 
+/**
+ * Quién registró (o corrigió) el hecho, tal como sale del servidor.
+ *
+ * Es la misma regla que `recordedBySchema` del núcleo: un texto con algo, sin
+ * espacios de sobra. No se exige UUID porque en la primera etapa es la cuenta
+ * del propietario y más adelante puede no ser un id; el contrato de salida no
+ * decide eso. Lo que sí es un id es el animal, la marca y la sesión.
+ */
+export const registradoPorSchema = z.string().trim().min(1)
+
 export const registrarAnimalSchema = z
   .strictObject({
     commandId: z.uuid(),
@@ -127,7 +137,7 @@ export const marcaSchema = z.strictObject({
   desde: diaSchema.nullable(),
   estado: estadoDeMarcaSchema,
   cambiadaEl: diaSchema.nullable(),
-  recordedBy: z.uuid(),
+  recordedBy: registradoPorSchema,
   recordedAt: instanteSchema,
 })
 
@@ -143,7 +153,7 @@ export const fichaAnimalSchema = z.strictObject({
   nota: notaSchema.nullable(),
   activo: z.boolean(),
   version: z.number().int().nonnegative(),
-  recordedBy: z.uuid(),
+  recordedBy: registradoPorSchema,
   recordedAt: instanteSchema,
   marcas: z.array(marcaSchema),
 })
@@ -152,7 +162,7 @@ export const correccionSchema = z.strictObject({
   campo: campoDeFichaSchema,
   valorAnterior: z.string().nullable(),
   motivo: motivoSchema,
-  correctedBy: z.uuid(),
+  correctedBy: registradoPorSchema,
   correctedAt: instanteSchema,
 })
 

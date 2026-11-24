@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import type { EjecutorSql } from './filas'
-import { aplicarMigraciones } from './migrar'
+import { aplicarMigraciones, type BaseMigrable } from './migrar'
 
 const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '::1'])
 
@@ -36,7 +36,7 @@ function hostDe(url: string): string {
 }
 
 /** Tira los esquemas de esta tarea y vuelve a aplicar la misma secuencia de migraciones. */
-export async function restablecerEsquemas(db: EjecutorSql): Promise<void> {
+export async function restablecerEsquemas(db: BaseMigrable & EjecutorSql): Promise<void> {
   await db.execute(sql`DROP SCHEMA IF EXISTS herd CASCADE`)
   await db.execute(sql`DROP SCHEMA IF EXISTS growth CASCADE`)
   await db.execute(sql`DROP SCHEMA IF EXISTS identity CASCADE`)

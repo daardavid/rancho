@@ -55,6 +55,10 @@ export const animal = esquemaHerd.table(
       'animal_detalle_solo_en_other',
       sql`${tabla.detalleCategoria} is null or ${tabla.categoria} = 'other'`,
     ),
+    check(
+      'animal_detalle_presente',
+      sql`${tabla.detalleCategoria} is null or length(btrim(${tabla.detalleCategoria})) > 0`,
+    ),
     check('animal_version_positiva', sql`${tabla.version} >= 1`),
     check(
       'animal_nombre_presente',

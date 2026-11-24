@@ -142,10 +142,14 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). Workflow
 It runs on pull requests targeting `main` and on pushes to `main`:
 
 1. `npm ci`
-2. `npm run lint:map`
-3. `npm run build:map`, which includes the TypeScript check
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm test`, against the PostgreSQL service of the job
+5. `npx playwright install --with-deps chromium`
+6. `npm run test:e2e`, which builds the web and the API before testing
+7. `npm run build:map`
 
-CI checks only what exists today. It uses official GitHub actions, read-only repository permissions, and no secrets. There is no deployment, database, Docker, migration, coverage gate, or release automation.
+CI uses official GitHub actions, read-only repository permissions, and no secrets. The PostgreSQL service is a disposable engine with placeholder credentials, not ranch data. The end-to-end job brings its own throwaway PGlite database and does not use that service. There is no deployment, coverage gate, or release automation.
 
 The application pipeline is designed in [deployment-strategy.md](../architecture/deployment-strategy.md#cicd). Those steps join CI with the application. CI grows with real product code.
 

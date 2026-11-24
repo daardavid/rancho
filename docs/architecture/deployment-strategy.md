@@ -73,8 +73,9 @@ On a pull request, and on the main branch:
 - unit tests
 - persistence tests against a PostgreSQL service container
 - build
+- the few Playwright end-to-end flows, against the built application
 
-When migration files exist, the pipeline also applies them to the test database before the persistence tests. High or critical production advisories from `npm audit` block the pipeline or require an explicit review. Playwright joins the pipeline once a few stable critical flows exist.
+When migration files exist, the pipeline also applies them to the test database before the persistence tests. High or critical production advisories from `npm audit` block the pipeline or require an explicit review.
 
 ## Release shape
 

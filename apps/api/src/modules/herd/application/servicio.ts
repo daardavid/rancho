@@ -3,6 +3,7 @@ import { ejecutarComandoIdempotente } from '../../../shared-kernel/idempotencia'
 import { animalIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
 import type { RecordedBy } from '../../../shared-kernel/actores'
 import { ConflictoDeVersion } from '../../../shared-kernel/conflictos'
+import { z } from 'zod'
 
 import { corregirFicha, registrarAnimal, type Animal, type CambiosDeFicha } from '../domain/animal'
 import { crearMarca, perderMarca, reemplazarMarca, type Marca } from '../domain/marca'
@@ -214,13 +215,14 @@ export async function agregarMarca(
     async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const animalId = animalIdSchema.parse(entrada.animalId)
+      const marcaId = exigirMarcaId(entrada.marcaId)
       const animal = await deps.animales.obtener(ranchId, animalId, false)
       if (animal === null) {
         throw new RechazoDeHerd('no_encontrado')
       }
 
       const marca = crearMarca({
-        id: entrada.marcaId,
+        id: marcaId,
         ranchId,
         animalId,
         tipo: entrada.tipo,
@@ -263,17 +265,19 @@ export async function reemplazar(
     async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const animalId = animalIdSchema.parse(entrada.animalId)
-      const anterior = await deps.animales.obtenerMarca(ranchId, animalId, entrada.marcaAnteriorId, true)
+      const anteriorId = exigirMarcaId(entrada.marcaAnteriorId)
+      const nuevaId = exigirMarcaId(entrada.marcaId)
+      const anterior = await deps.animales.obtenerMarca(ranchId, animalId, anteriorId, true)
       if (anterior === null) {
         throw new RechazoDeHerd('no_encontrado')
       }
-      if (entrada.marcaId === anterior.id) {
+      if (nuevaId === anterior.id) {
         throw new RechazoDeHerd('marca_ya_existe')
       }
 
       const cerrada = reemplazarMarca(anterior, entrada.cambiadaEl)
       const nueva = crearMarca({
-        id: entrada.marcaId,
+        id: nuevaId,
         ranchId,
         animalId,
         tipo: entrada.tipo,
@@ -316,7 +320,8 @@ export async function marcarPerdida(
     async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const animalId = animalIdSchema.parse(entrada.animalId)
-      const marca = await deps.animales.obtenerMarca(ranchId, animalId, entrada.marcaId, true)
+      const marcaId = exigirMarcaId(entrada.marcaId)
+      const marca = await deps.animales.obtenerMarca(ranchId, animalId, marcaId, true)
       if (marca === null) {
         throw new RechazoDeHerd('no_encontrado')
       }
@@ -430,4 +435,17 @@ async function conMarcas(
     }
   }
   return lista.map((animal) => publicarAnimal(animal, grupos.get(animal.id) ?? []))
+}
+
+/**
+ * El id de la marca lo acuña el cliente, igual que el del animal. Un texto que
+ * no es UUID no llega a PostgreSQL: se rechaza como `marca_invalida` en vez de
+ * dejar salir un error crudo del motor (`invalid input syntax for type uuid`).
+ */
+function exigirMarcaId(valor: string): string {
+  const leido = z.uuid().safeParse(valor)
+  if (!leido.success) {
+    throw new RechazoDeHerd('marca_invalida')
+  }
+  return leido.data
 }

@@ -209,6 +209,7 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
               sesion.id AS sesion_id,
               sesion.weighed_on AS fecha,
               sesion.recorded_at AS registrado_en,
+              linea.position AS orden_en_sesion,
               linea.kilos AS kilos,
               linea.quality AS calidad,
               linea.version AS version
@@ -223,7 +224,7 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
               pesos.*,
               ROW_NUMBER() OVER (
                 PARTITION BY animal_id
-                ORDER BY fecha DESC, registrado_en DESC, peso_id DESC
+                ORDER BY fecha DESC, registrado_en DESC, orden_en_sesion DESC, peso_id DESC
               ) AS posicion
             FROM pesos
           ),
@@ -342,6 +343,7 @@ async function serieDelAnimal(
           sesion.id AS sesion_id,
           sesion.weighed_on AS fecha,
           sesion.recorded_at AS registrado_en,
+          linea.position AS posicion,
           linea.kilos AS kilos,
           linea.quality AS calidad,
           linea.version AS version
@@ -359,7 +361,7 @@ async function serieDelAnimal(
           LAG(kilos) OVER w AS kilos_previos,
           LAG(calidad) OVER w AS calidad_previa
         FROM pesos
-        WINDOW w AS (ORDER BY fecha, registrado_en, peso_id)
+        WINDOW w AS (ORDER BY fecha, registrado_en, posicion, peso_id)
       )
       SELECT
         peso_id,
@@ -383,7 +385,7 @@ async function serieDelAnimal(
         END AS kilos_por_dia,
         calidad_previa
       FROM con_anterior
-      ORDER BY fecha, registrado_en, peso_id
+      ORDER BY fecha, registrado_en, posicion, peso_id
     `),
   )
 }
