@@ -8,6 +8,7 @@ import { registrarSesion } from '../../../src/modules/growth/domain/sesion'
 import { RechazoDeGrowth } from '../../../src/modules/growth/domain/errores'
 import { crearRepositorioDePesajes } from '../../../src/modules/growth/persistence/repositorio'
 import { crearHerd } from '../../../src/modules/herd'
+import { crearModelosDeCrecimiento } from '../../../src/read-models'
 import { recordedBySchema } from '../../../src/shared-kernel/actores'
 import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../src/shared-kernel/conflictos'
 import { animalIdSchema, nuevoId, ranchIdSchema, type RanchId } from '../../../src/shared-kernel/ids'
@@ -23,6 +24,7 @@ let cerrar: () => Promise<void> = async () => {}
 let ranchId: RanchId
 let growth: ReturnType<typeof crearGrowth>
 let herd: ReturnType<typeof crearHerd>
+let modelos: ReturnType<typeof crearModelosDeCrecimiento>
 
 beforeAll(async () => {
   const base = await abrirBaseDePruebas()
@@ -32,6 +34,7 @@ beforeAll(async () => {
   ranchId = ranchIdSchema.parse(sembrado.id)
   herd = crearHerd(db)
   growth = crearGrowth(db, herd)
+  modelos = crearModelosDeCrecimiento(db)
 }, 60_000)
 
 afterAll(async () => {
@@ -284,6 +287,195 @@ describe('sesión', () => {
     const ultima = await growth.ultima(ranchId)
     expect(ultima?.id).toBe(recienteId)
     expect(ultima?.fecha).toBe('2026-12-01')
+  })
+})
+
+describe('orden de los pesos del mismo día', () => {
+  it('dos sesiones del mismo día se ordenan por cuándo se registraron, no por la posición de la fila', async () => {
+    const animalId = await animalActivo()
+    const otro = await animalActivo()
+
+    const primeraSesion = nuevoId()
+    const primeraLinea = nuevoId()
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: primeraSesion,
+      fecha: '2026-06-01',
+      filas: [
+        { id: nuevoId(), animalId: otro, resultado: 'pesado', kilos: '120.000', calidad: 'measured' },
+        {
+          id: primeraLinea,
+          animalId,
+          resultado: 'pesado',
+          kilos: '200.000',
+          calidad: 'measured',
+        },
+      ],
+    })
+
+    const segundaSesion = nuevoId()
+    const segundaLinea = nuevoId()
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: segundaSesion,
+      fecha: '2026-06-01',
+      filas: [
+        {
+          id: segundaLinea,
+          animalId,
+          resultado: 'pesado',
+          kilos: '205.000',
+          calidad: 'measured',
+        },
+      ],
+    })
+
+    // Los instantes de registro se fijan a mano para que la prueba no dependa
+    // de cuántos milisegundos tardó cada guardado. La primera sesión puso al
+    // animal en la posición 1; la segunda, en la 0. Aun así, la primera se
+    // registró antes y tiene que salir primero: `recorded_at` manda sobre la
+    // posición de la fila.
+    await db.execute(sql`
+      UPDATE growth.weighing_session
+      SET recorded_at = ${new Date('2026-06-01T15:00:00.000Z')}
+      WHERE id = ${primeraSesion}
+    `)
+    await db.execute(sql`
+      UPDATE growth.weighing_session
+      SET recorded_at = ${new Date('2026-06-01T16:00:00.000Z')}
+      WHERE id = ${segundaSesion}
+    `)
+
+    const leidos = await growth.pesosDe(ranchId, animalId)
+    expect(leidos.pesos.map((peso) => peso.id)).toEqual([primeraLinea, segundaLinea])
+    expect(leidos.pesos.map((peso) => peso.kilos)).toEqual(['200.000', '205.000'])
+
+    const vista = await modelos.vistaDeAnimal(ranchId, animalId)
+    expect(vista?.pesos.map((peso) => peso.pesoId)).toEqual([primeraLinea, segundaLinea])
+    expect(vista?.ultimoPesaje?.pesoId).toBe(segundaLinea)
+  })
+
+  it('la vista de crecimiento usa el mismo orden que la lectura de pesos', async () => {
+    const animalId = await animalActivo()
+    const primero = nuevoId()
+    const primera = nuevoId()
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: primera,
+      fecha: '2026-07-10',
+      filas: [{ id: primero, animalId, resultado: 'pesado', kilos: '300.000', calidad: 'measured' }],
+    })
+    // Misma fecha, registrada después: es el peso más nuevo del día.
+    const segundo = nuevoId()
+    const segunda = nuevoId()
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: segunda,
+      fecha: '2026-07-10',
+      filas: [{ id: segundo, animalId, resultado: 'pesado', kilos: '310.000', calidad: 'measured' }],
+    })
+
+    await db.execute(sql`
+      UPDATE growth.weighing_session
+      SET recorded_at = ${new Date('2026-07-10T15:00:00.000Z')}
+      WHERE id = ${primera}
+    `)
+    await db.execute(sql`
+      UPDATE growth.weighing_session
+      SET recorded_at = ${new Date('2026-07-10T16:00:00.000Z')}
+      WHERE id = ${segunda}
+    `)
+
+    const leidos = await growth.pesosDe(ranchId, animalId)
+    const vista = await modelos.vistaDeAnimal(ranchId, animalId)
+
+    expect(leidos.pesos.map((peso) => peso.id)).toEqual(vista?.pesos.map((peso) => peso.pesoId))
+    expect(vista?.ultimoPesaje?.pesoId).toBe(segundo)
+    expect(vista?.ultimoPesaje?.kilos).toBe('310.000')
+  })
+})
+
+describe('idempotencia de la corrección de un peso', () => {
+  async function pesoDePrueba(fecha: string): Promise<{ animalId: string; pesoId: string }> {
+    const animalId = await animalActivo()
+    const pesoId = nuevoId()
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: nuevoId(),
+      fecha,
+      filas: [{ id: pesoId, animalId, resultado: 'pesado', kilos: '250.000', calidad: 'measured' }],
+    })
+    return { animalId, pesoId }
+  }
+
+  it('el mismo id y el mismo contenido devuelve lo mismo y no registra otra corrección', async () => {
+    const { pesoId } = await pesoDePrueba('2026-08-01')
+    const commandId = nuevoId()
+    const entrada = {
+      commandId,
+      ranchId,
+      recordedBy,
+      pesoId,
+      version: 1,
+      motivo: 'la báscula marcaba de más',
+      kilos: '248.500',
+    }
+
+    const primera = await growth.corregir(entrada)
+    const repetida = await growth.corregir(entrada)
+
+    expect(repetida).toEqual(primera)
+    expect(primera.kilos).toBe('248.500')
+    expect(primera.version).toBe(2)
+
+    const historia = filasDe(
+      await db.execute(sql`SELECT id FROM growth.weight_correction WHERE line_id = ${pesoId}`),
+    )
+    expect(historia).toHaveLength(1)
+    const kilos = filasDe<{ kilos: string }>(
+      await db.execute(sql`SELECT kilos::text AS kilos FROM growth.weighing_line WHERE id = ${pesoId}`),
+    )
+    expect(kilos).toEqual([{ kilos: '248.500' }])
+  })
+
+  it('el mismo id con otro contenido es idempotency_mismatch y no toca el peso', async () => {
+    const { pesoId } = await pesoDePrueba('2026-08-02')
+    const commandId = nuevoId()
+    const entrada = {
+      commandId,
+      ranchId,
+      recordedBy,
+      pesoId,
+      version: 1,
+      motivo: 'la báscula marcaba de más',
+      kilos: '248.500',
+    }
+
+    await growth.corregir(entrada)
+
+    await expect(
+      growth.corregir({ ...entrada, kilos: '200.000' }),
+    ).rejects.toBeInstanceOf(ConflictoDeIdempotencia)
+    await expect(growth.corregir({ ...entrada, kilos: '200.000' })).rejects.toMatchObject({
+      codigo: 'idempotency_mismatch',
+    })
+
+    const kilos = filasDe<{ kilos: string; version: number }>(
+      await db.execute(
+        sql`SELECT kilos::text AS kilos, version FROM growth.weighing_line WHERE id = ${pesoId}`,
+      ),
+    )
+    expect(kilos).toEqual([{ kilos: '248.500', version: 2 }])
   })
 })
 

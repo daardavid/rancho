@@ -112,7 +112,7 @@ export function crearRepositorioDePesajes(db: EjecutorSql): RepositorioDePesajes
           WHERE line.ranch_id = ${ranchId}
             AND line.animal_id = ${animalId}
             AND line.result = 'weighed'
-          ORDER BY session.weighed_on, line.position, line.id
+          ORDER BY session.weighed_on, session.recorded_at, line.position, line.id
         `),
       )
       const historia = await leerCorrecciones(
@@ -261,7 +261,7 @@ async function leerCorrecciones(
           ids.map((id) => sql`${id}::uuid`),
           sql`, `,
         )})
-      ORDER BY corrected_at, field
+      ORDER BY corrected_at, field, id
     `),
   )
 
