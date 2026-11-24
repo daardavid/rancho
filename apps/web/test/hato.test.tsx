@@ -383,6 +383,47 @@ describe('Etiqueta de ganancia', () => {
     const etiqueta = await screen.findByText('Falta otro pesaje')
     expect(etiqueta.className).toContain('ui-etiqueta--sin-datos')
   })
+
+  it('un hueco con un solo peso previo sigue siendo ámbar «No se pesó»', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': laUltimaSesion(),
+      'GET /api/read-models/growth-overview': elResumen([
+        fila(BECERRO_A, 'Canelo', { sinIntervalo: true, hueco: true }),
+      ]),
+    })
+
+    pintarApp('#/')
+
+    const filaDeCanelo = (await screen.findByText('Canelo')).closest('button') as HTMLElement
+    // Ser hueco manda sobre «Falta otro pesaje»: el animal se esperaba y no se pesó.
+    expect(within(filaDeCanelo).queryByText('Falta otro pesaje')).toBeNull()
+    const etiqueta = within(filaDeCanelo).getByText('No se pesó')
+    expect(etiqueta.className).toContain('ui-etiqueta--revisar')
+    // El peso que sí tiene se sigue viendo.
+    expect(within(filaDeCanelo).getByText('180 kg')).toBeDefined()
+  })
+
+  it('un hueco sin ningún peso previo es ámbar «No se pesó», con guion en kilos', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': laUltimaSesion(),
+      'GET /api/read-models/growth-overview': elResumen([
+        fila(VACA, 'La Pajarita', { categoria: 'cow', sinPeso: true, hueco: true }),
+      ]),
+    })
+
+    pintarApp('#/')
+
+    const filaDeLaVaca = (await screen.findByText('La Pajarita')).closest('button') as HTMLElement
+    // Ser hueco también manda sobre «Sin pesajes»: no se pesó cuando tocaba.
+    expect(within(filaDeLaVaca).queryByText('Sin pesajes')).toBeNull()
+    const etiqueta = within(filaDeLaVaca).getByText('No se pesó')
+    expect(etiqueta.className).toContain('ui-etiqueta--revisar')
+    expect(within(filaDeLaVaca).getByText('—')).toBeDefined()
+  })
 })
 
 describe('Una sola acción de cada cosa', () => {
@@ -470,5 +511,63 @@ describe('Una sola acción de cada cosa', () => {
 
     expect(await screen.findByText('MI RANCHO')).toBeDefined()
     expect(screen.getByText('5 animales activos · último pesaje hace 3 días')).toBeDefined()
+  })
+
+  it('si el resumen falla, el encabezado no afirma que no hay pesajes', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      // Una consulta que no se pudo hacer no es un hecho del rancho.
+      'GET /api/read-models/growth-overview': () => ({
+        estado: 500,
+        cuerpo: { codigo: 'error_interno' },
+      }),
+    })
+
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+
+    expect(screen.getByText('5 animales activos')).toBeDefined()
+    expect(screen.queryByText(/sin pesajes todavía/)).toBeNull()
+    expect(screen.queryByText(/último pesaje/)).toBeNull()
+  })
+
+  it('el menú se cierra con Escape', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    const usuario = userEvent.setup()
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+
+    await usuario.click(screen.getByRole('button', { name: 'Menú' }))
+    expect(screen.getByRole('button', { name: 'Salir' })).toBeDefined()
+
+    await usuario.keyboard('{Escape}')
+
+    expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
+  })
+
+  it('el menú se cierra al tocar fuera del encabezado', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    const usuario = userEvent.setup()
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+
+    await usuario.click(screen.getByRole('button', { name: 'Menú' }))
+    expect(screen.getByRole('button', { name: 'Salir' })).toBeDefined()
+
+    // El buscador está fuera del encabezado y no navega a otro lado.
+    await usuario.click(screen.getByLabelText('Buscar'))
+
+    expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
   })
 })
