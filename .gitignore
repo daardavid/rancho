@@ -18,6 +18,9 @@ build/
 # Base local embebida de `npm run local`. No se sube.
 .datos/
 
+# Archivos de `npm run respaldo`. Pueden traer datos del rancho.
+respaldos/
+
 # Logs
 logs/
 *.log

@@ -39,7 +39,8 @@ lleva `Secure` sin excepción, y el proceso se niega a arrancar si además está
 
 Correrlo otra vez no regenera el secreto, no crea otro rancho, no crea otra
 cuenta y no borra datos. Si ya hay un `npm run local` abierto, el segundo no
-puede usar la misma carpeta: ciérralo antes.
+puede usar la misma carpeta: ciérralo antes. Lo mismo vale para el respaldo y
+la restauración: la carpeta la usa un solo proceso.
 
 `npm run local` no usa el `DATABASE_URL` del `.env`. La base embebida se queda
 en esta máquina (`127.0.0.1`); lo que se abre a la red es la app. La decisión
@@ -268,7 +269,11 @@ pruebas pasarían contra ese proceso y no contra lo recién construido.
 | `GET /api/health/ready` contesta 503 | El proceso vive pero no llega a PostgreSQL | Revisa `DATABASE_URL` y que la base esté arriba; si ya está bien, arranca el proceso de nuevo |
 | `NODE_ENV=production` no puede combinarse con el modo local | Están las dos puestas | Quita una. En producción la cookie lleva `Secure` |
 | El celular no abre la dirección | El firewall bloqueó Node, o no es la misma WiFi | Permite Node en el firewall y usa la IP que imprimió la consola |
-| `No pude abrir la base en .datos` | Ya hay un `npm run local` usando esa carpeta | Ciérralo y vuelve a correr |
+| `No pude abrir la base en .datos` | Ya hay un `npm run local` usando esa carpeta | Ciérralo y vuelve a correr. El respaldo y la restauración también la necesitan libre |
+| `npm run respaldo y npm run restaurar no corren cuando NODE_ENV=production` | El proceso o el `.env` están en producción | Estos comandos son de la base local. No los uses contra producción |
+| `No hay base local en .datos/` | Todavía no corriste `npm run local` | Arráncalo una vez antes de respaldar |
+| `No se restauró nada` | No escribiste `RESTAURAR` | La base no cambió. Vuelve a correr el comando si sí querías reemplazarla |
+| `El archivo no es un respaldo de RANCHO` | El archivo no es SQL de `pg_dump` | Usa un archivo de `respaldos/` |
 
 Hay dos endpoints de salud: `GET /api/health` dice que el proceso responde;
 `GET /api/health/ready` pregunta si además llega a PostgreSQL y contesta `503`
@@ -276,11 +281,68 @@ con `{"ok":false,"base":"no_responde"}` cuando no. Eso es lo que mira un
 despliegue antes de mandarle tráfico. Ninguno imprime cadenas de conexión ni
 secretos.
 
+## Respaldo y restauración
+
+La base de `npm run local` vive en `.datos/`. Eso no es un respaldo: es la
+base en uso. El respaldo es un archivo SQL, el de `pg_dump`, en `respaldos/`
+(git la ignora). Trae los esquemas `herd`, `growth`, `identity` y `drizzle`,
+con sus datos, y la tabla `public.command_idempotency`. No borra el esquema
+`public`.
+
+Los dos comandos usan esa base embebida, no el `DATABASE_URL` del `.env`. Se
+niegan cuando `NODE_ENV=production`, en el proceso o en el `.env`.
+
+Cierra `npm run local` antes. Si está abierto, la carpeta no se puede leer.
+
+```bash
+npm run respaldo
+```
+
+Escribe `respaldos/rancho-AAAA-MM-DD-HHMMSS-mmm.sql`. La hora es la de
+`America/Mexico_City`. El archivo sirve para volver a esta laptop y para
+cargar la misma base en un PostgreSQL de servidor.
+
+```bash
+npm run restaurar -- respaldos/rancho-2026-11-23-223045-123.sql
+```
+
+Avisa que **reemplaza** lo que hay en `.datos/` y pide que escribas
+`RESTAURAR`. Otra respuesta no cambia nada. Si ya había base, primero guarda
+una copia en `respaldos/` y después carga el archivo. Antes de cargarlo borra
+los esquemas `herd`, `growth`, `identity` y `drizzle` (aunque tengan tablas
+que el archivo no trae) y la tabla `public.command_idempotency`, en la misma
+transacción: si algo falla, la base queda como estaba. Así un respaldo
+anterior entra en una base local que ya migró a tablas nuevas. La ruta del
+archivo es relativa a la carpeta desde donde corriste npm (por ejemplo la
+raíz del repo), no a `apps/api`. Hay que correrlo en una terminal: sin ella
+no pregunta y no restaura.
+
+Para pasar ese archivo a un PostgreSQL 17 vacío (el de este repo; el motor
+embebido es PostgreSQL 18 y el SQL que escribe carga en 17):
+
+```bash
+psql "postgres://usuario:clave@127.0.0.1:5432/rancho" -v ON_ERROR_STOP=1 --single-transaction -f respaldos/rancho-2026-11-23-223045-123.sql
+```
+
+`--single-transaction` hace que, si una sentencia falla, no quede a medias.
+La base de destino puede estar vacía: el archivo crea los esquemas. Si ya
+tenía los de la app, los reemplaza. El archivo no borra tablas de más que
+una migración posterior haya agregado en el servidor: para eso, cárgalo en
+una base vacía. En `.datos/` ese borrado lo hace `npm run restaurar`. No
+hace falta correr las migraciones antes. El archivo trae el diario de
+`drizzle`, así que el siguiente `db:migrate` contra esa base no vuelve a
+crear lo que ya está. Lo mismo pasa al restaurar en `.datos/`: el siguiente
+`npm run local` ve las migraciones ya aplicadas.
+
+Después apunta `DATABASE_URL` a esa base y arranca con `npm start`, no con
+`npm run local`. `npm run local` sigue usando `.datos/`.
+
 ## Datos
 
 - No subas datos reales del rancho al repo: ni nombres de animales reales, ni
   aretes reales, ni fotos de cuadernos. Las pruebas usan datos sintéticos.
 - `.env` nunca se sube. Está en `.gitignore`.
 - `.datos/` tampoco se sube. Ahí está la base de `npm run local`.
+- `respaldos/` tampoco se sube. Ahí están los archivos de `npm run respaldo`.
 - La base de desarrollo y la de las pruebas son distintas. `db:reset` solo toca
   la de desarrollo, y solo en esta máquina. `npm run local` no usa esa base.
