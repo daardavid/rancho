@@ -195,7 +195,10 @@ npm run test:e2e    # Playwright contra lo construido
 
 `npm test` **no necesita Docker ni una base levantada**: las pruebas de
 persistencia arrancan PGlite en el proceso (ADR-014). Si defines
-`TEST_DATABASE_URL`, usan ese PostgreSQL.
+`TEST_DATABASE_URL`, cada archivo de pruebas crea su propia base en ese servidor
+(`rancho_test_` más un id), le aplica las migraciones y la borra al terminar. Por
+eso la conexión tiene que poder `CREATE DATABASE`, y al final del `npm test` no
+queda ninguna base `rancho_test_*`.
 
 `npm run test:e2e` construye primero y después corre los flujos de Playwright
 contra la aplicación construida, en `http://127.0.0.1:4310`. Levanta su propia

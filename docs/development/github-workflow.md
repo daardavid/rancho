@@ -139,12 +139,12 @@ Never force-push to `main`. Never delete `main`.
 
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). Workflow name `CI`. One job, `validate`.
 
-It runs on pull requests targeting `main` and on pushes to `main`:
+It runs on pull requests targeting `main` or `integracion`, and on pushes to `main`:
 
 1. `npm ci`
 2. `npm run lint`
 3. `npm run typecheck`
-4. `npm test`, against the PostgreSQL service of the job
+4. `npm test`, against the PostgreSQL service of the job. Each test file creates its own database on that service and drops it when the file closes, so the files can run in parallel ([ADR-014](../architecture/adr/ADR-014-local-test-database.md)).
 5. `npx playwright install --with-deps chromium`
 6. `npm run test:e2e`, which builds the web and the API before testing
 7. `npm run build:map`
