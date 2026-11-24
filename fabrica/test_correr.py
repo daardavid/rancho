@@ -3,10 +3,13 @@
 Correr:  python -m unittest discover -s fabrica -p "test_*.py"
 """
 import json
+import shutil
+import subprocess
 import sys
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import correr as c  # noqa: E402
@@ -299,6 +302,157 @@ class OrdenDeRevisores(unittest.TestCase):
 
     def test_por_omision_chatgpt(self):
         self.assertFalse(c.respaldo_va_primero({"respaldo": {"modelos": ["m"]}}))
+
+
+SALIDA_VERDE = (
+    "validate              pass      2m1s    https://github.com/daardavid/rancho/actions/runs/7/job/1\n"
+    "Reglas de la fábrica  pass      8s      https://github.com/daardavid/rancho/actions/runs/7/job/2\n"
+)
+SALIDA_ROJA = (
+    "validate              fail      1m23s   https://github.com/daardavid/rancho/actions/runs/42/job/7\n"
+    "Reglas de la fábrica  pass      12s     https://github.com/daardavid/rancho/actions/runs/42/job/8\n"
+)
+SALIDA_ROJA_TAB = "validate\tfail\t1m23s\thttps://github.com/daardavid/rancho/actions/runs/42/job/7\n"
+SIN_CHECKS = "no checks reported on the 'fabrica/R-16' branch\n"
+
+
+class DecisionCI(unittest.TestCase):
+    def test_verde(self):
+        self.assertEqual(c.clasificar_ci(0, SALIDA_VERDE), "verde")
+        self.assertEqual(c.accion_tras_ci("verde"), "merge")
+
+    def test_rojo(self):
+        self.assertEqual(c.clasificar_ci(1, SALIDA_ROJA), "rojo")
+        self.assertEqual(c.clasificar_ci(1, SALIDA_ROJA_TAB), "rojo")
+        self.assertEqual(c.ids_de_runs_fallidos(SALIDA_ROJA), ["42"])
+        self.assertEqual(c.accion_tras_ci("rojo"), "otro_ciclo")
+
+    def test_sin_checks(self):
+        self.assertEqual(c.clasificar_ci(1, SIN_CHECKS), "sin_checks")
+        self.assertEqual(c.accion_tras_ci("sin_checks"), "detener")
+        texto = c.mensaje_detencion_ci("R-16", "3", "sin_checks", 30)
+        self.assertIn("No hice merge", texto)
+        self.assertIn("no aparecieron checks", texto)
+
+    def test_tiempo_agotado(self):
+        pendiente = "validate              pending   0       https://github.com/daardavid/rancho/actions/runs/9/job/1\n"
+        self.assertEqual(c.clasificar_ci(124, pendiente), "tiempo")
+        self.assertEqual(c.accion_tras_ci("tiempo"), "detener")
+        texto = c.mensaje_detencion_ci("R-16", "3", "tiempo", 30)
+        self.assertIn("No hice merge", texto)
+        self.assertIn("se agotaron 30 min", texto)
+
+    def test_error_de_gh_no_es_rojo(self):
+        self.assertEqual(c.clasificar_ci(1, "error connecting to api.github.com"), "error")
+        self.assertEqual(c.accion_tras_ci("error"), "detener")
+
+    def test_pendiente_no_se_mergea(self):
+        pendiente = "validate              pending   0       https://github.com/daardavid/rancho/actions/runs/9/job/1\n"
+        self.assertEqual(c.clasificar_ci(8, pendiente), "pendiente")
+        self.assertEqual(c.accion_tras_ci("pendiente"), "detener")
+
+    def test_cola_de_log(self):
+        self.assertEqual(c.cola_texto("a\nb\nc\n", 2), "b\nc")
+
+    def test_config_espera_al_ci(self):
+        cfg = c.cargar_config()
+        self.assertTrue(cfg["ci"]["esperar"])
+        self.assertEqual(cfg["ci"]["timeout_min"], 30)
+
+    def test_pull_request_incluye_integracion(self):
+        texto = (c.RAIZ / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        bloque = texto.split("push:", 1)[0]
+        self.assertIn("integracion", bloque)
+        self.assertIn("main", bloque)
+
+
+class Reloj:
+    def __init__(self):
+        self.ahora = 1_000_000.0
+
+    def monotonic(self):
+        return self.ahora
+
+    def sleep(self, segundos):
+        self.ahora += segundos
+
+
+class EsperaCI(unittest.TestCase):
+    def setUp(self):
+        self.dir = c.TRABAJO / "_test_ci"
+        if self.dir.exists():
+            shutil.rmtree(self.dir)
+        self.fab = c.Fabrica({
+            "ci": {"esperar": True, "timeout_min": 30},
+            "repo": {"rama_base": "integracion", "prefijo_rama": "fabrica/"},
+            "escalamiento": {"tareas_criticas": []},
+        })
+        self.tarea = c.Tarea("_test_ci", "prueba", False, "fabrica/")
+
+    def tearDown(self):
+        if self.dir.exists():
+            shutil.rmtree(self.dir)
+
+    def test_verde_no_escribe_log(self):
+        def falso(cmd, **kwargs):
+            self.assertEqual(cmd[:4], ["gh", "pr", "checks", "7"])
+            self.assertIn("--watch", cmd)
+            return subprocess.CompletedProcess(cmd, 0, SALIDA_VERDE, "")
+
+        with patch.object(c, "correr", falso):
+            self.assertEqual(self.fab.esperar_ci(self.tarea, "7"), "verde")
+        self.assertFalse((self.dir / "ci.txt").exists())
+
+    def test_rojo_guarda_el_log_y_entra_en_las_instrucciones(self):
+        log = "\n".join(f"linea {i}" for i in range(200)) + "\nFALLA_UNICA\n"
+
+        def falso(cmd, **kwargs):
+            if cmd[:3] == ["gh", "pr", "checks"]:
+                return subprocess.CompletedProcess(cmd, 1, SALIDA_ROJA, "")
+            self.assertEqual(cmd, ["gh", "run", "view", "42", "--log-failed"])
+            return subprocess.CompletedProcess(cmd, 0, log, "")
+
+        with patch.object(c, "correr", falso):
+            self.assertEqual(self.fab.esperar_ci(self.tarea, "7"), "rojo")
+        texto = (self.dir / "ci.txt").read_text(encoding="utf-8")
+        self.assertLessEqual(len(texto.splitlines()), c.LINEAS_LOG_CI)
+        self.assertTrue(texto.strip().endswith("FALLA_UNICA"))
+        self.assertIn("FALLA_UNICA", c.instrucciones_ci(self.tarea, 2))
+        self.assertIn("ci.txt", c.instrucciones_ci(self.tarea, 2))
+
+    def test_sin_checks_espera_y_se_detiene(self):
+        reloj = Reloj()
+        llamadas = []
+
+        def falso(cmd, **kwargs):
+            llamadas.append(cmd)
+            return subprocess.CompletedProcess(cmd, 1, "", SIN_CHECKS)
+
+        self.fab.cfg["ci"]["timeout_min"] = 1
+        with patch.object(c.time, "monotonic", reloj.monotonic), \
+                patch.object(c.time, "sleep", reloj.sleep), \
+                patch.object(c, "correr", falso):
+            estado = self.fab.esperar_ci(self.tarea, "7")
+        self.assertEqual(estado, "sin_checks")
+        self.assertGreaterEqual(len(llamadas), 2)
+        self.assertFalse((self.dir / "ci.txt").exists())
+
+    def test_tiempo_agotado_no_mergea(self):
+        def falso(cmd, **kwargs):
+            return subprocess.CompletedProcess(cmd, 124, "validate              pending   0       https://github.com/daardavid/rancho/actions/runs/9/job/1\n", "")
+
+        with patch.object(c, "correr", falso):
+            self.assertEqual(self.fab.esperar_ci(self.tarea, "7"), "tiempo")
+        self.assertFalse((self.dir / "ci.txt").exists())
+
+    def test_esperar_false_no_consulta_github(self):
+        self.fab.cfg["ci"]["esperar"] = False
+
+        def falso(cmd, **kwargs):
+            raise AssertionError(cmd)
+
+        with patch.object(c, "correr", falso):
+            self.assertEqual(self.fab.esperar_ci(self.tarea, "7"), "verde")
 
 
 if __name__ == "__main__":
