@@ -1,7 +1,12 @@
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { aplicarMigraciones, carpetaDeMigraciones, type BaseMigrable } from '../../src/infrastructure/db/migrar'
+import {
+  aplicarMigraciones,
+  carpetaDeMigraciones,
+  motorDe,
+  type BaseMigrable,
+} from '../../src/infrastructure/db/migrar'
 import { filasDe } from '../../src/infrastructure/db/filas'
 import { abrirBaseDePruebas } from '../db/base-de-pruebas'
 
@@ -57,5 +62,14 @@ describe('aplicarMigraciones', () => {
     expect(typeof llamar).toBe('function')
     const acepta: BaseMigrable = db
     expect(acepta).toBe(db)
+  })
+
+  it('reconoce el driver de verdad, no lo adivina', async () => {
+    expect(motorDe(db)).toBe('pglite')
+
+    // Un objeto con la forma de un cliente de Drizzle, pero sin serlo, se
+    // rechaza con un mensaje que dice qué se esperaba.
+    const impostor = { execute: async () => undefined } as unknown as BaseMigrable
+    expect(() => motorDe(impostor)).toThrow(/node-postgres.*pglite/)
   })
 })

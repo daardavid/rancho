@@ -26,6 +26,25 @@ export function carpetaDeMigraciones(): string {
 }
 
 /**
+ * Qué driver hay detrás del cliente.
+ *
+ * Se pregunta a Drizzle con `is()`, no se adivina. Un objeto que no sea de
+ * ninguno de los dos se rechaza aquí, en vez de mandarlo a node-postgres y
+ * dejar salir un error de una pieza que no existe.
+ */
+export function motorDe(db: BaseMigrable): 'pglite' | 'postgres' {
+  if (is(db, PgliteDatabase)) {
+    return 'pglite'
+  }
+  if (is(db, NodePgDatabase)) {
+    return 'postgres'
+  }
+  throw new Error(
+    'aplicarMigraciones solo acepta un cliente de drizzle-orm/node-postgres o de drizzle-orm/pglite.',
+  )
+}
+
+/**
  * Aplica la secuencia de `drizzle/` con el `migrate` público del driver.
  *
  * La llama `db:migrate` y la fábrica de pruebas. Ningún arranque del servidor
@@ -33,7 +52,7 @@ export function carpetaDeMigraciones(): string {
  */
 export async function aplicarMigraciones(db: BaseMigrable): Promise<void> {
   const config = { migrationsFolder: CARPETA }
-  if (is(db, PgliteDatabase)) {
+  if (motorDe(db) === 'pglite') {
     await migrarPglite(db as PgliteDatabase<Record<string, never>>, config)
     return
   }
