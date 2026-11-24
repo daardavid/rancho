@@ -7,7 +7,7 @@ import { servirLaWeb } from './http/servir-web'
 import { abrirCliente } from './infrastructure/db/cliente'
 import { cargarEnvLocal } from './infrastructure/db/entorno'
 import { comprobacionDeBase } from './infrastructure/db/salud'
-import { cargarConfiguracion } from './infrastructure/configuracion'
+import { anunciarModoLocal, cargarConfiguracion } from './infrastructure/configuracion'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
@@ -43,7 +43,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     growth: crearGrowth(cliente.db, herd),
     crecimiento: crearModelosDeCrecimiento(cliente.db),
     base: comprobacionDeBase(cliente.db),
-    produccion: configuracion.produccion,
+    produccion: configuracion.cookieSegura,
   })
 
   const carpeta = carpetaDeLaWeb()
@@ -62,6 +62,8 @@ export async function arrancar(): Promise<FastifyInstance> {
     await app.close()
     throw error
   }
+
+  anunciarModoLocal(configuracion)
 
   return app
 }
