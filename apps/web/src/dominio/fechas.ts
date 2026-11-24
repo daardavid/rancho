@@ -68,14 +68,16 @@ export function instanteLegible(instante: string): string {
  * Es un recorte de texto: nunca se convierte a `number`, para no perder
  * exactitud ni cambiar el valor guardado.
  */
+export function numeroLegible(valor: string): string {
+  return valor.includes('.') ? valor.replace(/0+$/, '').replace(/\.$/, '') : valor
+}
+
+/** Un peso con su unidad. `null` es «no hay peso», no un cero. */
 export function kilosLegibles(kilos: string | null): string {
   if (kilos === null) {
     return 'Sin peso'
   }
-  const recortado = kilos.includes('.')
-    ? kilos.replace(/0+$/, '').replace(/\.$/, '')
-    : kilos
-  return `${recortado} kg`
+  return `${numeroLegible(kilos)} kg`
 }
 
 /**
