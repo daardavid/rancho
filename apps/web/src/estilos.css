@@ -637,64 +637,6 @@ h2.seccion__titulo {
   font-weight: 600;
 }
 
-/* Tabla de crecimiento ------------------------------------------------- */
-
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.tabla__leyenda {
-  caption-side: top;
-  text-align: left;
-  padding-bottom: 0.6rem;
-  color: var(--texto-suave);
-  font-size: 0.85rem;
-}
-
-.tabla th,
-.tabla td {
-  padding: 0.6rem 0.4rem;
-  border-bottom: 1px solid var(--borde);
-  text-align: left;
-  vertical-align: top;
-}
-
-.tabla th {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--texto-suave);
-}
-
-.tabla td {
-  display: table-cell;
-}
-
-.tabla__detalle {
-  display: block;
-  color: var(--texto-suave);
-  font-size: 0.84rem;
-}
-
-.tabla__hueco {
-  display: block;
-  color: var(--ojo);
-  font-weight: 600;
-  font-size: 0.84rem;
-}
-
-.tabla__ojo {
-  display: block;
-  color: var(--ojo);
-  font-size: 0.84rem;
-}
-
-.tabla__fila--hueco {
-  background: var(--espera-fondo);
-}
-
 /* Gráfica -------------------------------------------------------------- */
 
 .grafica {

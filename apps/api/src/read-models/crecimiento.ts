@@ -12,11 +12,13 @@ import type { SourceQuality } from '../shared-kernel/source-quality'
  * no escriben nada. No usan repositorios de escritura ni comandos de módulo, y
  * no hay tabla, columna ni proyección guardada de lo derivado.
  *
- * Todo lo que se calcula —días entre pesajes, kilos ganados, kilos por día— lo
- * hace PostgreSQL sobre `numeric`, no JavaScript: un peso nunca pasa por un
- * `number` de coma flotante. Los kilos por día se redondean a 3 decimales y
- * viajan como texto. Un intervalo de 0 días devuelve `kilosPorDia: null`, porque
- * no se divide entre cero.
+ * Todo lo que se calcula —días entre pesajes, kilos ganados, kilos por día y la
+ * media de kilos por día del último intervalo— lo hace PostgreSQL sobre
+ * `numeric`, no JavaScript: un peso nunca pasa por un `number` de coma
+ * flotante. Los kilos por día y la media se redondean a 3 decimales y viajan
+ * como texto. Un intervalo de 0 días devuelve `kilosPorDia: null`, porque no se
+ * divide entre cero. La media solo entra a los animales que tienen kilos por
+ * día; no hay meta de ganancia del rancho.
  *
  * La zona del rancho es `America/Mexico_City`. «Días desde el último pesaje» se
  * cuenta contra el día de hoy en esa zona, no contra el reloj del servidor.
@@ -79,6 +81,8 @@ export type FilaDelResumen = {
   readonly ultimoPeso: PesoEnLaVista | null
   /** Intervalo entre el penúltimo y el último peso. */
   readonly ultimoIntervalo: IntervaloDeCrecimiento | null
+  /** Intervalo entre el antepenúltimo y el penúltimo peso. `null` sin tres pesos. */
+  readonly intervaloAnterior: IntervaloDeCrecimiento | null
   /** Días de calendario del rancho desde el último peso. `null` si no hay peso. */
   readonly diasDesdeElUltimoPesaje: number | null
   /** Estaba en la sesión más reciente del rancho y no se pesó. */
@@ -88,6 +92,17 @@ export type FilaDelResumen = {
 export type ResumenDelHato = {
   /** Huecos de la última sesión primero, luego la menor ganancia por día. */
   readonly animales: readonly FilaDelResumen[]
+  /**
+   * Media de kilos por día del último intervalo de quienes lo tienen.
+   * Texto de tres decimales calculado en SQL. `null` si nadie lo tiene.
+   */
+  readonly gananciaMediaKilosPorDia: string | null
+  /** Animales activos pesados en la sesión más reciente. */
+  readonly pesadosEnLaUltimaVuelta: number
+  /** Animales activos que estaban en esa sesión, pesados o en hueco. */
+  readonly esperadosEnLaUltimaVuelta: number
+  /** Día de esa sesión. `null` si no hay ninguna. */
+  readonly fechaDeLaUltimaVuelta: string | null
 }
 
 export type ModelosDeCrecimiento = {
@@ -134,9 +149,9 @@ type FilaCrudaDeLaSerie = {
 
 /** Una fila del resumen. Los pesos son `null` cuando el animal solo tiene huecos. */
 type FilaCrudaDelResumen = {
-  animal_id: string
+  animal_id: string | null
   nombre: string | null
-  categoria: string
+  categoria: string | null
   peso_id: string | null
   sesion_id: string | null
   fecha: string | null
@@ -148,8 +163,17 @@ type FilaCrudaDelResumen = {
   kilos_ganados: string | null
   kilos_por_dia: string | null
   calidad_previa: string | null
+  fecha_del_tercero: string | null
+  calidad_del_tercero: string | null
+  dias_anteriores: unknown
+  kilos_ganados_anteriores: string | null
+  kilos_por_dia_anteriores: string | null
   dias_desde_ultimo: unknown
   hueco_ultima: unknown
+  media: string | null
+  pesados: unknown
+  esperados: unknown
+  fecha_ultima: string | null
 }
 
 type FilaCrudaDeHueco = {
@@ -230,8 +254,9 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
           ),
           ultimo AS (SELECT * FROM ordenados WHERE posicion = 1),
           anterior AS (SELECT * FROM ordenados WHERE posicion = 2),
+          tercero AS (SELECT * FROM ordenados WHERE posicion = 3),
           ultima_sesion AS (
-            SELECT sesion.id
+            SELECT sesion.id, sesion.weighed_on
             FROM growth.weighing_session sesion
             WHERE sesion.ranch_id = ${ranchId}
             ORDER BY sesion.weighed_on DESC, sesion.recorded_at DESC, sesion.id DESC
@@ -278,6 +303,25 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
                 )
               END AS ganancia_por_dia,
               anterior.calidad AS calidad_previa,
+              tercero.fecha::text AS fecha_del_tercero,
+              tercero.calidad AS calidad_del_tercero,
+              CASE
+                WHEN tercero.fecha IS NULL OR anterior.fecha IS NULL THEN NULL
+                ELSE (anterior.fecha - tercero.fecha)::int
+              END AS dias_anteriores,
+              CASE
+                WHEN tercero.kilos IS NULL OR anterior.kilos IS NULL THEN NULL
+                ELSE (anterior.kilos - tercero.kilos)::text
+              END AS kilos_ganados_anteriores,
+              CASE
+                WHEN tercero.fecha IS NULL
+                  OR anterior.fecha IS NULL
+                  OR anterior.fecha = tercero.fecha THEN NULL
+                ELSE round(
+                  (anterior.kilos - tercero.kilos) / (anterior.fecha - tercero.fecha),
+                  3
+                )
+              END AS ganancia_anterior,
               CASE
                 WHEN ultimo.fecha IS NULL THEN NULL
                 ELSE (${diaDelRancho}::date - ultimo.fecha)::int
@@ -286,13 +330,42 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
             FROM herd.animal animal
             LEFT JOIN ultimo ON ultimo.animal_id = animal.id
             LEFT JOIN anterior ON anterior.animal_id = animal.id
+            LEFT JOIN tercero ON tercero.animal_id = animal.id
             LEFT JOIN huecos_ultima ON huecos_ultima.animal_id = animal.id
             WHERE animal.ranch_id = ${ranchId}
               AND animal.active
               AND (
                 animal.id IN (SELECT animal_id FROM pesados)
-                OR animal.id IN (SELECT animal_id FROM huecos)
+                OR                 animal.id IN (SELECT animal_id FROM huecos)
               )
+          ),
+          resumen_numeros AS (
+            SELECT
+              (
+                SELECT round(avg(ganancia_por_dia), 3)::text
+                FROM calculado
+                WHERE ganancia_por_dia IS NOT NULL
+              ) AS media,
+              (
+                SELECT count(*)::int
+                FROM growth.weighing_line linea
+                JOIN herd.animal animal
+                  ON animal.id = linea.animal_id AND animal.ranch_id = linea.ranch_id
+                WHERE linea.ranch_id = ${ranchId}
+                  AND animal.active
+                  AND linea.result = 'weighed'
+                  AND linea.session_id = (SELECT id FROM ultima_sesion)
+              ) AS pesados,
+              (
+                SELECT count(*)::int
+                FROM growth.weighing_line linea
+                JOIN herd.animal animal
+                  ON animal.id = linea.animal_id AND animal.ranch_id = linea.ranch_id
+                WHERE linea.ranch_id = ${ranchId}
+                  AND animal.active
+                  AND linea.session_id = (SELECT id FROM ultima_sesion)
+              ) AS esperados,
+              (SELECT weighed_on::text FROM ultima_sesion) AS fecha_ultima
           )
           SELECT
             animal_id,
@@ -309,17 +382,35 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
             kilos_ganados,
             ganancia_por_dia::text AS kilos_por_dia,
             calidad_previa,
+            fecha_del_tercero,
+            calidad_del_tercero,
+            dias_anteriores,
+            kilos_ganados_anteriores,
+            ganancia_anterior::text AS kilos_por_dia_anteriores,
             dias_desde_ultimo,
-            hueco_ultima
-          FROM calculado
+            hueco_ultima,
+            media,
+            pesados,
+            esperados,
+            fecha_ultima
+          FROM resumen_numeros
+          LEFT JOIN calculado ON true
           ORDER BY
-            hueco_ultima DESC,
+            hueco_ultima DESC NULLS LAST,
             ganancia_por_dia ASC NULLS LAST,
             animal_id
         `),
       )
 
-      return { animales: filas.map(filaDelResumen) }
+      const primera = filas[0]
+      return {
+        animales: filas.filter((fila) => fila.animal_id !== null).map(filaDelResumen),
+        gananciaMediaKilosPorDia:
+          primera?.media == null || primera.media === '' ? null : tresDecimales(primera.media),
+        pesadosEnLaUltimaVuelta: primera === undefined ? 0 : entero(primera.pesados),
+        esperadosEnLaUltimaVuelta: primera === undefined ? 0 : entero(primera.esperados),
+        fechaDeLaUltimaVuelta: primera?.fecha_ultima ?? null,
+      }
     },
   }
 }
@@ -443,6 +534,43 @@ function puntoDesde(fila: FilaCrudaDeLaSerie): PuntoDeCrecimiento {
   return { ...peso, intervalo: intervaloDesde(fila, peso.calidad) }
 }
 
+/**
+ * El intervalo que terminó en el penúltimo peso. Hace falta el antepenúltimo;
+ * con menos de tres pesos no existe y no se inventa.
+ */
+function intervaloAnteriorDesde(fila: FilaCrudaDelResumen): IntervaloDeCrecimiento | null {
+  if (fila.calidad_previa === null) {
+    return null
+  }
+  return intervaloDesde(
+    {
+      fecha_previa: fila.fecha_del_tercero,
+      dias: fila.dias_anteriores,
+      kilos_ganados: fila.kilos_ganados_anteriores,
+      kilos_por_dia: fila.kilos_por_dia_anteriores,
+      calidad_previa: fila.calidad_del_tercero,
+    },
+    calidad(fila.calidad_previa),
+  )
+}
+
+/**
+ * La media llega como texto de `numeric`. Se normaliza a tres decimales sin
+ * pasarla por un `number`: un dígito de más que no sea cero es un error, no se
+ * recorta a ojo.
+ */
+function tresDecimales(valor: string): string {
+  const partes = /^(-?)(\d+)(?:\.(\d+))?$/.exec(valor.trim())
+  if (partes === null) {
+    throw new Error(`La base devolvió una media que no se puede leer: ${valor}`)
+  }
+  const decimales = partes[3] ?? ''
+  if (decimales.length > 3 && /[^0]/.test(decimales.slice(3))) {
+    throw new Error(`La base devolvió una media con más de tres decimales: ${valor}`)
+  }
+  return `${partes[1]}${partes[2]}.${decimales.padEnd(3, '0').slice(0, 3)}`
+}
+
 /** El intervalo necesita el peso anterior; el primero de la serie no lo tiene. */
 function intervaloDesde(
   fila: IntervaloCrudo,
@@ -475,8 +603,13 @@ function sinIntervalo(punto: PuntoDeCrecimiento): PesoEnLaVista {
 }
 
 function filaDelResumen(fila: FilaCrudaDelResumen): FilaDelResumen {
+  if (fila.animal_id === null || fila.categoria === null) {
+    throw new Error('La fila del resumen no trae animal.')
+  }
+
   const huecoEnLaUltima = booleano(fila.hueco_ultima)
   const categoriaDelAnimal = categoria(fila.categoria)
+  const intervaloAnterior = intervaloAnteriorDesde(fila)
 
   if (fila.peso_id === null || fila.kilos === null || fila.calidad === null) {
     // El animal solo tiene huecos: hay fila en el resumen, pero no hay último peso.
@@ -486,6 +619,7 @@ function filaDelResumen(fila: FilaCrudaDelResumen): FilaDelResumen {
       categoria: categoriaDelAnimal,
       ultimoPeso: null,
       ultimoIntervalo: null,
+      intervaloAnterior,
       diasDesdeElUltimoPesaje: null,
       fueHuecoEnLaUltimaSesion: huecoEnLaUltima,
     }
@@ -506,6 +640,7 @@ function filaDelResumen(fila: FilaCrudaDelResumen): FilaDelResumen {
     categoria: categoriaDelAnimal,
     ultimoPeso,
     ultimoIntervalo: intervaloDesde(fila, ultimoPeso.calidad),
+    intervaloAnterior,
     diasDesdeElUltimoPesaje:
       fila.dias_desde_ultimo === null || fila.dias_desde_ultimo === undefined
         ? null

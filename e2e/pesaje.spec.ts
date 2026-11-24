@@ -85,17 +85,19 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
   await expect(page.getByText('215.5 kg')).toBeVisible()
   await expect(page.getByRole('img', { name: 'Foto de la báscula' })).toBeVisible()
 
-  // La ganancia del primero: 215.5 − 180.5 = 35 kg. Se ve en la ficha, no en
-  // una columna editable.
+  // La ganancia del primero: 215.5 − 180.5 = 35 kg. Las dos vueltas son del
+  // mismo día, así que no hay kilos por día: se ve el texto que calculó el
+  // servidor, no un número armado en el navegador.
   await irA(page, 'Crecimiento')
-  await expect(page.getByRole('heading', { name: 'Quién va bien y quién va atrás' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Crecimiento', exact: true })).toBeVisible()
 
-  const filaDelPrimero = page.getByRole('row', { name: new RegExp(primero) })
-  await expect(filaDelPrimero).toContainText('35 kg')
+  const tarjetaDelPrimero = page.getByRole('listitem').filter({ hasText: primero })
+  await expect(tarjetaDelPrimero).toContainText('35 kg')
 
-  // El que no se pesó va primero y lo dice, sin haber salido del hato.
-  const filaDelTercero = page.getByRole('row', { name: new RegExp(tercero) })
-  await expect(filaDelTercero).toContainText('No se pesó en la última')
+  // El que no se pesó sale en «Revisar primero» y lo dice, sin haber salido del hato.
+  const tarjetaDelTercero = page.getByRole('listitem').filter({ hasText: tercero })
+  await expect(tarjetaDelTercero).toContainText('No se pesó')
+  await expect(page.getByRole('region', { name: 'Revisar primero' })).toContainText(tercero)
 })
 
 test('corregir un peso mal anotado guarda el valor anterior en la historia', async ({ page }) => {
