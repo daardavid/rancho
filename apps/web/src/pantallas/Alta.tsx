@@ -1,13 +1,28 @@
 import { useRef, useState } from 'react'
 
-import { useRegistrarAnimal } from '../api/hato'
-import { CATEGORIAS, PARTICIPACIONES, SEXOS, TENENCIAS } from '../dominio/etiquetas'
+import { usePonerMarca, useRegistrarAnimal } from '../api/hato'
+import {
+  CATEGORIAS,
+  PARTICIPACIONES,
+  SEXOS,
+  TENENCIAS,
+  opcionesElegibles,
+} from '../dominio/etiquetas'
+import { mensajeDeError } from '../dominio/mensajes'
 import { irA } from '../ruta'
-import { AvisoDeError, BotonGrande } from '../ui/Avisos'
-import { CampoDeArea, CampoDeOpciones, CampoDeTexto, Seccion } from '../ui/Campos'
+import { AvisoDeError } from '../ui/Avisos'
+import { BarraDeAccion } from '../ui/BarraDeAccion'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeArea, CampoDeTexto } from '../ui/Campos'
+import { Desplegable } from '../ui/Desplegable'
+import { Encabezado } from '../ui/Encabezado'
+import { Mosaicos } from '../ui/Mosaicos'
+import { Pildoras } from '../ui/Pildoras'
+import { Segmentado } from '../ui/Segmentado'
+import { IconoCerrar } from '../ui/iconos'
 
 /**
- * Dar de alta un animal.
+ * Dar de alta un animal ([Alta](../../../../../docs/design/maqueta/Alta.dc.html)).
  *
  * Corto por decisión, no por prisa: lo único que se crea es la identidad
  * interna del animal, y todo lo demás puede quedar en «No sé» con un toque
@@ -16,161 +31,351 @@ import { CampoDeArea, CampoDeOpciones, CampoDeTexto, Seccion } from '../ui/Campo
  * vienen contestadas con «No sé», así que quien no sabe algo —o no lo tiene a
  * mano— no pelea con el formulario ni ve un error.
  *
- * El arete se pone después, desde la ficha: son dos hechos distintos y el
- * arete tiene su propia historia de cambios.
+ * El arete es su propio registro, con su propia historia de cambios, y el
+ * comando del alta no lo lleva. Por eso son dos comandos: primero la ficha y
+ * después el arete, cada uno con su id. Los dos son idempotentes, así que un
+ * reintento —de uno o de los dos— no duplica nada: la API devuelve lo que ya
+ * guardó.
+ *
+ * «Guardar y dar de alta otro» es lo que hace corto capturar un lote: limpia lo
+ * que es de este animal y conserva el tipo y la tenencia, que casi siempre son
+ * los mismos para los que siguen.
  */
+
+/** «Otra» no es un mosaico: su texto vive en «Más datos». */
+const TIPOS_DE_ANIMAL = opcionesElegibles(CATEGORIAS.filter((fila) => fila.codigo !== 'other'))
+const OPCIONES_DE_SEXO = opcionesElegibles(SEXOS)
+const OPCIONES_DE_TENENCIA = opcionesElegibles(TENENCIAS)
+const OPCIONES_DE_PARTICIPACION = opcionesElegibles(PARTICIPACIONES)
+
+type Borrador = {
+  readonly nombre: string
+  readonly arete: string
+  readonly categoria: string
+  readonly detalleCategoria: string
+  readonly sexo: string
+  readonly tenencia: string
+  readonly participacion: string
+  readonly notaDelArreglo: string
+  readonly nota: string
+}
+
+const EN_BLANCO: Borrador = {
+  nombre: '',
+  arete: '',
+  categoria: 'unknown',
+  detalleCategoria: '',
+  sexo: 'unknown',
+  tenencia: 'unknown',
+  participacion: 'unknown',
+  notaDelArreglo: '',
+  nota: '',
+}
+
+type Envio = {
+  readonly commandId: string
+  readonly id: string
+}
+
+type ComandoDelArete = {
+  readonly id: string
+  readonly markId: string
+  readonly contenido: string
+}
+
 export function Alta() {
-  const [nombre, setNombre] = useState('')
-  const [sexo, setSexo] = useState('unknown')
-  const [categoria, setCategoria] = useState('unknown')
-  const [detalleCategoria, setDetalleCategoria] = useState('')
-  const [tenencia, setTenencia] = useState('unknown')
-  const [participacion, setParticipacion] = useState('unknown')
-  const [notaDelArreglo, setNotaDelArreglo] = useState('')
-  const [nota, setNota] = useState('')
-  const [mostrarMas, setMostrarMas] = useState(false)
+  const [borrador, setBorrador] = useState<Borrador>(EN_BLANCO)
+  const [guardado, setGuardado] = useState<string | null>(null)
 
   const registrar = useRegistrarAnimal()
-  /**
-   * El id del comando y el id del animal se generan juntos, una sola vez, y se
-   * reusan mientras el envío no salga bien. Reintentar por mala señal manda el
-   * mismo cuerpo con el mismo id de comando: la API devuelve el animal que ya
-   * guardó en vez de crear otro.
-   */
-  const envio = useRef<{ commandId: string; id: string } | null>(null)
+  const ponerArete = usePonerMarca()
 
-  const enviar = (evento: React.FormEvent<HTMLFormElement>): void => {
-    evento.preventDefault()
-    if (registrar.isPending) {
+  /**
+   * Los ids del animal y de su comando se generan juntos, una sola vez, y se
+   * reusan mientras el envío no salga bien. Reintentar por mala señal manda el
+   * mismo cuerpo con el mismo id: la API devuelve el animal que ya guardó en
+   * vez de crear otro.
+   */
+  const envio = useRef<Envio | null>(null)
+
+  /**
+   * El comando del arete, con la huella de su contenido.
+   *
+   * El arete es otro comando y tiene sus propios ids. Se reusan mientras el
+   * contenido sea el mismo: un reintento no pone dos aretes, y si alguien
+   * corrige el número después de un fallo, es otro comando.
+   */
+  const envioDelArete = useRef<ComandoDelArete | null>(null)
+
+  const cambiando = registrar.isPending || ponerArete.isPending
+
+  const cambiar = (cambios: Partial<Borrador>): void => {
+    setGuardado(null)
+    setBorrador((actual) => ({ ...actual, ...cambios }))
+  }
+
+  /**
+   * Un toque en un mosaico descarta el texto de «Otra categoría»: son la misma
+   * respuesta y solo una puede estar puesta.
+   */
+  const elegirTipo = (tipo: string): void => {
+    cambiar({ categoria: tipo, detalleCategoria: '' })
+  }
+
+  /**
+   * Escribir en «Otra categoría» escoge «Otra»: así el detalle nunca viaja
+   * pegado a una categoría que no lo admite, y borrarlo vuelve a «No sé».
+   */
+  const escribirOtra = (texto: string): void => {
+    cambiar({ detalleCategoria: texto, categoria: texto.trim() === '' ? 'unknown' : 'other' })
+  }
+
+  const guardar = (darDeAltaOtro: boolean): void => {
+    if (cambiando) {
       return
     }
+    setGuardado(null)
 
     envio.current ??= { commandId: crypto.randomUUID(), id: crypto.randomUUID() }
-    const { commandId, id } = envio.current
+    const ids = envio.current
 
-    const textoNombre = limpiarOpcional(nombre)
-    const textoDetalle = categoria === 'other' ? limpiarOpcional(detalleCategoria) : undefined
-    const textoArreglo = tenencia === 'a_la_parte' ? limpiarOpcional(notaDelArreglo) : undefined
-    const textoNota = limpiarOpcional(nota)
+    const textoNombre = limpiar(borrador.nombre)
+    const textoArete = limpiar(borrador.arete)
+    const textoDetalle =
+      borrador.categoria === 'other' ? limpiar(borrador.detalleCategoria) : undefined
+    const textoArreglo =
+      borrador.tenencia === 'a_la_parte' ? limpiar(borrador.notaDelArreglo) : undefined
+    const textoNota = limpiar(borrador.nota)
+
+    /** El alta terminó: o se abre la ficha, o el formulario queda listo para el siguiente. */
+    const terminar = (animalId: string): void => {
+      envio.current = null
+      envioDelArete.current = null
+      registrar.reset()
+      ponerArete.reset()
+
+      if (!darDeAltaOtro) {
+        irA({ nombre: 'ficha', animalId })
+        return
+      }
+
+      // El tipo y la tenencia se conservan: en un lote casi siempre se repiten.
+      const conservado = {
+        categoria: borrador.categoria,
+        detalleCategoria: borrador.categoria === 'other' ? borrador.detalleCategoria : '',
+        tenencia: borrador.tenencia,
+      }
+      setBorrador({ ...EN_BLANCO, ...conservado })
+      setGuardado(textoNombre ?? 'el animal')
+    }
 
     registrar.mutate(
       {
-        commandId,
-        id,
+        commandId: ids.commandId,
+        id: ids.id,
         ...(textoNombre === undefined ? {} : { nombre: textoNombre }),
-        sexo: sexo as 'female' | 'male' | 'unknown',
-        categoria: categoria as 'calf' | 'cow' | 'bull' | 'other' | 'unknown',
+        sexo: borrador.sexo as 'female' | 'male' | 'unknown',
+        categoria: borrador.categoria as 'calf' | 'cow' | 'bull' | 'other' | 'unknown',
         ...(textoDetalle === undefined ? {} : { detalleCategoria: textoDetalle }),
-        tenencia: tenencia as 'ranch' | 'a_la_parte' | 'third_party' | 'unknown',
-        participacionEconomica: participacion as 'known' | 'partially_known' | 'unknown',
+        tenencia: borrador.tenencia as 'ranch' | 'a_la_parte' | 'third_party' | 'unknown',
+        participacionEconomica: borrador.participacion as 'known' | 'partially_known' | 'unknown',
         ...(textoArreglo === undefined ? {} : { notaDelArreglo: textoArreglo }),
         ...(textoNota === undefined ? {} : { nota: textoNota }),
       },
       {
         onSuccess: (ficha) => {
-          envio.current = null
-          irA({ nombre: 'ficha', animalId: ficha.id })
+          if (textoArete === undefined) {
+            terminar(ficha.id)
+            return
+          }
+
+          const contenido = `${ficha.id}|${textoArete}`
+          if (envioDelArete.current === null || envioDelArete.current.contenido !== contenido) {
+            envioDelArete.current = {
+              id: crypto.randomUUID(),
+              markId: crypto.randomUUID(),
+              contenido,
+            }
+          }
+          const arete = envioDelArete.current
+
+          // El arete se pone ya con el animal guardado.
+          ponerArete.mutate(
+            {
+              animalId: ficha.id,
+              cuerpo: {
+                commandId: arete.id,
+                marcaId: arete.markId,
+                tipo: 'siniiga',
+                valor: textoArete,
+              },
+            },
+            { onSuccess: () => terminar(ficha.id) },
+          )
         },
       },
     )
   }
 
+  /**
+   * El animal quedó guardado y el arete no. Se dice en palabras: volver a tocar
+   * «Guardar» reintenta el arete sin crear un segundo animal.
+   */
+  const faltaElArete = registrar.isSuccess && ponerArete.isError
+
   return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">RANCHO</p>
-        <h1>Dar de alta un animal</h1>
-        <p className="subtitulo">Con lo que sepas basta. Lo que no sepas se queda en «No sé».</p>
-      </header>
+    <main className="pantalla pantalla--alta">
+      <Encabezado
+        titulo="Nuevo animal"
+        subtitulo="Llena lo que sepas. Lo demás, después."
+        compacto
+        acciones={[
+          {
+            etiqueta: 'Cerrar',
+            icono: <IconoCerrar />,
+            alTocar: () => {
+              irA({ nombre: 'hato' })
+            },
+          },
+        ]}
+      />
 
-      <form className="formulario" onSubmit={enviar}>
-        <CampoDeTexto
-          etiqueta="Nombre o seña"
-          valor={nombre}
-          alCambiar={setNombre}
-          ayuda="Si todavía no tiene nombre, déjalo vacío."
-        />
-
-        <CampoDeOpciones etiqueta="Sexo" opciones={SEXOS} valor={sexo} alCambiar={setSexo} />
-
-        <CampoDeOpciones
-          etiqueta="Categoría"
-          opciones={CATEGORIAS}
-          valor={categoria}
-          alCambiar={setCategoria}
-        />
-
-        {categoria === 'other' ? (
-          <CampoDeTexto
-            etiqueta="¿Cuál?"
-            valor={detalleCategoria}
-            alCambiar={setDetalleCategoria}
-            ayuda="Por ejemplo, un semental joven o un animal de otro tipo."
-          />
-        ) : null}
-
-        <CampoDeOpciones
-          etiqueta="¿De quién es?"
-          opciones={TENENCIAS}
-          valor={tenencia}
-          alCambiar={setTenencia}
-        />
-
-        {tenencia === 'a_la_parte' ? (
-          <CampoDeArea
-            etiqueta="Nota del arreglo"
-            valor={notaDelArreglo}
-            alCambiar={setNotaDelArreglo}
-            ayuda="Lo que se sepa del arreglo, en tus palabras. No se calcula ninguna parte."
-          />
-        ) : null}
-
-        {mostrarMas ? (
-          <Seccion titulo="Si lo sabes">
-            <CampoDeOpciones
-              etiqueta="Participación económica"
-              opciones={PARTICIPACIONES}
-              valor={participacion}
-              alCambiar={setParticipacion}
-            />
-            <CampoDeArea
-              etiqueta="Nota"
-              valor={nota}
-              alCambiar={setNota}
-              ayuda="Cualquier cosa que convenga recordar de este animal."
-            />
-          </Seccion>
-        ) : (
-          <BotonGrande
-            secundario
-            alTocar={() => {
-              setMostrarMas(true)
-            }}
-          >
-            Agregar más datos
-          </BotonGrande>
+      <form
+        className="formulario alta"
+        onSubmit={(evento) => {
+          evento.preventDefault()
+          guardar(false)
+        }}
+      >
+        {guardado === null ? null : (
+          <p className="aviso aviso--bien" role="status">
+            Se guardó {guardado}. Ahora el siguiente.
+          </p>
         )}
 
+        <div className="alta__fila">
+          <CampoDeTexto
+            etiqueta="Nombre o seña"
+            valor={borrador.nombre}
+            alCambiar={(nombre) => {
+              cambiar({ nombre })
+            }}
+          />
+          <CampoDeTexto
+            etiqueta="Arete SINIIGA"
+            valor={borrador.arete}
+            alCambiar={(arete) => {
+              cambiar({ arete })
+            }}
+            inputMode="numeric"
+            marcador="Sin arete"
+            maxLength={80}
+          />
+        </div>
+
+        <Mosaicos
+          etiqueta="¿Qué es?"
+          opciones={TIPOS_DE_ANIMAL}
+          valor={borrador.categoria}
+          alElegir={elegirTipo}
+        />
+
+        <Segmentado
+          etiqueta="Sexo"
+          opciones={OPCIONES_DE_SEXO}
+          valor={borrador.sexo}
+          alElegir={(sexo) => {
+            cambiar({ sexo })
+          }}
+        />
+
+        <Pildoras
+          etiqueta="¿De quién es?"
+          opciones={OPCIONES_DE_TENENCIA}
+          valor={borrador.tenencia}
+          alElegir={(tenencia) => {
+            cambiar({ tenencia })
+          }}
+        />
+
+        <Desplegable titulo="Más datos" resumen="otra categoría, participación, notas">
+          <CampoDeTexto
+            etiqueta="Otra categoría"
+            valor={borrador.detalleCategoria}
+            alCambiar={escribirOtra}
+            marcador="Si no es becerro, vaca ni toro"
+            ayuda="Lo que escribas aquí se guarda como «Otra», con su texto."
+            maxLength={200}
+          />
+
+          <Segmentado
+            etiqueta="Participación económica"
+            opciones={OPCIONES_DE_PARTICIPACION}
+            valor={borrador.participacion}
+            alElegir={(participacion) => {
+              cambiar({ participacion })
+            }}
+          />
+
+          {borrador.tenencia === 'a_la_parte' ? (
+            <CampoDeArea
+              etiqueta="Nota del arreglo"
+              valor={borrador.notaDelArreglo}
+              alCambiar={(notaDelArreglo) => {
+                cambiar({ notaDelArreglo })
+              }}
+              ayuda="Lo que se sepa del arreglo, en tus palabras. No se calcula ninguna parte."
+            />
+          ) : null}
+
+          <CampoDeArea
+            etiqueta="Nota"
+            valor={borrador.nota}
+            alCambiar={(nota) => {
+              cambiar({ nota })
+            }}
+            ayuda="Cualquier cosa que convenga recordar de este animal."
+          />
+        </Desplegable>
+
+        {faltaElArete ? (
+          <div className="aviso aviso--ojo" role="alert">
+            <p className="aviso__titulo">El animal sí se guardó. El arete no.</p>
+            <p className="aviso__quehacer">
+              {mensajeDeError(ponerArete.error).quePaso} Podrías corregirlo desde la ficha del
+              animal. Si fue la señal, vuelve a tocar «Guardar»: es el mismo envío y no se
+              duplica el animal.
+            </p>
+            <p className="aviso__codigo">Código: {mensajeDeError(ponerArete.error).codigo}</p>
+          </div>
+        ) : null}
+
         {registrar.isError ? <AvisoDeError error={registrar.error} /> : null}
+      </form>
 
-        <BotonGrande tipo="submit" deshabilitado={registrar.isPending}>
-          {registrar.isPending ? 'Guardando…' : 'Dar de alta'}
-        </BotonGrande>
-
-        <BotonGrande
-          secundario
+      <BarraDeAccion anclaje="ventana" sobreLaNavegacion>
+        <BotonPrincipal
+          deshabilitado={cambiando}
           alTocar={() => {
-            irA({ nombre: 'hato' })
+            guardar(false)
           }}
         >
-          Regresar al hato
-        </BotonGrande>
-      </form>
+          {cambiando ? 'Guardando…' : 'Guardar'}
+        </BotonPrincipal>
+        <BotonSecundario
+          deshabilitado={cambiando}
+          alTocar={() => {
+            guardar(true)
+          }}
+        >
+          Guardar y dar de alta otro
+        </BotonSecundario>
+      </BarraDeAccion>
     </main>
   )
 }
 
-function limpiarOpcional(texto: string): string | undefined {
+function limpiar(texto: string): string | undefined {
   const recortado = texto.trim()
   return recortado === '' ? undefined : recortado
 }

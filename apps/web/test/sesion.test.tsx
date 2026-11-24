@@ -66,11 +66,11 @@ describe('Inicio de sesión', () => {
 
     const usuario = userEvent.setup()
     pintarApp('#/alta')
-    await screen.findByRole('heading', { name: 'Dar de alta un animal' })
+    await screen.findByRole('heading', { name: 'Nuevo animal' })
 
     // La sesión se vence mientras el formulario está abierto.
     sesionVencida = true
-    await usuario.click(screen.getByRole('button', { name: 'Dar de alta' }))
+    await usuario.click(screen.getByRole('button', { name: /^Guardar$/ }))
 
     // Vuelve el inicio de sesión y la URL sigue apuntando al alta.
     expect(await screen.findByRole('heading', { name: 'Entra para ver tu hato' })).toBeDefined()

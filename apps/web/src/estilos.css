@@ -417,6 +417,52 @@ h2.seccion__titulo {
 
 /* Ficha ---------------------------------------------------------------- */
 
+/*
+ * Sin barra fija: la ficha se lee de arriba abajo. Solo deja aire sobre la
+ * navegación de abajo.
+ */
+.pantalla--ficha {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.ficha__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 16px;
+}
+
+.ficha__seccion {
+  margin-bottom: var(--espacio-secciones);
+}
+
+.ficha__titulo {
+  margin: 0 0 10px;
+  font-family: var(--fuente-titulo);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ficha__plegables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
+}
+
+/* El peso de la serie: kilos y fecha arriba, en un solo renglón. */
+.peso__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.peso__fila .peso__kilos {
+  font-family: var(--fuente-titulo);
+  font-size: 19px;
+  font-weight: 700;
+}
+
 .seccion {
   margin-bottom: 1.75rem;
 }
