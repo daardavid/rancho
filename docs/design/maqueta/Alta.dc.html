@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dar de alta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F5C3F}a:hover{color:#163F2B}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F5F3EE;font-family:Inter,system-ui,sans-serif;color:#1C1F1A;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <header style="padding:16px 20px 6px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <h1 style="margin:0;font-family:Archivo,sans-serif;font-size:24px;font-weight:800">Nuevo animal</h1>
+      <p style="margin:2px 0 0;font-size:14px;color:#5C6258">Llena lo que sepas. Lo demás, después.</p>
+    </div>
+    <a href="Hato.dc.html" aria-label="Cerrar" style="width:44px;height:44px;border-radius:14px;border:1px solid #E3E0D8;background:#fff;display:flex;align-items:center;justify-content:center">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1F1A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </a>
+  </header>
+
+  <form style="flex:1;padding:10px 20px 0;display:flex;flex-direction:column;gap:16px">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+      <div>
+        <label for="nombre" style="display:block;font-size:14px;font-weight:600;margin-bottom:6px">Nombre o seña</label>
+        <input id="nombre" value="Pinto" style="box-sizing:border-box;width:100%;height:50px;border:1px solid #CFCBC1;border-radius:14px;padding:0 14px;font:inherit;font-size:16px;background:#fff">
+      </div>
+      <div>
+        <label for="arete" style="display:block;font-size:14px;font-weight:600;margin-bottom:6px">Arete SINIIGA</label>
+        <input id="arete" placeholder="Sin arete" inputmode="numeric" style="box-sizing:border-box;width:100%;height:50px;border:1px solid #CFCBC1;border-radius:14px;padding:0 14px;font:inherit;font-size:16px;background:#fff">
+      </div>
+    </div>
+
+    <fieldset style="border:0;margin:0;padding:0">
+      <legend style="font-size:14px;font-weight:600;margin-bottom:8px;padding:0">¿Qué es?</legend>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+        <sc-for list="{{tipos}}" as="t" hint-placeholder-count="4">
+          <button type="button" style="{{t.estilo}}">
+            <span style="font-family:Archivo,sans-serif;font-weight:700;font-size:15px">{{t.texto}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </fieldset>
+
+    <fieldset style="border:0;margin:0;padding:0">
+      <legend style="font-size:14px;font-weight:600;margin-bottom:8px;padding:0">Sexo</legend>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#ECE9E2;border-radius:14px;padding:4px;gap:4px">
+        <sc-for list="{{sexos}}" as="s" hint-placeholder-count="3">
+          <button type="button" style="{{s.estilo}}">{{s.texto}}</button>
+        </sc-for>
+      </div>
+    </fieldset>
+
+    <fieldset style="border:0;margin:0;padding:0">
+      <legend style="font-size:14px;font-weight:600;margin-bottom:8px;padding:0">¿De quién es?</legend>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <sc-for list="{{duenos}}" as="d" hint-placeholder-count="4">
+          <button type="button" style="{{d.estilo}}">{{d.texto}}</button>
+        </sc-for>
+      </div>
+    </fieldset>
+
+    <button type="button" style="height:52px;border-radius:14px;border:1px solid #E3E0D8;background:#fff;font:inherit;font-size:15px;color:#1C1F1A;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+      <span><span style="font-weight:600">Más datos</span> <span style="color:#5C6258">· madre, nota, arreglo</span></span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </form>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 20px 22px;background:#fff;border-top:1px solid #E3E0D8;display:flex;flex-direction:column;gap:8px">
+    <button style="height:56px;border-radius:16px;border:0;background:#1F5C3F;color:#fff;font:inherit;font-size:17px;font-weight:600">Guardar</button>
+    <button style="height:48px;border-radius:14px;border:1px solid #CFCBC1;background:#fff;color:#1F5C3F;font:inherit;font-size:16px;font-weight:600">Guardar y dar de alta otro</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var tileOn = 'height:64px;border-radius:14px;border:2px solid #1F5C3F;background:#E6EFE9;color:#1F5C3F;font:inherit';
+    var tileOff = 'height:64px;border-radius:14px;border:1px solid #E3E0D8;background:#fff;color:#1C1F1A;font:inherit';
+    var segOn = 'height:42px;border-radius:10px;border:0;background:#fff;font:inherit;font-size:15px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.12)';
+    var segOff = 'height:42px;border-radius:10px;border:0;background:transparent;font:inherit;font-size:15px;color:#5C6258';
+    var pillOn = 'height:44px;padding:0 16px;border-radius:99px;border:2px solid #1F5C3F;background:#E6EFE9;color:#1F5C3F;font:inherit;font-size:15px;font-weight:600';
+    var pillOff = 'height:44px;padding:0 16px;border-radius:99px;border:1px solid #E3E0D8;background:#fff;color:#1C1F1A;font:inherit;font-size:15px';
+    return {
+      tipos: [
+        { texto: 'Becerro', estilo: tileOn },
+        { texto: 'Vaca', estilo: tileOff },
+        { texto: 'Toro', estilo: tileOff },
+        { texto: 'No sé', estilo: tileOff }
+      ],
+      sexos: [
+        { texto: 'Macho', estilo: segOn },
+        { texto: 'Hembra', estilo: segOff },
+        { texto: 'No sé', estilo: segOff }
+      ],
+      duenos: [
+        { texto: 'Del rancho', estilo: pillOff },
+        { texto: 'A la parte', estilo: pillOn },
+        { texto: 'De otra persona', estilo: pillOff },
+        { texto: 'No sé', estilo: pillOff }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

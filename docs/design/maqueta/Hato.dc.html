@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hato</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F5C3F}a:hover{color:#163F2B}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#F5F3EE;font-family:Inter,system-ui,sans-serif;color:#1C1F1A;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <header style="padding:20px 20px 12px;display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <p style="margin:0;font-size:13px;font-weight:600;color:#5C6258;letter-spacing:0.04em">MI RANCHO</p>
+      <h1 style="margin:2px 0 0;font-family:Archivo,sans-serif;font-size:30px;font-weight:800">Hato</h1>
+      <p style="margin:2px 0 0;font-size:14px;color:#5C6258">21 animales · último pesaje hace 3 días</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="Alta.dc.html" aria-label="Dar de alta un animal" style="width:44px;height:44px;border-radius:14px;background:#1F5C3F;display:flex;align-items:center;justify-content:center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </a>
+      <button aria-label="Menú" style="width:44px;height:44px;border-radius:14px;border:1px solid #E3E0D8;background:#fff;display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1F1A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div style="padding:0 20px">
+    <label for="buscar" style="position:absolute;left:-9999px">Buscar</label>
+    <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E3E0D8;border-radius:14px;padding:0 14px;height:48px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="buscar" placeholder="Buscar por nombre o arete" style="border:0;outline:0;font:inherit;font-size:16px;flex:1;background:transparent">
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;padding:12px 20px 0;overflow:hidden">
+    <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+      <button style="{{c.estilo}}">{{c.texto}}</button>
+    </sc-for>
+  </div>
+
+  <div style="margin:14px 20px 0;background:#FDF1DE;border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A4B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    <div style="flex:1">
+      <p style="margin:0;font-weight:600;font-size:15px;color:#6B3A00">2 becerros no se pesaron</p>
+      <p style="margin:2px 0 0;font-size:13px;color:#7A4A12">En la vuelta del 21 de noviembre</p>
+    </div>
+    <a href="Crecimiento.dc.html" style="font-weight:600;font-size:14px;color:#6B3A00">Ver</a>
+  </div>
+
+  <div style="flex:1;overflow:hidden;padding:14px 20px 0;display:flex;flex-direction:column;gap:8px">
+    <sc-for list="{{animales}}" as="a" hint-placeholder-count="6">
+      <a href="Crecimiento.dc.html" style="text-decoration:none;color:inherit;background:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid #ECE9E2">
+        <span style="width:42px;height:42px;border-radius:12px;background:{{a.fondo}};color:{{a.tinta}};font-family:Archivo,sans-serif;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">{{a.inicial}}</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-weight:600;font-size:16px">{{a.nombre}}</span>
+          <span style="display:block;font-size:13px;color:#5C6258">{{a.detalle}}</span>
+        </span>
+        <span style="text-align:right">
+          <span style="display:block;font-family:Archivo,sans-serif;font-weight:700;font-size:17px">{{a.peso}}</span>
+          <span style="display:inline-block;margin-top:2px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:{{a.chipFondo}};color:{{a.chipTinta}}">{{a.ganancia}}</span>
+        </span>
+      </a>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:84px;padding:0 20px;display:flex;justify-content:center">
+    <a href="Pesaje.dc.html" style="text-decoration:none;height:56px;padding:0 26px;border-radius:18px;background:#1F5C3F;color:#fff;font-weight:600;font-size:17px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 20px rgba(31,92,63,0.28)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20h12l-1.5-11h-9z"/><circle cx="12" cy="5" r="2"/><path d="M12 7v2"/></svg>
+      Registrar pesaje
+    </a>
+  </div>
+
+  <nav style="position:absolute;left:0;right:0;bottom:0;height:72px;background:#fff;border-top:1px solid #E3E0D8;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))">
+    <a href="Hato.dc.html" style="text-decoration:none;color:#1F5C3F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F5C3F" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Hato</a>
+    <a href="Pesaje.dc.html" style="text-decoration:none;color:#5C6258;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20h12l-1.5-11h-9z"/><circle cx="12" cy="5" r="2"/><path d="M12 7v2"/></svg>Pesaje</a>
+    <a href="Crecimiento.dc.html" style="text-decoration:none;color:#5C6258;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5C6258" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Crecimiento</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var on = 'height:36px;padding:0 14px;border-radius:99px;border:0;background:#1C1F1A;color:#fff;font:inherit;font-size:14px;font-weight:600;white-space:nowrap';
+    var off = 'height:36px;padding:0 14px;border-radius:99px;border:1px solid #E3E0D8;background:#fff;color:#1C1F1A;font:inherit;font-size:14px;white-space:nowrap';
+    var bien = { chipFondo: '#E6EFE9', chipTinta: '#1F5C3F' };
+    var atras = { chipFondo: '#FDF1DE', chipTinta: '#8A4B00' };
+    var nada = { chipFondo: '#EFEDE8', chipTinta: '#5C6258' };
+    var becerro = { fondo: '#E6EFE9', tinta: '#1F5C3F' };
+    var vaca = { fondo: '#ECE7F3', tinta: '#4B3A6B' };
+    return {
+      chips: [
+        { texto: 'Todos 21', estilo: on },
+        { texto: 'Becerros 9', estilo: off },
+        { texto: 'Vacas 10', estilo: off },
+        { texto: 'Toro 1', estilo: off }
+      ],
+      animales: [
+        Object.assign({ inicial: 'CA', nombre: 'Canela', detalle: 'Becerra · SINIIGA …4471', peso: '184 kg', ganancia: '+0.92 kg/día' }, becerro, bien),
+        Object.assign({ inicial: 'LU', nombre: 'Lucero', detalle: 'Becerro · SINIIGA …4472', peso: '171 kg', ganancia: '+0.81 kg/día' }, becerro, bien),
+        Object.assign({ inicial: 'PI', nombre: 'Pinto', detalle: 'Becerro · A la parte', peso: '158 kg', ganancia: '+0.34 kg/día' }, becerro, atras),
+        Object.assign({ inicial: 'NE', nombre: 'Negra', detalle: 'Becerra · sin arete', peso: '149 kg', ganancia: 'No se pesó' }, becerro, atras),
+        Object.assign({ inicial: 'PA', nombre: 'La Pajarita', detalle: 'Vaca · SINIIGA …3310', peso: '—', ganancia: 'Sin pesajes' }, vaca, nada)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
