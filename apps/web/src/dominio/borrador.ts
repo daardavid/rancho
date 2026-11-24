@@ -62,6 +62,11 @@ const VERSION_DEL_FORMATO = 2
  * se devuelve y la pantalla lo recupera como siempre.
  */
 export function leerBorrador(cuentaId: string): BorradorDePesaje | null {
+  // Sin saber todavía quién está en la sesión no se juzga el borrador: se deja
+  // como está y se decide cuando la cuenta se conoce.
+  if (cuentaId === '') {
+    return null
+  }
   try {
     const guardado = window.localStorage.getItem(CLAVE)
     if (guardado === null) {

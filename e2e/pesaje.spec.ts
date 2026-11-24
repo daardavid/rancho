@@ -152,6 +152,32 @@ test('un peso con calidad «me lo dijeron» se guarda y se ve distinto de uno me
   await expect(page.getByText('Medido en la báscula')).toBeHidden()
 })
 
+test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) => {
+  await entrar(page)
+  await irA(page, 'Pesaje')
+  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+
+  await quitarPropuestas(page)
+  await page.getByLabel('Buscar', { exact: true }).fill('no-hay-nadie')
+  // Basta con que exista un borrador: lo que se mira es que salir lo borre.
+  await expect(page.getByText('Ningún animal coincide o ya está en la sesión.')).toBeVisible()
+
+  const antes = await page.evaluate(() => window.localStorage.getItem('rancho.pesaje.borrador'))
+  expect(antes).not.toBeNull()
+
+  await page.getByRole('button', { name: 'Salir' }).click()
+  await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
+
+  const despues = await page.evaluate(() => window.localStorage.getItem('rancho.pesaje.borrador'))
+  expect(despues).toBeNull()
+
+  // Al volver a entrar, el pesaje empieza limpio: nadie hereda la captura ajena.
+  await entrar(page)
+  await irA(page, 'Pesaje')
+  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+  await expect(page.getByLabel('Buscar', { exact: true })).toHaveValue('')
+})
+
 /** Busca el animal en el pesaje y lo agrega a la vuelta. */
 async function agregarAlPesaje(
   page: import('@playwright/test').Page,

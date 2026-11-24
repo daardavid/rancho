@@ -53,14 +53,21 @@ export function Pesaje() {
   const sesion = useSesion()
 
   /**
-   * Quién está capturando. `App` solo pinta esta pantalla con sesión abierta,
-   * así que aquí ya se sabe; el respaldo es la cuenta vacía, que no coincide
-   * con ningún borrador y se descarta igual.
+   * Quién está capturando. `App` solo pinta esta pantalla con la sesión ya
+   * resuelta, así que aquí se sabe; la cadena vacía es solo un respaldo y no
+   * coincide con ningún borrador.
    */
   const cuentaId = sesion.data?.cuentaId ?? ''
 
-  /** Lo que había guardado en el celular al abrir la pantalla, si algo había. */
-  const [guardado] = useState(() => leerBorrador(cuentaId))
+  /**
+   * Lo que había guardado en el celular al abrir la pantalla, si algo había.
+   *
+   * Se recalcula solo cuando cambia la cuenta. `App` no pinta esta pantalla
+   * hasta tener la sesión, así que la cuenta ya se conoce al montar; el `useMemo`
+   * cubre el caso raro de que llegue un instante después, sin pisar el borrador
+   * de esta cuenta con uno nuevo.
+   */
+  const guardado = useMemo(() => leerBorrador(cuentaId), [cuentaId])
   /** Lo que el dueño ha tocado en esta visita. `null` es «todavía no toca nada». */
   const [cambiado, setCambiado] = useState<BorradorDePesaje | null>(null)
 
@@ -84,7 +91,7 @@ export function Pesaje() {
       return null
     }
     return nuevoBorrador(cuentaId, ultima.isError ? [] : esperados)
-  }, [guardado, hato.isPending, ultima.isPending, ultima.isError, esperados, cuentaId])
+  }, [guardado, cuentaId, hato.isPending, ultima.isPending, ultima.isError, esperados])
 
   // Un borrador guardado manda sobre la propuesta: es lo último que el dueño
   // escribió, posiblemente a media captura.
