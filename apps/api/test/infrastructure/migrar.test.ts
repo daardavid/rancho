@@ -11,10 +11,9 @@ import { filasDe } from '../../src/infrastructure/db/filas'
 import { abrirBaseDePruebas } from '../db/base-de-pruebas'
 
 /**
- * Corre en su propia PGlite: aquí lo que se prueba es la secuencia completa de
- * migraciones desde cero, y no conviene que compita con otras suites que
- * migran la base compartida de CI al mismo tiempo. El camino de node-postgres
- * lo ejercitan las demás suites de persistencia cuando hay `TEST_DATABASE_URL`.
+ * Aquí lo que se prueba es la secuencia completa de migraciones desde cero.
+ * La fábrica abre una base nueva por llamada (ADR-014), así que no compite con
+ * otras suites que migran la suya al mismo tiempo.
  */
 type Base = Awaited<ReturnType<typeof abrirBaseDePruebas>>['db']
 
@@ -22,7 +21,7 @@ let db: Base
 let cerrar: () => Promise<void> = async () => {}
 
 beforeAll(async () => {
-  const base = await abrirBaseDePruebas({ aislada: true })
+  const base = await abrirBaseDePruebas()
   db = base.db
   cerrar = base.cerrar
 }, 60_000)
@@ -36,7 +35,7 @@ describe('aplicarMigraciones', () => {
     expect(carpetaDeMigraciones()).toMatch(/drizzle$/)
   })
 
-  it('acepta el cliente de PGlite de las pruebas y volver a migrar no falla', async () => {
+  it('acepta el cliente de la fábrica y volver a migrar no falla', async () => {
     await expect(aplicarMigraciones(db)).resolves.toBeUndefined()
   })
 
@@ -65,7 +64,11 @@ describe('aplicarMigraciones', () => {
   })
 
   it('reconoce el driver de verdad, no lo adivina', async () => {
-    expect(motorDe(db)).toBe('pglite')
+    // Con `TEST_DATABASE_URL` esta base es node-postgres; sin ella, PGlite.
+    // Lo que importa es que lo diga el motor de Drizzle y no una bandera.
+    const url = process.env['TEST_DATABASE_URL']
+    const hayServidor = url !== undefined && url.trim() !== ''
+    expect(motorDe(db)).toBe(hayServidor ? 'postgres' : 'pglite')
 
     // Un objeto con la forma de un cliente de Drizzle, pero sin serlo, se
     // rechaza con un mensaje que dice qué se esperaba.

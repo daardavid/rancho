@@ -27,6 +27,8 @@ Jest, Cypress, and a second HTTP test framework are not added.
 
 Persistence tests fail when PostgreSQL is down. They do not skip. A skipped transaction test is how the sale-and-exit rule would pass in CI without running.
 
+Each test file opens its own database, created fresh and dropped when the file closes, so the files can run in parallel. In CI every file has its own database on the PostgreSQL service ([ADR-014](adr/ADR-014-local-test-database.md)).
+
 ## What the atomic test must show
 
 One persistence test opens a transaction, writes a finance sale, forces the herd exit to fail, and asserts that neither row remains. A second case commits both and asserts both remain. Fakes at the application layer are not a substitute for that test. They are an addition so orchestrator sequencing stays fast.

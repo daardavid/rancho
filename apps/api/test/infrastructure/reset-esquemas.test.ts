@@ -9,10 +9,9 @@ import { abrirBaseDePruebas } from '../db/base-de-pruebas'
 /**
  * `db:reset` tira esquemas con `DROP SCHEMA ... CASCADE`.
  *
- * Por eso esta suite corre siempre en su propia PGlite (`aislada: true`),
- * aunque en CI haya `TEST_DATABASE_URL`: si compartiera la base con las demás
- * suites, el `DROP` les borraría las tablas a media corrida y el resto de las
- * pruebas fallaría por una razón que no tiene que ver con lo que prueban.
+ * Por eso esta suite comprueba que el `DROP` se queda en su propia base: la
+ * fábrica abre una base nueva por llamada (ADR-014), así que el `DROP` de una
+ * suite no puede borrarle las tablas a otra que corre a la vez.
  */
 type Base = Awaited<ReturnType<typeof abrirBaseDePruebas>>['db']
 
@@ -20,7 +19,7 @@ let db: Base
 let cerrar: () => Promise<void> = async () => {}
 
 beforeAll(async () => {
-  const base = await abrirBaseDePruebas({ aislada: true })
+  const base = await abrirBaseDePruebas()
   db = base.db
   cerrar = base.cerrar
 }, 60_000)
@@ -30,14 +29,12 @@ afterAll(async () => {
 })
 
 describe('db:reset', () => {
-  it('tira los esquemas de su propia base y no toca la base compartida', async () => {
-    // En CI `TEST_DATABASE_URL` es una sola base para todas las suites. Si
-    // `db:reset` corriera contra ella, este `DROP SCHEMA ... CASCADE` borraría
-    // las tablas que otra suite está usando.
-    const compartida = await abrirBaseDePruebas()
-    let ajena: Awaited<ReturnType<typeof abrirBaseDePruebas>> | undefined
+  it('tira los esquemas de su propia base y no toca la base de otra suite', async () => {
+    // Cada llamada abre una base nueva. Si `db:reset` corriera contra la base
+    // de otra suite, este `DROP SCHEMA ... CASCADE` le borraría las tablas que
+    // esa suite está usando.
+    const ajena = await abrirBaseDePruebas()
     try {
-      ajena = await abrirBaseDePruebas({ aislada: true })
       await restablecerEsquemas(ajena.db)
 
       const propias = filasDe<{ schema_name: string }>(
@@ -47,19 +44,16 @@ describe('db:reset', () => {
       )
       expect(propias).toEqual([{ schema_name: 'herd' }])
 
-      const deLaCompartida = filasDe<{ table_name: string }>(
-        await compartida.db.execute(sql`
+      const deEsta = filasDe<{ table_name: string }>(
+        await db.execute(sql`
           SELECT table_name
           FROM information_schema.tables
           WHERE table_schema = 'herd' AND table_name = 'animal'
         `),
       )
-      expect(deLaCompartida).toEqual([{ table_name: 'animal' }])
+      expect(deEsta).toEqual([{ table_name: 'animal' }])
     } finally {
-      if (ajena !== undefined) {
-        await ajena.cerrar()
-      }
-      await compartida.cerrar()
+      await ajena.cerrar()
     }
   })
 

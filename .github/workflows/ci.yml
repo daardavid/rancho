@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integracion]
   push:
     branches: [main]
 
@@ -29,6 +29,8 @@ jobs:
           --health-retries 5
     env:
       # Credenciales del servicio desechable de CI, no datos del rancho.
+      # Esta base es solo la conexión de administración: cada archivo de pruebas
+      # crea la suya (`rancho_test_…`) y la borra al terminar (ADR-014).
       TEST_DATABASE_URL: postgres://rancho:rancho@localhost:5432/rancho_test
     steps:
       - uses: actions/checkout@v7

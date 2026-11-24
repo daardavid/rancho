@@ -107,7 +107,7 @@ npm test           # Vitest in the API, the web app, and the contracts
 npm run test:e2e   # Playwright flows against the built application
 ```
 
-`npm test` needs no database server: persistence tests start PGlite in-process ([ADR-014](docs/architecture/adr/ADR-014-local-test-database.md)). Set `TEST_DATABASE_URL` to point them at a PostgreSQL server instead.
+`npm test` needs no database server: persistence tests start PGlite in-process ([ADR-014](docs/architecture/adr/ADR-014-local-test-database.md)). Set `TEST_DATABASE_URL` to point them at a PostgreSQL server instead; each test file then creates its own database there (`rancho_test_…`) and drops it when it finishes, so the files can run in parallel.
 
 `npm run test:e2e` builds first, then runs the browser flows against the built app on `http://127.0.0.1:4310` with its own throwaway database. It covers login, registering an animal with everything unknown, a three-animal weighing session with a gap, correcting a weight, and the interval gain in growth.
 

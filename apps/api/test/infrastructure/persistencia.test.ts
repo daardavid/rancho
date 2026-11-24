@@ -21,8 +21,9 @@ beforeAll(async () => {
   const base = await abrirBaseDePruebas()
   db = base.db
   cerrar = base.cerrar
-  // Tablas que las pruebas crean y tiran. Si un intento anterior se quedó a medias
-  // contra TEST_DATABASE_URL, el esquema de la migración tiene que verse vacío.
+  // Tablas que las pruebas crean y tiran. La base es nueva en cada llamada
+  // (ADR-014), así que no hace falta limpiar nada de otra corrida; el `IF EXISTS`
+  // queda por si un `afterAll` no llegó a correr dentro de esta misma suite.
   await db.execute(sql`DROP TABLE IF EXISTS herd.fila_version`)
   await db.execute(sql`DROP TABLE IF EXISTS herd.marca`)
   await db.execute(sql`DROP TABLE IF EXISTS growth.marca`)
@@ -103,6 +104,8 @@ describe('migración inicial', () => {
   })
 
   it('siembra un solo rancho con el nombre que le pasan y no inventa otro', async () => {
+    // La base es nueva en cada llamada, así que todavía no hay rancho; el
+    // `DELETE` deja la prueba a prueba de un cambio en la fábrica.
     await db.execute(sql`DELETE FROM identity.ranch`)
 
     await expect(sembrarRancho(db, '   ')).rejects.toThrow(/RANCH_NAME/)
