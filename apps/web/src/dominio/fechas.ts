@@ -23,6 +23,39 @@ const MESES = [
   'dic',
 ] as const
 
+const MESES_DE_VUELTA = [
+  'ENE',
+  'FEB',
+  'MAR',
+  'ABR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AGO',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DIC',
+] as const
+
+/**
+ * `"2026-11-24"` → `"24 NOV"`, como el encabezado de la última vuelta.
+ *
+ * Se parte el texto, igual que `diaLegible`: la fecha de la vuelta es un día
+ * del rancho, no un instante.
+ */
+export function diaDeVuelta(dia: string): string {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia)
+  if (partes === null) {
+    return dia
+  }
+  const mes = MESES_DE_VUELTA[Number(partes[2]) - 1]
+  if (mes === undefined) {
+    return dia
+  }
+  return `${Number(partes[3])} ${mes}`
+}
+
 /**
  * `"2026-11-22"` → `"22 nov 2026"`.
  *

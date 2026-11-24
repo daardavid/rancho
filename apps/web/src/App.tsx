@@ -74,7 +74,10 @@ export function App() {
         no repiten arriba una barra de sesión: una acción por pantalla y una
         sola salida, que es la de volver al hato.
       */}
-      {ruta.nombre === 'hato' || ruta.nombre === 'alta' || ruta.nombre === 'ficha' ? null : (
+      {ruta.nombre === 'hato' ||
+      ruta.nombre === 'alta' ||
+      ruta.nombre === 'ficha' ||
+      ruta.nombre === 'crecimiento' ? null : (
         <BarraDeSesion />
       )}
       {ruta.nombre === 'hato' ? <Hato /> : null}

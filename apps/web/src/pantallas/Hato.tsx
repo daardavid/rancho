@@ -31,8 +31,9 @@ import { Tarjeta } from '../ui/Tarjeta'
  * La ganancia no se calcula aquí: viene calculada del servidor como texto y la
  * pantalla solo decide la etiqueta con la regla de «Revisar primero» de
  * [INC-003](../../../../../docs/product/increments/INC-003-rediseno.md)
- * ([`revision.ts`](../dominio/revision.ts)). No hay meta de ganancia del rancho
- * y ninguna se inventa: un animal se revisa solo por sus propios datos.
+ * ([`revision.ts`](../dominio/revision.ts)). El intervalo anterior viaja en la
+ * fila para ver si bajó contra su propia vuelta previa. No hay meta de
+ * ganancia del rancho y ninguna se inventa.
  *
  * Una sola acción por pantalla: el «+» da de alta, el menú guarda «Salir» y el
  * botón flotante registra el pesaje. «Salir» vive solo en el menú de esta
@@ -301,7 +302,9 @@ function FilaDeHato({
   const arete = areteVigente(animal)
   const ultimo = fila?.ultimoPeso ?? null
   const ganancia: { readonly tono: TonoDeGanancia; readonly texto: string } =
-    fila === undefined ? { tono: 'sinDatos', texto: 'Sin pesajes' } : etiquetaDeGanancia(fila)
+    fila === undefined
+      ? { tono: 'sinDatos', texto: 'Sin pesajes' }
+      : etiquetaDeGanancia(fila, fila.intervaloAnterior)
 
   return (
     <FilaDeAnimal

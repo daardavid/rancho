@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { ErrorDeApi } from '../src/api/http'
-import { compararDecimales, ordenarCrecimiento } from '../src/dominio/crecimiento'
+import {
+  anchoDeBarra,
+  compararDecimales,
+  mayorKilosPorDia,
+  ordenarCrecimiento,
+} from '../src/dominio/crecimiento'
 import { kilosNormales, kilosParaEditar, revisarKilos } from '../src/dominio/kilos'
 import { mensajeDeError } from '../src/dominio/mensajes'
 
@@ -91,6 +96,7 @@ function fila(
         },
     diasDesdeElUltimoPesaje: 21,
     fueHuecoEnLaUltimaSesion: opciones.hueco === true,
+    intervaloAnterior: null,
   }
 }
 
@@ -119,6 +125,22 @@ describe('ordenarCrecimiento', () => {
       fila('b', { porDia: null, ganados: '-1.000' }),
     ])
     expect(orden.map((unaFila) => unaFila.animalId)).toEqual(['b', 'a'])
+  })
+})
+
+describe('Barras de crecimiento', () => {
+  it('el ancho es proporcional al mayor y no usa una ganancia negativa', () => {
+    const filas = [
+      fila('a', { porDia: '1.000' }),
+      fila('b', { porDia: '0.500' }),
+      fila('c', { porDia: '-0.200' }),
+    ]
+    const mayor = mayorKilosPorDia(filas)
+    expect(mayor).toBe('1.000')
+    expect(anchoDeBarra('0.500', mayor)).toBe(50)
+    expect(anchoDeBarra('1.000', mayor)).toBe(100)
+    expect(anchoDeBarra('-0.200', mayor)).toBe(0)
+    expect(anchoDeBarra(null, mayor)).toBe(0)
   })
 })
 

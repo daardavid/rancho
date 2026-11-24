@@ -338,7 +338,16 @@ describe('Alta de un animal', () => {
           ],
         },
       }),
-      'GET /api/read-models/growth-overview': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/read-models/growth-overview': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [],
+          gananciaMediaKilosPorDia: null,
+          pesadosEnLaUltimaVuelta: 0,
+          esperadosEnLaUltimaVuelta: 0,
+          fechaDeLaUltimaVuelta: null,
+        },
+      }),
     })
 
     pintarApp('#/')
@@ -359,7 +368,16 @@ describe('Alta de un animal', () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
       'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
-      'GET /api/read-models/growth-overview': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/read-models/growth-overview': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [],
+          gananciaMediaKilosPorDia: null,
+          pesadosEnLaUltimaVuelta: 0,
+          esperadosEnLaUltimaVuelta: 0,
+          fechaDeLaUltimaVuelta: null,
+        },
+      }),
     })
 
     pintarApp('#/')

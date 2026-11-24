@@ -95,3 +95,50 @@ function compararAbsolutos(a: string, b: string): number {
   }
   return decimalRellenoA < decimalRellenoB ? -1 : 1
 }
+
+/**
+ * El mayor kilos por día del último intervalo, como texto.
+ *
+ * Es el tope de las barras. Una ganancia nula, negativa o ausente no estira
+ * la escala. No convierte el texto a `number` para decidir cuál es mayor.
+ */
+export function mayorKilosPorDia(filas: readonly FilaDeCrecimiento[]): string | null {
+  let mayor: string | null = null
+  for (const fila of filas) {
+    const valor = fila.ultimoIntervalo?.kilosPorDia ?? null
+    if (valor === null || compararDecimales(valor, '0.000') <= 0) {
+      continue
+    }
+    if (mayor === null || compararDecimales(valor, mayor) > 0) {
+      mayor = valor
+    }
+  }
+  return mayor
+}
+
+/**
+ * Ancho de la barra, de 0 a 100, proporcional al mayor del hato.
+ *
+ * El porcentaje solo dibuja. Los kilos siguen siendo el texto; las milésimas
+ * son un entero para la regla de tres del ancho, no un peso.
+ */
+export function anchoDeBarra(valor: string | null, mayor: string | null): number {
+  if (valor === null || mayor === null || compararDecimales(valor, '0.000') <= 0) {
+    return 0
+  }
+  const parte = milesimas(valor)
+  const tope = milesimas(mayor)
+  if (parte <= 0 || tope <= 0) {
+    return 0
+  }
+  return Math.min(100, Math.round((parte * 100) / tope))
+}
+
+function milesimas(valor: string): number {
+  const negativo = valor.trim().startsWith('-')
+  const [entera = '0', decimal = ''] = valor.trim().replace(/^-/, '').split('.')
+  const enteras = Number(entera.replace(/^0+(?=\d)/, '') || '0')
+  const miles = Number(decimal.padEnd(3, '0').slice(0, 3))
+  const total = enteras * 1000 + miles
+  return negativo ? -total : total
+}

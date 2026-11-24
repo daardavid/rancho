@@ -105,12 +105,22 @@ function fila(animalId: string, nombre: string, opciones: OpcionesDeFila = {}) {
           },
     diasDesdeElUltimoPesaje: sinPeso ? null : 3,
     fueHuecoEnLaUltimaSesion: opciones.hueco === true,
+    intervaloAnterior: null,
   }
 }
 
 /** El resumen con un animal de cada caso de la regla. */
 function elResumen(filas: readonly Record<string, unknown>[]) {
-  return () => ({ estado: 200, cuerpo: { animales: filas } })
+  return () => ({
+    estado: 200,
+    cuerpo: {
+      animales: filas,
+      gananciaMediaKilosPorDia: null,
+      pesadosEnLaUltimaVuelta: 0,
+      esperadosEnLaUltimaVuelta: 0,
+      fechaDeLaUltimaVuelta: null,
+    },
+  })
 }
 
 function laUltimaSesion() {
