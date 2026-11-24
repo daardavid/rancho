@@ -109,6 +109,10 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     const kilos = screen.getAllByLabelText('Kilos')
     expect(kilos).toHaveLength(3)
 
+    const fotos = screen.getAllByLabelText('Foto de la báscula')
+    expect(fotos).toHaveLength(3)
+    expect((fotos[0] as HTMLInputElement).getAttribute('capture')).toBe('environment')
+
     await usuario.type(kilos[0] as HTMLElement, '215.5')
     await usuario.type(kilos[1] as HTMLElement, '188')
 

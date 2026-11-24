@@ -91,6 +91,7 @@ export function registrarRutasDePesaje(app: FastifyInstance, growth: Growth): vo
         motivo: cuerpo.data.motivo,
         ...(cuerpo.data.kilos !== undefined ? { kilos: cuerpo.data.kilos } : {}),
         ...(cuerpo.data.calidad !== undefined ? { calidad: cuerpo.data.calidad } : {}),
+        ...(cuerpo.data.evidenciaId !== undefined ? { evidenciaId: cuerpo.data.evidenciaId } : {}),
       }),
     )
   })
@@ -114,6 +115,7 @@ function filaDe(fila: {
   resultado: 'pesado' | 'hueco'
   kilos?: string
   calidad?: 'measured' | 'observed' | 'declared'
+  evidenciaId?: string | undefined
 }): EntradaRegistrar['filas'][number] {
   if (fila.resultado === 'hueco') {
     return { id: fila.id, animalId: fila.animalId, resultado: 'hueco' }
@@ -127,6 +129,7 @@ function filaDe(fila: {
     resultado: 'pesado',
     kilos: fila.kilos,
     calidad: fila.calidad,
+    ...(fila.evidenciaId !== undefined ? { evidenciaId: fila.evidenciaId } : {}),
   }
 }
 

@@ -9,6 +9,7 @@ import { calidad } from '../dominio/etiquetas'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { CorreccionDePeso } from './CorreccionDePeso'
 
 /**
@@ -155,6 +156,7 @@ function FilaDeSesionGuardada({
             kilos: fila.kilos,
             calidad: fila.calidad,
             version: fila.version,
+            evidenciaId: fila.evidenciaId ?? null,
           }}
           nombreDelAnimal={nombre}
           alCancelar={() => {
@@ -175,6 +177,7 @@ function FilaDeSesionGuardada({
         <>
           <span>{kilosLegibles(fila.kilos)}</span>
           <span className="peso__calidad">{calidad(fila.calidad)}</span>
+          <FotoVisible evidenciaId={fila.evidenciaId} />
           <span className="peso__intervalo">
             <button type="button" className="enlace" onClick={alCorregir}>
               Corregir este peso

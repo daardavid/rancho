@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 
+import type { PuertoDeEvidencia } from '../infrastructure/evidence/puerto'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
@@ -9,6 +10,7 @@ import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
 import { registrarRutasDeCrecimiento } from './routes/crecimiento'
 import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
+import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evidencia'
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDeSesion } from './routes/sesion'
 
@@ -23,6 +25,8 @@ export type OpcionesApp = {
   readonly herd?: Herd
   /** Si falta, las rutas de pesaje no se montan. */
   readonly growth?: Growth
+  /** Si falta, no se puede subir ni ver la foto de la báscula. */
+  readonly evidencia?: PuertoDeEvidencia
   /** Si falta, las rutas de crecimiento no se montan. */
   readonly crecimiento?: ModelosDeCrecimiento
   /**
@@ -86,6 +90,10 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)
+  }
+  if (opciones.evidencia !== undefined) {
+    registrarParserDeFotos(app)
+    registrarRutasDeEvidencia(app, opciones.evidencia)
   }
   if (opciones.crecimiento !== undefined) {
     registrarRutasDeCrecimiento(app, opciones.crecimiento)
