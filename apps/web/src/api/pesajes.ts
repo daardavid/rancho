@@ -21,10 +21,16 @@ import { ErrorDeApi, pedir } from './http'
 
 export const LLAVE_DE_ULTIMA_SESION = ['sesiones', 'ultima'] as const
 
-/** La última sesión del rancho, o `null` si todavía no hay ninguna. */
-export function useUltimaSesion() {
+/**
+ * La última sesión del rancho, o `null` si todavía no hay ninguna.
+ *
+ * `habilitada` deja pedirla solo cuando hace falta. El hato la usa para la
+ * fecha del aviso de huecos: sin huecos no se pide nada.
+ */
+export function useUltimaSesion(opciones: { readonly habilitada?: boolean } = {}) {
   return useQuery({
     queryKey: LLAVE_DE_ULTIMA_SESION,
+    enabled: opciones.habilitada ?? true,
     queryFn: async (): Promise<SesionDePesaje | null> => {
       try {
         return await pedir(sesionDePesajeSchema, '/api/weighing-sessions/latest')

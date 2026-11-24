@@ -746,3 +746,125 @@
   gap: 12px;
   color: var(--texto);
 }
+
+/* Hato ----------------------------------------------------------------- */
+
+/*
+ * El hato deja respirar abajo: el botón flotante y la barra inferior están
+ * fijos al borde de la ventana y taparían la última fila.
+ */
+.pantalla--hato {
+  padding-bottom: calc(var(--alto-barra) + 88px + env(safe-area-inset-bottom));
+}
+
+.hato__encabezado {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.hato__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% - 4px);
+  right: 0;
+  min-width: 10rem;
+  padding: 6px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  background: var(--superficie);
+  box-shadow: 0 8px 20px rgba(28, 31, 26, 0.14);
+}
+
+.hato__menu-opcion {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hato__menu-opcion:hover {
+  background: var(--fondo);
+}
+
+.hato__filtros {
+  padding: 12px 0 0;
+  overflow: hidden;
+}
+
+.hato__aviso {
+  margin-top: 14px;
+}
+
+.hato__sin-peso {
+  margin-top: 12px;
+}
+
+.hato__lista {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
+}
+
+.hato__vacio-titulo {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.hato__vacio-texto {
+  margin: 6px 0 14px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+/* Buscador de la guía: campo blanco con lupa a la izquierda. */
+.ui-buscador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  background: var(--superficie);
+  color: var(--texto-suave);
+}
+
+.ui-buscador__entrada {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  /* 16 px o más: iOS no hace zoom al enfocar. */
+  font-size: 16px;
+}
+
+.ui-buscador__entrada:focus {
+  outline: none;
+}
+
+.ui-buscador:has(.ui-buscador__entrada:focus-visible) {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+.hato__menu-opcion:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+

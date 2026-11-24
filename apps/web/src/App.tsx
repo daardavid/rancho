@@ -68,7 +68,8 @@ export function App() {
 
   return (
     <div className="con-navegacion">
-      <BarraDeSesion />
+      {/* «Salir» vive en el menú del hato: en esa pantalla no se repite arriba. */}
+      {ruta.nombre === 'hato' ? null : <BarraDeSesion />}
       {ruta.nombre === 'hato' ? <Hato /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
       {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}
