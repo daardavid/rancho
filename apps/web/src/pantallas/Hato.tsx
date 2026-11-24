@@ -1,5 +1,5 @@
 import type { FilaDeCrecimiento } from '@rancho/api-contracts'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato } from '../api/hato'
 import { useUltimaSesion } from '../api/pesajes'
@@ -98,7 +98,11 @@ export function Hato() {
     <main className="pantalla pantalla--hato">
       <MenuYEncabezado
         total={total}
-        ultimoPesaje={textoDelUltimoPesaje(filas)}
+        // Mientras el resumen no llegó (cargando o error) no se afirma nada del
+        // último pesaje: una consulta que falló no es «no hay pesajes».
+        ultimoPesaje={
+          resumen.data === undefined ? null : textoDelUltimoPesaje(resumen.data.animales)
+        }
         // En el hato vacío el alta se ofrece una sola vez, en la tarjeta.
         conAlta={!vacio}
       />
@@ -202,19 +206,46 @@ function MenuYEncabezado({
   conAlta,
 }: {
   readonly total: number
-  readonly ultimoPesaje: string
+  readonly ultimoPesaje: string | null
   readonly conAlta: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
+  const contenedor = useRef<HTMLDivElement>(null)
   const salir = useSalir()
 
+  // El menú se descarta como se descarta cualquier menú: con Escape o tocando
+  // fuera. En el celular, tocar fuera es la salida natural cuando no hay teclado.
+  useEffect(() => {
+    if (!abierto) {
+      return
+    }
+    function alTeclear(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') {
+        setAbierto(false)
+      }
+    }
+    function alTocarFuera(evento: Event) {
+      const nodo = contenedor.current
+      if (nodo !== null && evento.target instanceof Node && !nodo.contains(evento.target)) {
+        setAbierto(false)
+      }
+    }
+    document.addEventListener('keydown', alTeclear)
+    document.addEventListener('pointerdown', alTocarFuera)
+    return () => {
+      document.removeEventListener('keydown', alTeclear)
+      document.removeEventListener('pointerdown', alTocarFuera)
+    }
+  }, [abierto])
+
+  const conUltimoPesaje = ultimoPesaje === null ? '' : ` · ${ultimoPesaje}`
   const subtitulo =
     total === 0
       ? 'Todavía no hay animales'
-      : `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'} · ${ultimoPesaje}`
+      : `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'}${conUltimoPesaje}`
 
   return (
-    <div className="hato__encabezado">
+    <div className="hato__encabezado" ref={contenedor}>
       <Encabezado
         etiqueta="MI RANCHO"
         titulo="Hato"
