@@ -30,6 +30,39 @@ afterAll(async () => {
 })
 
 describe('db:reset', () => {
+  it('tira los esquemas de su propia base y no toca la base compartida', async () => {
+    // En CI `TEST_DATABASE_URL` es una sola base para todas las suites. Si
+    // `db:reset` corriera contra ella, este `DROP SCHEMA ... CASCADE` borraría
+    // las tablas que otra suite está usando.
+    const compartida = await abrirBaseDePruebas()
+    let ajena: Awaited<ReturnType<typeof abrirBaseDePruebas>> | undefined
+    try {
+      ajena = await abrirBaseDePruebas({ aislada: true })
+      await restablecerEsquemas(ajena.db)
+
+      const propias = filasDe<{ schema_name: string }>(
+        await ajena.db.execute(sql`
+          SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'herd'
+        `),
+      )
+      expect(propias).toEqual([{ schema_name: 'herd' }])
+
+      const deLaCompartida = filasDe<{ table_name: string }>(
+        await compartida.db.execute(sql`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = 'herd' AND table_name = 'animal'
+        `),
+      )
+      expect(deLaCompartida).toEqual([{ table_name: 'animal' }])
+    } finally {
+      if (ajena !== undefined) {
+        await ajena.cerrar()
+      }
+      await compartida.cerrar()
+    }
+  })
+
   it('borra lo sembrado y deja los esquemas otra vez, listos para migrar', async () => {
     await sembrarRancho(db, 'Potrero de prueba')
     await restablecerEsquemas(db)
