@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { compararConElAnterior } from '../src/dominio/kilos'
 import { Pesaje } from '../src/pantallas/Pesaje'
 import {
   animalDeLista,
@@ -103,31 +104,30 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     pintarApp('#/pesaje')
 
-    // Los tres de la vuelta anterior ya vienen propuestos.
-    await screen.findByText('Canelo')
+    // Los tres de la vuelta anterior ya vienen propuestos. El primero está en turno.
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
     expect(screen.getByText('Lucero')).toBeDefined()
     expect(screen.getByText('Tordo')).toBeDefined()
-
-    const kilos = screen.getAllByLabelText('Kilos')
-    expect(kilos).toHaveLength(3)
+    expect(screen.getByText('0 de 3 pesados')).toBeDefined()
 
     const fotos = screen.getAllByLabelText('Foto de la báscula')
     expect(fotos).toHaveLength(3)
     expect((fotos[0] as HTMLInputElement).getAttribute('capture')).toBe('environment')
 
-    await usuario.type(kilos[0] as HTMLElement, '215.5')
-    await usuario.type(kilos[1] as HTMLElement, '188')
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215.5')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '188')
+
+    // La calidad por omisión es «medido en la báscula»; a Lucero se le cambia
+    // a «me lo dijeron» porque el número llegó por el radio.
+    await usuario.click(screen.getByRole('button', { name: 'Medido en la báscula' }))
+    await usuario.click(screen.getByRole('radio', { name: 'Me lo dijeron' }))
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
 
     // El tercero no se pesó y se marca como tal.
-    const trecero = screen.getAllByRole('button', { name: 'No se pesó' })[2]
-    await usuario.click(trecero as HTMLElement)
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
 
-    // La calidad por omisión es «medido en la báscula»; al segundo se le
-    // cambia a «me lo dijeron» porque el número llegó por el radio.
-    const calidades = screen.getAllByLabelText('¿Cómo se obtuvo?')
-    await usuario.selectOptions(calidades[1] as HTMLElement, 'declared')
-
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (2)' }))
 
     await waitFor(() => {
       expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(1)
@@ -160,6 +160,114 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     // Ningún peso pasó por `number`: en el JSON son cadenas.
     expect(typeof canelo?.kilos).toBe('string')
     expect(typeof lucero?.kilos).toBe('string')
+  })
+
+  it('Siguiente avanza al siguiente pendiente y le da el foco', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    const primero = (await screen.findByRole('textbox', { name: 'Kilos de Canelo' })) as HTMLInputElement
+    await waitFor(() => {
+      expect(document.activeElement).toBe(primero)
+    })
+
+    await usuario.type(primero, '210')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+
+    const segundo = (await screen.findByRole('textbox', { name: 'Kilos de Lucero' })) as HTMLInputElement
+    await waitFor(() => {
+      expect(document.activeElement).toBe(segundo)
+    })
+  })
+
+  it('la diferencia contra el peso anterior se calcula en gramos, no con float', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': () => ({
+        estado: 200,
+        cuerpo: {
+          id: SESION_ANTERIOR,
+          fecha: '2026-11-01',
+          nota: null,
+          reportedBy: null,
+          commandId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          recordedBy: CUENTA,
+          recordedAt: CUANDO,
+          filas: [
+            {
+              id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              animalId: ANIMAL,
+              resultado: 'pesado',
+              kilos: '8.020',
+              calidad: 'measured',
+              version: 1,
+            },
+          ],
+        },
+      }),
+    })
+
+    pintarApp('#/pesaje')
+    const fecha = (await screen.findByLabelText('¿Cuándo se pesó?')) as HTMLInputElement
+    await usuario.clear(fecha)
+    await usuario.type(fecha, '2026-11-16')
+
+    // `Number('8.2') - Number('8.02')` da 0.17999999999999972, no 0.18.
+    expect(Number('8.2') - Number('8.02')).not.toBe(0.18)
+    expect(compararConElAnterior('8.2', '8.02', 15)?.gramos).toBe(180n)
+
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '8.2')
+
+    expect(await screen.findByText('+0.18 kg · 0.01 kg/día')).toBeDefined()
+    expect(screen.getByText('Antes: 8.02 kg · hace 15 días')).toBeDefined()
+    expect(screen.queryByText(/0\.17999/)).toBeNull()
+  })
+
+  it('reabrir una fila capturada vuelve a mostrar sus kilos', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Canelo' }), '215.5')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.click(await screen.findByRole('button', { name: /Canelo/ }))
+
+    const reabierto = (await screen.findByRole('textbox', { name: 'Kilos de Canelo' })) as HTMLInputElement
+    expect(reabierto.value).toBe('215.5')
+  })
+
+  it('«No se pesó» deja el renglón sin kilos ni calidad', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Canelo' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Medido en la báscula' }))
+    await usuario.click(screen.getByRole('radio', { name: 'Me lo dijeron' }))
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
+
+    await usuario.click(await screen.findByRole('button', { name: /Canelo/ }))
+
+    expect(screen.getByText('No se pesó.')).toBeDefined()
+    expect(screen.queryByRole('textbox', { name: /Kilos de/ })).toBeNull()
+    expect(screen.queryByRole('radiogroup', { name: '¿Cómo se obtuvo?' })).toBeNull()
+    expect(screen.queryByText('Me lo dijeron')).toBeNull()
+    expect(screen.queryByText('Medido en la báscula')).toBeNull()
   })
 
   it('al reintentar después de una caída manda el mismo id de comando y no duplica', async () => {
@@ -206,18 +314,19 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     pintarApp('#/pesaje')
 
-    await screen.findByText('Canelo')
-    const kilos = screen.getAllByLabelText('Kilos')
-    for (const campo of kilos) {
-      await usuario.type(campo as HTMLElement, '200')
-    }
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Tordo' }), '200')
 
     // Primer intento: se cae la conexión y la pantalla lo explica.
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (3)' }))
     expect(await screen.findByText(/No hay conexión con el rancho/)).toBeDefined()
 
     // Segundo intento: mismo botón, mismos datos, mismo id de comando.
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (3)' }))
 
     await waitFor(() => {
       expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(2)
@@ -246,11 +355,9 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
       },
     })
 
-    pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
-
-    const kilos = screen.getAllByLabelText('Kilos')
-    await usuario.type(kilos[0] as HTMLElement, '201.250')
+    const primera = pintarApp('#/pesaje')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '201.250')
 
     // Lo capturado quedó en el celular.
     const guardado = window.localStorage.getItem('rancho.pesaje.borrador')
@@ -261,9 +368,13 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     // Al volver a abrir la pantalla (otro montaje), el borrador manda: lo
     // escrito sigue ahí en vez de empezar de cero.
+    primera.unmount()
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
-    const recuperado = screen.getAllByLabelText('Kilos')[0] as HTMLInputElement
+    // Canelo ya tiene kilos: el turno pasa al siguiente pendiente y el suyo
+    // queda en la fila, listo para reabrirse.
+    await screen.findByRole('textbox', { name: 'Kilos de Lucero' })
+    await usuario.click(screen.getByRole('button', { name: /Canelo/ }))
+    const recuperado = (await screen.findByRole('textbox', { name: 'Kilos de Canelo' })) as HTMLInputElement
     expect(recuperado.value).toBe('201.250')
   })
 
@@ -276,7 +387,7 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByRole('heading', { name: 'La vuelta por la báscula' })
+    await screen.findByRole('heading', { name: 'Pesaje' })
 
     const fecha = screen.getByLabelText('¿Cuándo se pesó?') as HTMLInputElement
     // Viene contestada: hoy en el rancho, no vacía.
@@ -322,14 +433,15 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     expect(await screen.findByText('Todavía no hay animales en la sesión.')).toBeDefined()
     // Nada inventado: no hay ningún campo de kilos todavía.
-    expect(screen.queryByLabelText('Kilos')).toBeNull()
+    expect(screen.queryByRole('textbox', { name: /Kilos de/ })).toBeNull()
 
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
     await usuario.type(screen.getByLabelText('Buscar'), 'lucero')
     await usuario.click(screen.getByRole('button', { name: /\+ Lucero/ }))
 
-    const kilos = await screen.findByLabelText('Kilos')
-    await usuario.type(kilos as HTMLElement, '175.5')
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    const kilos = await screen.findByRole('textbox', { name: 'Kilos de Lucero' })
+    await usuario.type(kilos, '175.5')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (1)' }))
 
     await waitFor(() => {
       expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(1)
@@ -350,20 +462,20 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
-    const kilos = screen.getAllByLabelText('Kilos')
-    await usuario.type(kilos[0] as HTMLElement, '215')
-    await usuario.type(kilos[1] as HTMLElement, '0')
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '0')
 
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (1)' }))
 
     // No se manda nada: un cero no es un peso y faltan dos renglones.
     expect(await screen.findByText('El peso tiene que ser mayor que cero.')).toBeDefined()
     expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(0)
   })
 
-  it('los que faltan se pueden marcar todos como «no se pesó» de un toque', async () => {
+  it('cada pendiente se marca «no se pesó» y el renglón queda sin kilos', async () => {
     const usuario = userEvent.setup()
     montarApi({
       'GET /api/session': sesionAbierta(),
@@ -372,13 +484,15 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
-    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '215')
-    await usuario.click(screen.getByRole('button', { name: 'Los que faltan no se pesaron' }))
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
 
-    expect(screen.getAllByText('No se pesó.').length).toBe(2)
-    expect(screen.queryAllByLabelText('Kilos')).toHaveLength(1)
+    expect(screen.getAllByText('No se pesó')).toHaveLength(2)
+    expect(screen.queryByRole('textbox', { name: /Kilos de/ })).toBeNull()
   })
 
   it('el hato se ve mientras el número es un texto: sin perder decimales', async () => {
@@ -413,13 +527,14 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
-    const kilos = screen.getAllByLabelText('Kilos')
-    await usuario.type(kilos[0] as HTMLElement, '215.375')
-    await usuario.type(kilos[1] as HTMLElement, '188.001')
-    await usuario.type(kilos[2] as HTMLElement, '190')
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215.375')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '188.001')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Tordo' }), '190')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (3)' }))
 
     await waitFor(() => {
       expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(1)
@@ -443,8 +558,8 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
-    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '215')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215')
 
     // Tirar trabajo pide dos toques: el primero solo pregunta.
     await usuario.click(screen.getByRole('button', { name: 'Empezar una vuelta nueva' }))
@@ -454,7 +569,7 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     await usuario.click(screen.getByRole('button', { name: 'Sí, empezar de cero' }))
 
     expect(await screen.findByText('Todavía no hay animales en la sesión.')).toBeDefined()
-    expect(screen.queryAllByLabelText('Kilos')).toHaveLength(0)
+    expect(screen.queryByRole('textbox', { name: /Kilos de/ })).toBeNull()
   })
 
   it('el borrador de otra cuenta no aparece en el pesaje y se tira', async () => {
@@ -480,11 +595,12 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
     // La propuesta de esta cuenta manda, no la captura ajena: la de la otra
     // cuenta se tiró y en el celular quedó solo la de esta sesión.
-    expect(screen.getAllByLabelText('Kilos').length).toBe(3)
+    expect(screen.getByText('Lucero')).toBeDefined()
+    expect(screen.getByText('Tordo')).toBeDefined()
     expect(screen.queryByDisplayValue('captura de otra sesión')).toBeNull()
     const guardado = JSON.parse(
       window.localStorage.getItem('rancho.pesaje.borrador') ?? '{}',
@@ -555,8 +671,8 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
-    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '199')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '199')
 
     expect(window.localStorage.getItem('rancho.pesaje.borrador')).not.toBeNull()
 
@@ -582,13 +698,14 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
-    const kilos = screen.getAllByLabelText('Kilos')
-    for (const campo of kilos) {
-      await usuario.type(campo as HTMLElement, '200')
-    }
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Tordo' }), '200')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (3)' }))
 
     expect(
       await screen.findByText('Esta vuelta ya se había guardado con otros datos.'),
@@ -630,29 +747,35 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
     const entrada = screen.getAllByLabelText('Foto de la báscula')[0]
     await usuario.upload(entrada as HTMLElement, archivoDeBascula())
     expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
 
-    const kilos = screen.getAllByLabelText('Kilos')
-    await usuario.type(kilos[0] as HTMLElement, '215.5')
-    await usuario.selectOptions(screen.getAllByLabelText('¿Cómo se obtuvo?')[0] as HTMLElement, 'observed')
-    await usuario.type(kilos[1] as HTMLElement, '188')
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '215.5')
+    await usuario.click(screen.getByRole('button', { name: 'Medido en la báscula' }))
+    await usuario.click(screen.getByRole('radio', { name: 'Visto' }))
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.type(await screen.findByRole('textbox', { name: 'Kilos de Lucero' }), '188')
 
     fotos.soltar()
 
-    expect(await screen.findByRole('button', { name: 'Guardar la sesión' })).toBeDefined()
-    expect((screen.getAllByLabelText('Kilos')[0] as HTMLInputElement).value).toBe('215.5')
-    expect((screen.getAllByLabelText('Kilos')[1] as HTMLInputElement).value).toBe('188')
-    expect((screen.getAllByLabelText('¿Cómo se obtuvo?')[0] as HTMLSelectElement).value).toBe('observed')
+    expect(await screen.findByRole('button', { name: 'Guardar pesaje (2)' })).toBeDefined()
+    expect((screen.getByRole('textbox', { name: 'Kilos de Lucero' }) as HTMLInputElement).value).toBe('188')
+
+    await usuario.click(screen.getByRole('button', { name: /Canelo/ }))
+    expect((await screen.findByRole('textbox', { name: 'Kilos de Canelo' }) as HTMLInputElement).value).toBe(
+      '215.5',
+    )
+    expect(screen.getByRole('button', { name: 'Visto, no medido' })).toBeDefined()
     expect(screen.getByRole('img', { name: 'Foto de la báscula' }).getAttribute('src')).toBe(
       `/api/evidencia/${FOTO_ID}`,
     )
 
-    await usuario.click(screen.getAllByRole('button', { name: 'No se pesó' })[2] as HTMLElement)
-    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar pesaje (2)' }))
 
     await waitFor(() => {
       expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/weighing-sessions')).toHaveLength(1)
@@ -696,24 +819,24 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     })
 
     pintarApp('#/pesaje')
-    await screen.findByText('Canelo')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
 
     await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
     expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
 
-    await usuario.click(screen.getAllByRole('button', { name: 'No se pesó' })[0] as HTMLElement)
+    await usuario.click(screen.getByRole('button', { name: 'No se pesó' }))
 
-    const guardar = await screen.findByRole('button', { name: 'Guardar la sesión' })
+    const guardar = await screen.findByRole('button', { name: 'Guardar pesaje (0)' })
     expect((guardar as HTMLButtonElement).disabled).toBe(false)
-    expect(screen.getByText('No se pesó.')).toBeDefined()
+    expect(screen.getByRole('button', { name: /Canelo/ }).textContent).toContain('No se pesó')
 
     fotos.soltar()
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Subiendo la foto…' })).toBeNull()
     })
-    expect(screen.getByText('No se pesó.')).toBeDefined()
-    expect(screen.getAllByLabelText('Kilos')).toHaveLength(2)
-    expect((screen.getByRole('button', { name: 'Guardar la sesión' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.getByRole('button', { name: /Canelo/ }).textContent).toContain('No se pesó')
+    expect(screen.getAllByRole('textbox', { name: /Kilos de/ })).toHaveLength(1)
+    expect((screen.getByRole('button', { name: 'Guardar pesaje (0)' }) as HTMLButtonElement).disabled).toBe(false)
 
     await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
     expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()

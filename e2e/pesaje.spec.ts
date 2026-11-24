@@ -35,7 +35,7 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
 
   /** La vuelta 1: los tres con su peso. */
   await irA(page, 'Pesaje')
-  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
 
   // Sin vuelta anterior no se propone a nadie (`OQ-OWN-003`): se buscan. Si
   // otra prueba ya guardó una vuelta, se quitan los propuestos y se arma la de
@@ -50,7 +50,7 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
   await escribirKilos(page, segundo, '175')
   await escribirKilos(page, tercero, '190')
 
-  await page.getByRole('button', { name: 'Guardar la sesión' }).click()
+  await page.getByRole('button', { name: 'Guardar pesaje (3)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
   await expect(page.locator('.subtitulo')).toContainText('3 pesados')
   await expect(page.getByText('180.5 kg')).toBeVisible()
@@ -58,26 +58,32 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
   // La vuelta 2: un mes después. La app propone a los tres de la vuelta
   // anterior; el tercero se esperaba y no pasó.
   await page.getByRole('button', { name: 'Pesaje de otra vuelta' }).click()
-  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
 
   // Los tres vienen propuestos, con los kilos vacíos.
-  await expect(page.getByText('3 animales · 0 capturados')).toBeVisible()
+  await expect(page.getByText('0 de 3 pesados')).toBeVisible()
+  await expect(page.getByText('3 faltan')).toBeVisible()
 
   await escribirKilos(page, primero, '215.5')
+  await tomarFoto(page, primero)
   await escribirKilos(page, segundo, '188')
 
   // El tercero se esperaba y no pasó: hueco, no un peso cero.
+  await escribirKilos(page, tercero, '')
   const renglonTercero = renglonDe(page, tercero)
   await renglonTercero.getByRole('button', { name: 'No se pesó' }).click()
-  await expect(renglonTercero.getByText('No se pesó.')).toBeVisible()
+  await expect(page.getByRole('button', { name: new RegExp(escapeRegex(tercero)) })).toContainText(
+    'No se pesó',
+  )
 
-  await page.getByRole('button', { name: 'Guardar la sesión' }).click()
+  await page.getByRole('button', { name: 'Guardar pesaje (2)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
 
   // Dos pesados y un hueco: el hueco se ve como «No se pesó», no como una baja.
   await expect(page.locator('.subtitulo')).toContainText('2 pesados')
   await expect(page.locator('.subtitulo')).toContainText('1 no se pesó')
   await expect(page.getByText('215.5 kg')).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Foto de la báscula' })).toBeVisible()
 
   // La ganancia del primero: 215.5 − 180.5 = 35 kg. Se ve en la ficha, no en
   // una columna editable.
@@ -101,7 +107,7 @@ test('corregir un peso mal anotado guarda el valor anterior en la historia', asy
 
   await agregarAlPesaje(page, nombre)
   await escribirKilos(page, nombre, '201')
-  await page.getByRole('button', { name: 'Guardar la sesión' }).click()
+  await page.getByRole('button', { name: 'Guardar pesaje (1)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
   await expect(page.getByText('201 kg')).toBeVisible()
 
@@ -142,9 +148,10 @@ test('un peso con calidad «me lo dijeron» se guarda y se ve distinto de uno me
   await escribirKilos(page, nombre, '150')
 
   const renglon = renglonDe(page, nombre)
-  await renglon.getByLabel('¿Cómo se obtuvo?').selectOption('declared')
+  await renglon.getByRole('button', { name: 'Medido en la báscula' }).click()
+  await renglon.getByRole('radio', { name: 'Me lo dijeron' }).click()
 
-  await page.getByRole('button', { name: 'Guardar la sesión' }).click()
+  await page.getByRole('button', { name: 'Guardar pesaje (1)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
 
   // Medido y declarado no se mezclan: el peso dice cómo se obtuvo.
@@ -155,9 +162,10 @@ test('un peso con calidad «me lo dijeron» se guarda y se ve distinto de uno me
 test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) => {
   await entrar(page)
   await irA(page, 'Pesaje')
-  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
 
   await quitarPropuestas(page)
+  await page.getByRole('button', { name: 'Agregar otro animal' }).click()
   await page.getByLabel('Buscar', { exact: true }).fill('no-hay-nadie')
   // Basta con que exista un borrador: lo que se mira es que salir lo borre.
   await expect(page.getByText('Ningún animal coincide o ya está en la sesión.')).toBeVisible()
@@ -174,7 +182,8 @@ test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) 
   // Al volver a entrar, el pesaje empieza limpio: nadie hereda la captura ajena.
   await entrar(page)
   await irA(page, 'Pesaje')
-  await expect(page.getByRole('heading', { name: 'La vuelta por la báscula' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Agregar otro animal' }).click()
   await expect(page.getByLabel('Buscar', { exact: true })).toHaveValue('')
 })
 
@@ -184,6 +193,9 @@ async function agregarAlPesaje(
   nombre: string,
 ): Promise<void> {
   const buscar = page.getByLabel('Buscar', { exact: true })
+  if (!(await buscar.isVisible())) {
+    await page.getByRole('button', { name: 'Agregar otro animal' }).click()
+  }
   await buscar.fill(nombre)
   await page.getByRole('button', { name: new RegExp(`\\+ ${escapeRegex(nombre)}`) }).click()
   await expect(renglonDe(page, nombre)).toBeVisible()
@@ -201,24 +213,21 @@ async function agregarAlPesaje(
  * renglones que quitar.
  */
 async function quitarPropuestas(page: import('@playwright/test').Page): Promise<void> {
-  await expect(page.getByRole('heading', { name: 'Los animales de esta vuelta' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Agregar otro animal' })).toBeVisible()
 
-  const quitar = page.getByRole('button', { name: 'Quitar' })
-  let quedan = await quitar.count()
-  while (quedan > 0) {
+  const quitar = page.getByRole('button', { name: 'Quitar', exact: true })
+  // Solo la tarjeta activa tiene «Quitar», así que el conteo se queda en 1
+  // hasta sacar al último. El tope evita un ciclo si el botón dejara de quitar.
+  for (let i = 0; i < 30 && (await quitar.count()) > 0; i += 1) {
     await quitar.first().click()
-    const ahora = await quitar.count()
-    if (ahora === quedan) {
-      break
-    }
-    quedan = ahora
   }
   await expect(quitar).toHaveCount(0)
 }
 
-/** El renglón de un animal dentro de la vuelta. */
+/** El renglón de un animal dentro de la vuelta: la tarjeta activa o la fila. */
 function renglonDe(page: import('@playwright/test').Page, nombre: string) {
-  return page.locator('.renglon').filter({ hasText: nombre })
+  return page.locator('.pesaje__renglon').filter({ hasText: nombre })
 }
 
 async function escribirKilos(
@@ -226,7 +235,29 @@ async function escribirKilos(
   nombre: string,
   kilos: string,
 ): Promise<void> {
-  await renglonDe(page, nombre).getByLabel('Kilos').fill(kilos)
+  const campo = page.getByRole('textbox', { name: `Kilos de ${nombre}` })
+  if (kilos === '') {
+    await page.getByRole('button', { name: new RegExp(escapeRegex(nombre)) }).click()
+    await expect(renglonDe(page, nombre).getByRole('button', { name: 'No se pesó' })).toBeVisible()
+    return
+  }
+  if (!(await campo.isVisible())) {
+    await page.getByRole('button', { name: new RegExp(escapeRegex(nombre)) }).click()
+  }
+  await campo.fill(kilos)
+}
+
+/** Una foto mínima del indicador. No cambia la calidad del peso. */
+async function tomarFoto(page: import('@playwright/test').Page, nombre: string): Promise<void> {
+  await renglonDe(page, nombre).getByLabel('Foto de la báscula', { exact: true }).setInputFiles({
+    name: 'bascula.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from(
+      '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==',
+      'base64',
+    ),
+  })
+  await expect(page.getByRole('button', { name: /Guardar pesaje/ })).toBeEnabled()
 }
 
 function escapeRegex(texto: string): string {
