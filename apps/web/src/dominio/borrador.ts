@@ -12,7 +12,7 @@
  * mismo comando y no duplique la sesión.
  *
  * El borrador pertenece a una cuenta y a un navegador. Al cerrar sesión se
- * borra ([`App.tsx`](../App.tsx)), y si otra cuenta entra en el mismo
+ * borra ([`sesion.ts`](../api/sesion.ts)), y si otra cuenta entra en el mismo
  * celular, lo que quedó de la anterior se descarta al abrir la pantalla: nadie
  * ve ni manda el trabajo de otra sesión.
  *
