@@ -103,6 +103,60 @@ export function hoyEnElRancho(ahora: Date = new Date()): string {
   return `${valor('year')}-${valor('month')}-${valor('day')}`
 }
 
+/**
+ * `"2026-11-24"` → `"Martes 24 de noviembre"`.
+ *
+ * Se arma el día en UTC a partir del texto, para que el selector del pesaje
+ * diga el día del rancho y no el del día anterior por la zona del celular.
+ */
+export function fechaDelPesaje(dia: string): string {
+  const partes = partesDeDia(dia)
+  if (partes === null) {
+    return dia
+  }
+  const fecha = new Date(Date.UTC(partes.anio, partes.mes - 1, partes.dia, 12))
+  const texto = new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+    .format(fecha)
+    .replace(',', '')
+  return texto.charAt(0).toLocaleUpperCase('es-MX') + texto.slice(1)
+}
+
+/**
+ * Días de calendario entre dos fechas `YYYY-MM-DD`.
+ *
+ * Negativo si `hasta` es anterior. `null` si alguna no es un día. La cuenta es
+ * de fechas civiles (medianoche UTC), no de un peso.
+ */
+export function diasEntre(desde: string, hasta: string): number | null {
+  const inicio = partesDeDia(desde)
+  const fin = partesDeDia(hasta)
+  if (inicio === null || fin === null) {
+    return null
+  }
+  const msInicio = Date.UTC(inicio.anio, inicio.mes - 1, inicio.dia)
+  const msFin = Date.UTC(fin.anio, fin.mes - 1, fin.dia)
+  return Math.round((msFin - msInicio) / 86_400_000)
+}
+
+function partesDeDia(dia: string): { anio: number; mes: number; dia: number } | null {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia)
+  if (partes === null) {
+    return null
+  }
+  const anio = Number(partes[1])
+  const mes = Number(partes[2])
+  const numero = Number(partes[3])
+  if (mes < 1 || mes > 12 || numero < 1 || numero > 31) {
+    return null
+  }
+  return { anio, mes, dia: numero }
+}
+
 /** Días: `0` es «hoy», `1` es «ayer». */
 export function diasLegibles(dias: number | null): string {
   if (dias === null) {
