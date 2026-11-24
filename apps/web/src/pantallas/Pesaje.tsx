@@ -87,7 +87,9 @@ export function Pesaje() {
    * cada repintado, o un reintento mandaría otro comando.
    */
   const propuesto = useMemo(() => {
-    if (guardado !== null || hato.isPending || ultima.isPending) {
+    // Sin cuenta no se propone nada: un borrador con `cuentaId` vacío no sería
+    // de nadie y, al guardarse, pisaría el de la cuenta que sí estaba.
+    if (cuentaId === '' || guardado !== null || hato.isPending || ultima.isPending) {
       return null
     }
     return nuevoBorrador(cuentaId, ultima.isError ? [] : esperados)
@@ -100,7 +102,9 @@ export function Pesaje() {
   // A cada cambio se guarda el borrador. Es barato y es lo que salva la captura
   // si el celular se apaga o el dueño cierra la pestaña sin querer.
   useEffect(() => {
-    if (borrador !== null) {
+    // Un borrador sin cuenta no se guarda: todavía no se sabe de quién es, y
+    // lo que hubiera en el celular no se toca hasta saberlo.
+    if (borrador !== null && borrador.cuentaId !== '') {
       guardarBorrador(borrador)
     }
   }, [borrador])

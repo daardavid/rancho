@@ -1,7 +1,9 @@
-import { screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Pesaje } from '../src/pantallas/Pesaje'
 import {
   animalDeLista,
   ANIMAL,
@@ -491,6 +493,58 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(0)
   })
 
+  it('sin saber todavía la cuenta no se arma ni se guarda un borrador', async () => {
+    // Lo que quedó en el celular es de una cuenta real. Si la pantalla se
+    // abriera sin saber quién está capturando, no debe pisarlo con un borrador
+    // sin dueño: eso borraría la captura de la sesión anterior.
+    const anterior = {
+      version: 2,
+      cuentaId: CUENTA,
+      fecha: '2026-11-20',
+      nota: 'captura de la cuenta',
+      reportedBy: '',
+      sesionId: '88888888-8888-4888-8888-888888888888',
+      commandId: '99999999-9999-4999-8999-999999999998',
+      filas: [],
+    }
+    const antes = JSON.stringify(anterior)
+    window.localStorage.setItem('rancho.pesaje.borrador', antes)
+    const escrituras = vi.spyOn(Storage.prototype, 'setItem')
+
+    const api = montarApi({
+      // Todavía no se sabe quién está en la sesión: no hay cuenta a quién
+      // atribuir un borrador.
+      'GET /api/session': () => ({ estado: 401, cuerpo: { codigo: 'no_autenticado' } }),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <Pesaje />
+      </QueryClientProvider>,
+    )
+
+    // Se espera a que la vuelta anterior y el hato lleguen: con el error, es
+    // justo entonces cuando se arma el borrador sin dueño.
+    await waitFor(() => {
+      const rutas = api.peticiones.map((peticion) => `${peticion.metodo} ${peticion.ruta}`)
+      expect(rutas).toContain('GET /api/animals')
+      expect(rutas).toContain('GET /api/weighing-sessions/latest')
+    })
+    await new Promise((resolver) => {
+      setTimeout(resolver, 50)
+    })
+
+    const guardados = escrituras.mock.calls.filter(
+      (llamada) => llamada[0] === 'rancho.pesaje.borrador',
+    )
+    expect(guardados).toHaveLength(0)
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBe(antes)
+  })
+
   it('cerrar sesión borra el borrador de este navegador', async () => {
     const usuario = userEvent.setup()
     montarApi({
@@ -498,7 +552,6 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
       'GET /api/animals': elHato(),
       'GET /api/weighing-sessions/latest': vueltaAnterior(),
       'DELETE /api/session': () => ({ estado: 204, cuerpo: null }),
-      'GET /api/session/tras-salir': sesionAbierta(),
     })
 
     pintarApp('#/pesaje')
