@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import { useFicha, usePesos } from '../api/hato'
 import { usePesosConHistoria } from '../api/pesajes'
-import { nombreVisible } from '../dominio/animal'
+import { areteVigente, nombreVisible } from '../dominio/animal'
 import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
 import {
   campoDeFicha,
@@ -12,21 +12,29 @@ import {
   participacion,
   sexo,
   tenencia,
+  tipoDeMarca,
   valorDeFicha,
 } from '../dominio/etiquetas'
 import type { FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { BotonSecundario } from '../ui/Botones'
+import { Desplegable } from '../ui/Desplegable'
+import { Encabezado } from '../ui/Encabezado'
+import { Etiqueta, type TonoDeEtiqueta } from '../ui/Etiqueta'
 import { FotoVisible } from '../ui/FotoDeLaBascula'
-import { Seccion } from '../ui/Campos'
 import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
 import { GraficaDePesos } from './GraficaDePesos'
 
 /**
- * La ficha del animal: qué se sabe, sus aretes con su historia, la historia de
- * sus correcciones y sus pesos.
+ * La ficha del animal ([Guía visual](../../../../../docs/design/guia-visual.md)).
+ *
+ * Arriba el nombre, el arete puesto y las etiquetas de lo que se sabe; después
+ * sus pesos, que es lo que se viene a ver; y al final, plegados, los aretes con
+ * su historia y la historia de correcciones. Lo que casi no se consulta no
+ * ocupa la primera pantalla.
  *
  * Los pesos se leen de la vista de crecimiento para la serie y la ganancia del
  * intervalo (R-06), y de la lectura con historia (`/weights`) para corregir:
@@ -58,7 +66,12 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
       <main className="pantalla">
         <AvisoDeError error={ficha.error} />
         <BotonGrande alTocar={() => void ficha.refetch()}>Volver a intentar</BotonGrande>
-        <BotonGrande secundario alTocar={() => { irA({ nombre: 'hato' }) }}>
+        <BotonGrande
+          secundario
+          alTocar={() => {
+            irA({ nombre: 'hato' })
+          }}
+        >
           Regresar al hato
         </BotonGrande>
       </main>
@@ -67,36 +80,42 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
 
   const animal = ficha.data
   const ultimoPeso = pesos.data?.ultimoPesaje ?? null
-  const correccionesDePeso = new Map(
-    (historia.data?.pesos ?? []).map((peso) => [peso.id, peso]),
-  )
+  const arete = areteVigente(animal)
+  const correccionesDePeso = new Map((historia.data?.pesos ?? []).map((peso) => [peso.id, peso]))
 
   return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">
-          <button
-            type="button"
-            className="enlace"
-            onClick={() => {
-              irA({ nombre: 'hato' })
-            }}
-          >
-            ← Hato
-          </button>
-        </p>
-        <h1>{nombreVisible(animal)}</h1>
-        <p className="subtitulo">
-          {categoria(animal.categoria)}
-          {animal.activo ? '' : ' · Inactivo'}
-          {ultimoPeso === null
-            ? ''
-            : ` · ${kilosLegibles(ultimoPeso.kilos)} el ${diaLegible(ultimoPeso.fecha)}`}
-        </p>
-      </header>
+    <main className="pantalla pantalla--ficha">
+      <Encabezado
+        titulo={nombreVisible(animal)}
+        subtitulo={
+          ultimoPeso === null
+            ? 'Todavía no tiene ningún peso'
+            : `Último peso: ${kilosLegibles(ultimoPeso.kilos)} el ${diaLegible(ultimoPeso.fecha)}`
+        }
+        alRegresar={() => {
+          irA({ nombre: 'hato' })
+        }}
+        etiquetaRegresar="Regresar al hato"
+      />
+
+      <div className="ficha__etiquetas">
+        <Etiqueta tono={tonoDeCategoria(animal.categoria)}>{categoria(animal.categoria)}</Etiqueta>
+        <Etiqueta tono={animal.tenencia === 'unknown' ? 'sinDatos' : 'bien'}>
+          {tenencia(animal.tenencia)}
+        </Etiqueta>
+        {arete === null ? (
+          <Etiqueta tono="sinDatos">Sin arete</Etiqueta>
+        ) : (
+          <Etiqueta tono="sinDatos">
+            {tipoDeMarca(arete.tipo)} {arete.valor}
+          </Etiqueta>
+        )}
+        {animal.activo ? null : <Etiqueta tono="revisar">Inactivo</Etiqueta>}
+      </div>
 
       {corrigiendo ? (
-        <Seccion titulo="Corregir la ficha">
+        <section className="ficha__seccion">
+          <h2 className="ficha__titulo">Corregir la ficha</h2>
           <FormularioDeCorreccion
             ficha={animal}
             alRecargar={() => {
@@ -108,7 +127,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               setGuardado(true)
             }}
           />
-        </Seccion>
+        </section>
       ) : (
         <>
           {guardado ? (
@@ -117,43 +136,8 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             </p>
           ) : null}
 
-          <Seccion titulo="Qué se sabe">
-            <Datos animal={animal} />
-            <BotonGrande
-              secundario
-              alTocar={() => {
-                setGuardado(false)
-                setCorrigiendo(true)
-              }}
-            >
-              Corregir la ficha
-            </BotonGrande>
-          </Seccion>
-
-          <Seccion titulo="Aretes">
-            <Aretes animalId={animal.id} marcas={animal.marcas} />
-          </Seccion>
-
-          <Seccion titulo="Historia de correcciones">
-            {animal.correcciones.length === 0 ? (
-              <p className="campo__ayuda">Nadie ha corregido esta ficha.</p>
-            ) : (
-              <ul className="lista lista--planas">
-                {animal.correcciones.map((correccion, indice) => (
-                  <li key={`${correccion.campo}-${correccion.correctedAt}-${indice}`} className="correccion">
-                    <p className="correccion__campo">
-                      {campoDeFicha(correccion.campo)}: antes decía «
-                      {valorDeFicha(correccion.campo, correccion.valorAnterior)}»
-                    </p>
-                    <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
-                    <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Seccion>
-
-          <Seccion titulo="Pesos">
+          <section className="ficha__seccion">
+            <h2 className="ficha__titulo">Pesos</h2>
             {pesos.isPending ? <p className="campo__ayuda">Trayendo los pesos…</p> : null}
             {pesos.isError ? (
               <p className="campo__ayuda">No se pudieron traer los pesos. Vuelve a abrir la ficha.</p>
@@ -170,8 +154,10 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               <ul className="lista lista--planas">
                 {[...pesos.data.pesos].reverse().map((punto) => (
                   <li key={punto.pesoId} className="peso">
-                    <span className="peso__kilos">{kilosLegibles(punto.kilos)}</span>
-                    <span className="peso__fecha">{diaLegible(punto.fecha)}</span>
+                    <div className="peso__fila">
+                      <span className="peso__kilos">{kilosLegibles(punto.kilos)}</span>
+                      <span className="peso__fecha">{diaLegible(punto.fecha)}</span>
+                    </div>
                     <span className="peso__calidad">{calidad(punto.calidad)}</span>
                     <FotoVisible evidenciaId={correccionesDePeso.get(punto.pesoId)?.evidenciaId} />
                     {punto.intervalo === null ? null : (
@@ -211,39 +197,104 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
                 Corrección del peso guardada. Lo anterior quedó en la historia.
               </p>
             ) : null}
-          </Seccion>
+          </section>
 
-          <Seccion titulo="Huecos de pesaje">
-            {pesos.data === undefined || pesos.data.huecos.length === 0 ? (
-              <p className="campo__ayuda">
-                En ninguna vuelta se le esperó y se quedó sin pesar.
-              </p>
-            ) : (
-              <ul className="lista lista--planas">
-                {pesos.data.huecos.map((hueco) => (
-                  <li key={hueco.sesionId} className="arete">
-                    <span className="arete__valor">Se esperaba y no se pesó</span>
-                    <span className="arete__estado">{diaLegible(hueco.fecha)}</span>
-                    <span className="arete__acciones">
-                      <button
-                        type="button"
-                        className="enlace"
-                        onClick={() => {
-                          irA({ nombre: 'sesion', sesionId: hueco.sesionId })
-                        }}
-                      >
-                        Ver la sesión
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Seccion>
+          <section className="ficha__seccion">
+            <h2 className="ficha__titulo">Qué se sabe</h2>
+            <Datos animal={animal} />
+            <BotonSecundario
+              tono="tinta"
+              alTocar={() => {
+                setGuardado(false)
+                setCorrigiendo(true)
+              }}
+            >
+              Corregir la ficha
+            </BotonSecundario>
+          </section>
+
+          <div className="ficha__plegables">
+            <Desplegable
+              titulo="Aretes"
+              resumen={`${String(animal.marcas.length)} ${animal.marcas.length === 1 ? 'registro' : 'registros'}`}
+            >
+              <Aretes animalId={animal.id} marcas={animal.marcas} />
+            </Desplegable>
+
+            <Desplegable
+              titulo="Historia de correcciones"
+              resumen={
+                animal.correcciones.length === 0
+                  ? 'sin correcciones'
+                  : `${String(animal.correcciones.length)} ${animal.correcciones.length === 1 ? 'corrección' : 'correcciones'}`
+              }
+            >
+              {animal.correcciones.length === 0 ? (
+                <p className="campo__ayuda">Nadie ha corregido esta ficha.</p>
+              ) : (
+                <ul className="lista lista--planas">
+                  {animal.correcciones.map((correccion, indice) => (
+                    <li
+                      key={`${correccion.campo}-${correccion.correctedAt}-${indice}`}
+                      className="correccion"
+                    >
+                      <p className="correccion__campo">
+                        {campoDeFicha(correccion.campo)}: antes decía «
+                        {valorDeFicha(correccion.campo, correccion.valorAnterior)}»
+                      </p>
+                      <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
+                      <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Desplegable>
+
+            <Desplegable
+              titulo="Huecos de pesaje"
+              resumen={
+                pesos.data === undefined || pesos.data.huecos.length === 0
+                  ? 'ninguno'
+                  : String(pesos.data.huecos.length)
+              }
+            >
+              {pesos.data === undefined || pesos.data.huecos.length === 0 ? (
+                <p className="campo__ayuda">En ninguna vuelta se le esperó y se quedó sin pesar.</p>
+              ) : (
+                <ul className="lista lista--planas">
+                  {pesos.data.huecos.map((hueco) => (
+                    <li key={hueco.sesionId} className="arete">
+                      <span className="arete__valor">Se esperaba y no se pesó</span>
+                      <span className="arete__estado">{diaLegible(hueco.fecha)}</span>
+                      <span className="arete__acciones">
+                        <button
+                          type="button"
+                          className="enlace"
+                          onClick={() => {
+                            irA({ nombre: 'sesion', sesionId: hueco.sesionId })
+                          }}
+                        >
+                          Ver la sesión
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Desplegable>
+          </div>
         </>
       )}
     </main>
   )
+}
+
+/** El color del avatar de la lista, para que la ficha se lea igual que el hato. */
+function tonoDeCategoria(codigo: string): TonoDeEtiqueta {
+  if (codigo === 'calf' || codigo === 'cow' || codigo === 'bull') {
+    return 'bien'
+  }
+  return 'sinDatos'
 }
 
 /**
@@ -295,8 +346,7 @@ function PesoConCorreccion({
             <li key={`${correccion.campo}-${correccion.correctedAt}-${indice}`} className="correccion">
               <p className="correccion__campo">
                 {etiquetaDeCampo(correccion.campo)}: antes decía «
-                {textoAnterior(correccion.campo, correccion.valorAnterior)}
-                »
+                {textoAnterior(correccion.campo, correccion.valorAnterior)}»
               </p>
               <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
               <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
@@ -350,10 +400,7 @@ function Datos({ animal }: { readonly animal: FichaCompleta }) {
         valor={participacion(animal.participacionEconomica)}
       />
       {animal.tenencia === 'a_la_parte' ? (
-        <Dato
-          etiqueta="Nota del arreglo"
-          valor={animal.notaDelArreglo ?? 'Sin nota'}
-        />
+        <Dato etiqueta="Nota del arreglo" valor={animal.notaDelArreglo ?? 'Sin nota'} />
       ) : null}
       {animal.nota === null ? null : <Dato etiqueta="Nota" valor={animal.nota} />}
       <Dato etiqueta="Registrado" valor={instanteLegible(animal.recordedAt)} />

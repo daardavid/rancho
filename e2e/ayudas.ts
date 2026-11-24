@@ -36,12 +36,17 @@ export async function abrirAlta(page: Page): Promise<void> {
     .getByRole('link', { name: 'Dar de alta un animal' })
     .or(page.getByRole('button', { name: 'Dar de alta el primer animal' }))
     .click()
-  await expect(page.getByRole('heading', { name: 'Dar de alta un animal' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nuevo animal' })).toBeVisible()
 }
 
-/** Guarda el alta que está abierta. */
+/** Guarda el alta que está abierta, sin quedarse a capturar otro. */
 export async function guardarAlta(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Dar de alta', exact: true }).click()
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
+}
+
+/** Abre «Más datos», donde viven la otra categoría, la participación y las notas. */
+export async function abrirMasDatos(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /Más datos/ }).click()
 }
 
 /**

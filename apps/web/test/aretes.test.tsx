@@ -56,7 +56,11 @@ describe('Aretes del animal', () => {
 
     pintarApp(`#/animal/${ANIMAL}`)
 
-    expect(await screen.findByText('SINIIGA MX-0001')).toBeDefined()
+    // Los aretes viven en una sección plegable: lo que casi no se consulta no
+    // ocupa la primera pantalla.
+    await usuario.click(await screen.findByRole('button', { name: /Aretes/ }))
+    // El arete puesto se ve arriba, como etiqueta, y aquí con su historia.
+    expect((await screen.findAllByText('SINIIGA MX-0001')).length).toBeGreaterThan(0)
     await usuario.click(screen.getByRole('button', { name: 'Cambiar arete' }))
 
     await usuario.type(screen.getByLabelText(/Número del arete/), 'MX-9999')
@@ -99,7 +103,8 @@ describe('Aretes del animal', () => {
 
     pintarApp(`#/animal/${ANIMAL}`)
 
-    await screen.findByText('SINIIGA MX-0001')
+    await usuario.click(await screen.findByRole('button', { name: /Aretes/ }))
+    await screen.findAllByText('SINIIGA MX-0001')
     await usuario.click(screen.getByRole('button', { name: 'Se cayó' }))
 
     await waitFor(() => {
