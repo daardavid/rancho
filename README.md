@@ -41,6 +41,19 @@ npm install
 
 One install at the root covers every workspace. There is no per-app install.
 
+## Run on a laptop, one command
+
+With Node installed, and without PostgreSQL or Docker:
+
+```bash
+npm install
+npm run local
+```
+
+The first run asks for the ranch name and, when no account exists, for a username and a password. The password is not echoed. It generates `SESSION_SECRET` when `.env` does not have one, stores the data in `.datos/` (git ignores that folder), applies the same migrations as a PostgreSQL server, and listens on the local network. The console prints the address to open from a phone on the same Wi-Fi. A second run does not create another ranch or account, does not rotate the secret, and does not delete data.
+
+This mode is HTTP. The session cookie does not carry `Secure`, so the phone can store it. The process says so. With `NODE_ENV=production` the cookie is `Secure` without exception, and the process refuses to start if `MODO=local` is also set. Detail is in [docs/development/correr-local.md](docs/development/correr-local.md) and [ADR-015](docs/architecture/adr/ADR-015-local-embedded-postgresql.md).
+
 ## Build and run in production mode
 
 One process serves the API at `/api` and the built web app at `/`. One origin is what keeps the session cookie first-party ([ADR-010](docs/architecture/adr/ADR-010-authentication.md)).
@@ -62,13 +75,13 @@ The process refuses to start and says which variable is missing when `DATABASE_U
 | `HOST` | No, default `127.0.0.1` | Listen interface. Use `0.0.0.0` in a container |
 | `DB_POOL` | No, default `10` | Connection pool size |
 | `WEB_DIST` | No | Built web folder, if not `apps/web/dist` |
-| `NODE_ENV` | No | `production` marks the cookie `Secure` |
+| `NODE_ENV` | No | `production` marks the cookie `Secure`. It cannot be combined with `MODO=local` |
 
 Migrations are never applied at process start. Run `npm run db:migrate -w @rancho/api` before starting a new process ([deployment-strategy.md](docs/architecture/deployment-strategy.md)).
 
 Two health endpoints exist. `GET /api/health` reports that the process answers. `GET /api/health/ready` also checks PostgreSQL and returns `503` with `{"ok":false,"base":"no_responde"}` when the database does not answer; that is what a deployment checks before sending traffic. Neither prints a connection string.
 
-The full first-time setup on a laptop — database, migrations, seeded ranch, owner account, build, start — is in [docs/development/correr-local.md](docs/development/correr-local.md).
+The full first-time setup on a laptop is `npm run local`, documented in [docs/development/correr-local.md](docs/development/correr-local.md). The same page keeps the path that uses a PostgreSQL server.
 
 ## Run the API and the web app in development
 
