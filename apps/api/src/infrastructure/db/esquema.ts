@@ -9,6 +9,8 @@ import { check, index, pgSchema, pgTable, text, timestamp, uniqueIndex, uuid } f
 export const esquemaHerd = pgSchema('herd')
 export const esquemaGrowth = pgSchema('growth')
 export const esquemaIdentity = pgSchema('identity')
+/** Metadatos del puerto de archivos. No es un módulo de dominio. */
+export const esquemaEvidence = pgSchema('evidence')
 
 /** El único rancho de la instalación. La semilla lo crea; no es un agregado de Herd. */
 export const ranch = esquemaIdentity.table('ranch', {

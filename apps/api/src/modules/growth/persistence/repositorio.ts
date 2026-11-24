@@ -1,7 +1,14 @@
 import { sql } from 'drizzle-orm'
 
 import { recordedBySchema, reportedBySchema } from '../../../shared-kernel/actores'
-import { animalIdSchema, nuevoId, ranchIdSchema, type AnimalId, type RanchId } from '../../../shared-kernel/ids'
+import {
+  animalIdSchema,
+  evidenceIdSchema,
+  nuevoId,
+  ranchIdSchema,
+  type AnimalId,
+  type RanchId,
+} from '../../../shared-kernel/ids'
 import { formatearGramosATexto, interpretarKilos, type Gramos } from '../../../shared-kernel/kilos'
 import type { SourceQuality } from '../../../shared-kernel/source-quality'
 import { actualizarConVersion } from '../../../infrastructure/db/version'
@@ -17,7 +24,9 @@ const COLUMNAS_SESION = sql.raw(
   'id, ranch_id, weighed_on::text as weighed_on, note, reported_by, recorded_by, recorded_at, command_id',
 )
 
-const COLUMNAS_LINEA = sql.raw('id, animal_id, result, kilos::text as kilos, quality, version')
+const COLUMNAS_LINEA = sql.raw(
+  'id, animal_id, result, kilos::text as kilos, quality, version, evidence_id',
+)
 
 type FilaSesion = {
   id: string
@@ -37,6 +46,7 @@ type FilaLinea = {
   kilos: unknown
   quality: string | null
   version: unknown
+  evidence_id: string | null
 }
 
 type FilaPeso = FilaLinea & {
@@ -104,6 +114,7 @@ export function crearRepositorioDePesajes(db: EjecutorSql): RepositorioDePesajes
             line.kilos::text as kilos,
             line.quality,
             line.version,
+            line.evidence_id,
             session.id as session_id,
             session.weighed_on::text as fecha
           FROM growth.weighing_line line
@@ -134,6 +145,7 @@ export function crearRepositorioDePesajes(db: EjecutorSql): RepositorioDePesajes
             line.kilos::text as kilos,
             line.quality,
             line.version,
+            line.evidence_id,
             session.id as session_id,
             session.weighed_on::text as fecha
           FROM growth.weighing_line line
@@ -197,10 +209,10 @@ async function insertarFila(
   if (fila.resultado === 'hueco') {
     await db.execute(sql`
       INSERT INTO growth.weighing_line (
-        id, ranch_id, session_id, animal_id, position, result, kilos, quality, version
+        id, ranch_id, session_id, animal_id, position, result, kilos, quality, version, evidence_id
       ) VALUES (
         ${fila.id}, ${sesion.ranchId}, ${sesion.id}, ${fila.animalId}, ${indice},
-        'gap', null, null, null
+        'gap', null, null, null, null
       )
     `)
     return
@@ -209,10 +221,10 @@ async function insertarFila(
   const texto = formatearGramosATexto(fila.kilos)
   await db.execute(sql`
     INSERT INTO growth.weighing_line (
-      id, ranch_id, session_id, animal_id, position, result, kilos, quality, version
+      id, ranch_id, session_id, animal_id, position, result, kilos, quality, version, evidence_id
     ) VALUES (
       ${fila.id}, ${sesion.ranchId}, ${sesion.id}, ${fila.animalId}, ${indice},
-      'weighed', ${texto}::numeric, ${fila.calidad}, ${fila.version}
+      'weighed', ${texto}::numeric, ${fila.calidad}, ${fila.version}, ${fila.evidenciaId}
     )
   `)
 }
@@ -323,6 +335,7 @@ function pesoFilaDesde(fila: FilaLinea, animalId: AnimalId): FilaPesada {
     kilos: gramosDe(fila.kilos),
     calidad: fila.quality,
     version: entero(fila.version),
+    evidenciaId: fila.evidence_id === null ? null : evidenceIdSchema.parse(fila.evidence_id),
   }
 }
 
@@ -340,11 +353,23 @@ function correccionDesde(fila: FilaHistoria): CorreccionDePeso {
 }
 
 function columnaDe(anterior: ValorAnteriorDePeso): string {
-  return anterior.campo === 'kilos' ? 'kilos' : 'quality'
+  if (anterior.campo === 'kilos') {
+    return 'kilos'
+  }
+  if (anterior.campo === 'calidad') {
+    return 'quality'
+  }
+  return 'evidence_id'
 }
 
-function valorNuevo(fila: FilaPesada, anterior: ValorAnteriorDePeso): string {
-  return anterior.campo === 'kilos' ? formatearGramosATexto(fila.kilos) : fila.calidad
+function valorNuevo(fila: FilaPesada, anterior: ValorAnteriorDePeso): string | null {
+  if (anterior.campo === 'kilos') {
+    return formatearGramosATexto(fila.kilos)
+  }
+  if (anterior.campo === 'calidad') {
+    return fila.calidad
+  }
+  return fila.evidenciaId
 }
 
 function esCalidad(valor: string): valor is SourceQuality {

@@ -134,6 +134,22 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Uno de los renglones ya estaba guardado en esta vuelta.',
     queHacer: 'Abre la sesión guardada para revisarla.',
   },
+  evidencia_ajena: {
+    quePaso: 'Esa foto no se puede usar en este peso.',
+    queHacer: 'Tómala otra vez desde esta pantalla.',
+  },
+  foto_no_es_imagen: {
+    quePaso: 'Eso no es una foto JPEG, PNG o WebP.',
+    queHacer: 'Toma la foto del indicador con la cámara del celular.',
+  },
+  foto_demasiado_grande: {
+    quePaso: 'La foto pesa más de 25 MB.',
+    queHacer: 'Toma otra más cerca del indicador.',
+  },
+  foto_vacia: {
+    quePaso: 'La foto llegó vacía.',
+    queHacer: 'Tómala otra vez.',
+  },
 }
 
 const GENERICO: { quePaso: string; queHacer: string } = MENSAJES.error_desconocido ?? {

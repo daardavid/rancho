@@ -1,10 +1,11 @@
 import type { RecordedBy } from '../../../shared-kernel/actores'
+import { evidenceIdSchema, type EvidenceId } from '../../../shared-kernel/ids'
 import { formatearGramosATexto, type Gramos } from '../../../shared-kernel/kilos'
 import type { SourceQuality } from '../../../shared-kernel/source-quality'
 
 import { RechazoDeGrowth } from './errores'
 import type { FilaDeSesion, FilaPesada } from './sesion'
-import { LARGO_MAXIMO_MOTIVO, type CampoDePeso } from './valores'
+import { AUSENCIA_DE_FOTO, LARGO_MAXIMO_MOTIVO, type CampoDePeso } from './valores'
 
 /** Una fila de historia: el valor que estaba, quién lo cambió, cuándo y por qué. */
 export type CorreccionDePeso = {
@@ -20,10 +21,16 @@ export type ValorAnteriorDePeso = {
   readonly valorAnterior: string
 }
 
-/** Cada clave presente es un cambio. Omitir es no tocarlo. */
+/**
+ * Cada clave presente es un cambio. Omitir es no tocarlo.
+ *
+ * `evidenciaId: null` quita la foto del peso. Los bytes no se borran aquí:
+ * este agregado solo mueve el id.
+ */
 export type CambiosDePeso = {
   readonly kilos?: Gramos
   readonly calidad?: SourceQuality
+  readonly evidenciaId?: EvidenceId | null
 }
 
 export type PesoCorregido = {
@@ -46,6 +53,7 @@ export function corregirPeso(fila: FilaDeSesion, cambios: CambiosDePeso, motivo:
   const anteriores: ValorAnteriorDePeso[] = []
   let kilos = fila.kilos
   let calidad = fila.calidad
+  let evidenciaId = fila.evidenciaId
 
   if (cambios.kilos !== undefined && cambios.kilos !== fila.kilos) {
     anteriores.push({ campo: 'kilos', valorAnterior: formatearGramosATexto(fila.kilos) })
@@ -54,6 +62,13 @@ export function corregirPeso(fila: FilaDeSesion, cambios: CambiosDePeso, motivo:
   if (cambios.calidad !== undefined && cambios.calidad !== fila.calidad) {
     anteriores.push({ campo: 'calidad', valorAnterior: fila.calidad })
     calidad = cambios.calidad
+  }
+  if (cambios.evidenciaId !== undefined && cambios.evidenciaId !== fila.evidenciaId) {
+    anteriores.push({
+      campo: 'evidencia',
+      valorAnterior: fila.evidenciaId ?? AUSENCIA_DE_FOTO,
+    })
+    evidenciaId = cambios.evidenciaId === null ? null : evidenceIdSchema.parse(cambios.evidenciaId)
   }
   if (anteriores.length === 0) {
     throw new RechazoDeGrowth('correccion_vacia')
@@ -64,6 +79,7 @@ export function corregirPeso(fila: FilaDeSesion, cambios: CambiosDePeso, motivo:
       ...fila,
       kilos,
       calidad,
+      evidenciaId,
       version: fila.version + 1,
     },
     anteriores,

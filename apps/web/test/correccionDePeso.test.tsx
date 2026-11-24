@@ -185,7 +185,7 @@ describe('Corregir un peso desde la sesión', () => {
 
     const guardar = screen.getByRole('button', { name: 'Guardar corrección' })
     expect((guardar as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText('Todavía no cambiaste el peso ni la calidad.')).toBeDefined()
+    expect(screen.getByText('Todavía no cambiaste el peso, la calidad ni la foto.')).toBeDefined()
   })
 
   it('si alguien más corrigió el peso, lo explica y no guarda nada', async () => {

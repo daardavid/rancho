@@ -8,6 +8,7 @@ import { kilosNormales, kilosParaEditar, revisarKilos } from '../dominio/kilos'
 import { esConflictoDeVersion } from '../dominio/mensajes'
 import { AvisoDeError, BotonGrande } from '../ui/Avisos'
 import { CampoDeArea, CampoDeSeleccion, CampoDeTexto } from '../ui/Campos'
+import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
 
 /**
  * Lo que hace falta para corregir un peso: su id, lo que dice hoy y su versión.
@@ -16,7 +17,7 @@ import { CampoDeArea, CampoDeSeleccion, CampoDeTexto } from '../ui/Campos'
  * de la lectura con historia traen cosas distintas; los dos tienen esto. Lo que
  * llega es el hecho guardado, nunca un valor derivado.
  */
-export type PesoCorregible = Pick<Peso, 'id' | 'kilos' | 'calidad' | 'version'>
+export type PesoCorregible = Pick<Peso, 'id' | 'kilos' | 'calidad' | 'version' | 'evidenciaId'>
 
 /**
  * Corregir un peso ya asentado, con motivo.
@@ -48,6 +49,8 @@ export function CorreccionDePeso({
 }) {
   const [kilos, setKilos] = useState(kilosParaEditar(peso.kilos))
   const [calidadDelPeso, setCalidadDelPeso] = useState<string>(peso.calidad)
+  const [fotoId, setFotoId] = useState<string | null>(peso.evidenciaId ?? null)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [motivo, setMotivo] = useState('')
 
   const corregir = useCorregirPeso(peso.id)
@@ -57,14 +60,15 @@ export function CorreccionDePeso({
   const revision = revisarKilos(kilos)
   const cambioKilos = revision.ok && kilosNormales(kilos) !== peso.kilos
   const cambioCalidad = calidadDelPeso !== peso.calidad
+  const cambioFoto = fotoId !== (peso.evidenciaId ?? null)
   const faltaMotivo = motivo.trim() === ''
-  const sinCambios = !cambioKilos && !cambioCalidad
+  const sinCambios = !cambioKilos && !cambioCalidad && !cambioFoto
 
   const conflicto = esConflictoDeVersion(corregir.error)
 
   const enviar = (evento: React.FormEvent<HTMLFormElement>): void => {
     evento.preventDefault()
-    if (faltaMotivo || sinCambios || !revision.ok || corregir.isPending) {
+    if (faltaMotivo || sinCambios || !revision.ok || corregir.isPending || subiendoFoto) {
       return
     }
 
@@ -75,6 +79,7 @@ export function CorreccionDePeso({
       // contra lo guardado y no se manda un valor igual.
       ...(cambioKilos ? { kilos: kilos.trim() } : {}),
       ...(cambioCalidad ? { calidad: calidadDelPeso as 'measured' | 'observed' | 'declared' } : {}),
+      ...(cambioFoto ? { evidenciaId: fotoId } : {}),
     }
 
     const contenido = JSON.stringify(cuerpo)
@@ -130,6 +135,12 @@ export function CorreccionDePeso({
         alCambiar={setCalidadDelPeso}
       />
 
+      <FotoDeLaBascula
+        evidenciaId={fotoId}
+        alCambiar={setFotoId}
+        alOcuparse={setSubiendoFoto}
+      />
+
       <CampoDeArea
         etiqueta="¿Por qué se corrige?"
         valor={motivo}
@@ -140,7 +151,7 @@ export function CorreccionDePeso({
 
       {sinCambios && motivo.trim() !== '' ? (
         <p className="campo__ayuda" role="status">
-          Todavía no cambiaste el peso ni la calidad.
+          Todavía no cambiaste el peso, la calidad ni la foto.
         </p>
       ) : null}
 
@@ -148,9 +159,9 @@ export function CorreccionDePeso({
 
       <BotonGrande
         tipo="submit"
-        deshabilitado={faltaMotivo || sinCambios || !revision.ok || corregir.isPending}
+        deshabilitado={faltaMotivo || sinCambios || !revision.ok || corregir.isPending || subiendoFoto}
       >
-        {corregir.isPending ? 'Guardando…' : 'Guardar corrección'}
+        {corregir.isPending ? 'Guardando…' : subiendoFoto ? 'Subiendo la foto…' : 'Guardar corrección'}
       </BotonGrande>
 
       <BotonGrande secundario alTocar={alCancelar}>

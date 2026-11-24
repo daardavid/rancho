@@ -25,6 +25,8 @@ export type FilaBorrador = {
   readonly resultado: 'pesado' | 'hueco'
   readonly kilos: string
   readonly calidad: CalidadBorrador
+  /** Id de la foto ya subida. `null` es no tenerla. El archivo no cabe en el borrador. */
+  readonly evidenciaId: string | null
 }
 
 export type BorradorDePesaje = {
@@ -135,5 +137,21 @@ function interpretarFila(valor: unknown): FilaBorrador | null {
     return null
   }
 
-  return { id, animalId, resultado, kilos, calidad }
+  const evidenciaId = evidenciaDelBorrador(fila.evidenciaId)
+  if (evidenciaId === undefined) {
+    return null
+  }
+
+  return { id, animalId, resultado, kilos, calidad, evidenciaId }
+}
+
+/** Ausente o `null` es sin foto. Otra cosa que no sea texto tira el borrador. */
+function evidenciaDelBorrador(valor: unknown): string | null | undefined {
+  if (valor === undefined || valor === null || valor === '') {
+    return null
+  }
+  if (typeof valor !== 'string') {
+    return undefined
+  }
+  return valor
 }

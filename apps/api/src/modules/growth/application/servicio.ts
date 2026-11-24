@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { reportedBySchema, type RecordedBy } from '../../../shared-kernel/actores'
 import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../shared-kernel/conflictos'
-import { animalIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
+import { animalIdSchema, evidenceIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
 import {
   ejecutarComandoIdempotente,
   huellaDeContenido,
@@ -40,10 +40,19 @@ export type ConsultaDeAnimales = {
   existenEnElRancho(ranchId: RanchId, ids: readonly string[]): Promise<readonly EstadoDeAnimal[]>
 }
 
+/**
+ * Growth no escribe la tabla de evidencia. Solo pregunta si el id es de
+ * este rancho antes de guardarlo junto al peso.
+ */
+export type ConsultaDeEvidencia = {
+  perteneceAlRancho(ranchId: RanchId, evidenciaId: string): Promise<boolean>
+}
+
 export type AlcanceDeGrowth = {
   readonly leerRecibo: (commandId: string) => Promise<ReciboGuardado | null>
   readonly escribir: <T>(trabajo: (deps: DepsDeGrowth) => Promise<T>) => Promise<T>
   readonly animales: ConsultaDeAnimales
+  readonly evidencia: ConsultaDeEvidencia | null
 }
 
 export type FilaDeComando =
@@ -53,6 +62,7 @@ export type FilaDeComando =
       readonly resultado: 'pesado'
       readonly kilos: string
       readonly calidad?: SourceQuality
+      readonly evidenciaId?: string
     }
   | {
       readonly id: string
@@ -80,6 +90,8 @@ export type EntradaCorregir = {
   readonly motivo: string
   readonly kilos?: string
   readonly calidad?: SourceQuality
+  /** `null` quita la foto. Omitirlo no la toca. */
+  readonly evidenciaId?: string | null
 }
 
 export type { PesoPublico, PesosDelAnimal, SesionPublica }
@@ -108,6 +120,7 @@ export async function registrar(alcance: AlcanceDeGrowth, entrada: EntradaRegist
     borrador.ranchId,
     borrador.filas.map((fila) => fila.animalId),
   )
+  await exigirEvidenciaDelRancho(alcance.evidencia, borrador.ranchId, idsDeEvidencia(borrador.filas))
 
   return alcance.escribir((deps) =>
     ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
@@ -118,12 +131,26 @@ export async function registrar(alcance: AlcanceDeGrowth, entrada: EntradaRegist
   )
 }
 
-export async function corregir(deps: DepsDeGrowth, entrada: EntradaCorregir): Promise<PesoPublico> {
-  return ejecutarComandoIdempotente(
-    deps.idempotencia,
-    entrada.commandId,
-    contenidoDeCorreccion(entrada),
-    async () => {
+export async function corregir(alcance: AlcanceDeGrowth, entrada: EntradaCorregir): Promise<PesoPublico> {
+  const contenido = contenidoDeCorreccion(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as PesoPublico
+  }
+
+  // Fuera de la transacción del peso. En la base embebida una consulta aparte,
+  // con esa transacción abierta, no vuelve: las dos se esperan.
+  if (entrada.evidenciaId !== undefined && entrada.evidenciaId !== null) {
+    await exigirEvidenciaDelRancho(alcance.evidencia, ranchIdSchema.parse(entrada.ranchId), [
+      entrada.evidenciaId,
+    ])
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const linea = await deps.sesiones.obtenerLinea(ranchId, z.uuid().parse(entrada.pesoId), true)
       if (linea === null) {
@@ -139,6 +166,12 @@ export async function corregir(deps: DepsDeGrowth, entrada: EntradaCorregir): Pr
       const cambios: CambiosDePeso = {
         ...(entrada.kilos !== undefined ? { kilos: parsearORechazar(entrada.kilos) } : {}),
         ...(entrada.calidad !== undefined ? { calidad: entrada.calidad } : {}),
+        ...(entrada.evidenciaId !== undefined
+          ? {
+              evidenciaId:
+                entrada.evidenciaId === null ? null : evidenceIdSchema.parse(entrada.evidenciaId),
+            }
+          : {}),
       }
       const corregido = corregirPeso(linea.fila, cambios, entrada.motivo)
       await deps.sesiones.guardarCorreccion({
@@ -156,7 +189,7 @@ export async function corregir(deps: DepsDeGrowth, entrada: EntradaCorregir): Pr
         throw new Error('El peso corregido no se pudo leer.')
       }
       return publicarPeso(guardada)
-    },
+    }),
   )
 }
 
@@ -235,6 +268,9 @@ function filaDeEntrada(fila: FilaDeComando): EntradaDeFila {
     resultado: 'pesado',
     kilos: parsearORechazar(fila.kilos),
     ...(fila.calidad !== undefined ? { calidad: fila.calidad } : {}),
+    ...(fila.evidenciaId !== undefined
+      ? { evidenciaId: evidenceIdSchema.parse(fila.evidenciaId) }
+      : {}),
   }
 }
 
@@ -264,6 +300,7 @@ function contenidoDeRegistro(entrada: EntradaRegistrar): unknown {
               resultado: fila.resultado,
               kilos: kilosDeHuella(fila.kilos),
               calidad: fila.calidad ?? null,
+              evidenciaId: fila.evidenciaId ?? null,
             }
           : {
               id: fila.id,
@@ -271,6 +308,7 @@ function contenidoDeRegistro(entrada: EntradaRegistrar): unknown {
               resultado: fila.resultado,
               kilos: null,
               calidad: null,
+              evidenciaId: null,
             },
       )
       .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)),
@@ -287,6 +325,36 @@ function contenidoDeCorreccion(entrada: EntradaCorregir): unknown {
     motivo: entrada.motivo,
     kilos: entrada.kilos === undefined ? null : kilosDeHuella(entrada.kilos),
     calidad: entrada.calidad ?? null,
+    ...(entrada.evidenciaId !== undefined ? { evidenciaId: entrada.evidenciaId } : {}),
+  }
+}
+
+function idsDeEvidencia(filas: readonly { resultado: string; evidenciaId?: string | null }[]): string[] {
+  const ids: string[] = []
+  for (const fila of filas) {
+    if (fila.resultado === 'pesado' && fila.evidenciaId !== undefined && fila.evidenciaId !== null) {
+      ids.push(fila.evidenciaId)
+    }
+  }
+  return ids
+}
+
+async function exigirEvidenciaDelRancho(
+  consulta: ConsultaDeEvidencia | null,
+  ranchId: RanchId,
+  ids: readonly string[],
+): Promise<void> {
+  if (ids.length === 0) {
+    return
+  }
+  if (consulta === null) {
+    throw new RechazoDeGrowth('evidencia_ajena')
+  }
+  for (const id of ids) {
+    const pertenece = await consulta.perteneceAlRancho(ranchId, id)
+    if (!pertenece) {
+      throw new RechazoDeGrowth('evidencia_ajena')
+    }
   }
 }
 

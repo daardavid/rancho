@@ -68,10 +68,15 @@ describe('db:reset', () => {
       await db.execute(sql`
         SELECT schema_name
         FROM information_schema.schemata
-        WHERE schema_name IN ('herd', 'growth', 'identity')
+        WHERE schema_name IN ('herd', 'growth', 'identity', 'evidence')
       `),
     )
-    expect(esquemas.map((fila) => fila.schema_name).sort()).toEqual(['growth', 'herd', 'identity'])
+    expect(esquemas.map((fila) => fila.schema_name).sort()).toEqual([
+      'evidence',
+      'growth',
+      'herd',
+      'identity',
+    ])
   })
 
   it('también borra el recibo de comandos, que vive en `public`', async () => {
