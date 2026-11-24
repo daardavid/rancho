@@ -126,6 +126,10 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               setCorrigiendo(false)
               setGuardado(true)
             }}
+            alCancelar={() => {
+              setCorrigiendo(false)
+              setGuardado(false)
+            }}
           />
         </section>
       ) : (

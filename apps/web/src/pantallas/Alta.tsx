@@ -107,6 +107,15 @@ export function Alta() {
    */
   const envioDelArete = useRef<ComandoDelArete | null>(null)
 
+  /**
+   * El animal que ya quedó guardado cuando el arete falló.
+   *
+   * Con el id en la mano, reintentar manda solo el arete. Volver a mandar el
+   * comando del alta sería inútil y peligroso: si mientras tanto se corrigió
+   * el nombre, el mismo id con otro contenido es `idempotency_mismatch`.
+   */
+  const animalGuardado = useRef<string | null>(null)
+
   const cambiando = registrar.isPending || ponerArete.isPending
 
   const cambiar = (cambios: Partial<Borrador>): void => {
@@ -136,9 +145,6 @@ export function Alta() {
     }
     setGuardado(null)
 
-    envio.current ??= { commandId: crypto.randomUUID(), id: crypto.randomUUID() }
-    const ids = envio.current
-
     const textoNombre = limpiar(borrador.nombre)
     const textoArete = limpiar(borrador.arete)
     const textoDetalle =
@@ -151,6 +157,7 @@ export function Alta() {
     const terminar = (animalId: string): void => {
       envio.current = null
       envioDelArete.current = null
+      animalGuardado.current = null
       registrar.reset()
       ponerArete.reset()
 
@@ -168,6 +175,44 @@ export function Alta() {
       setBorrador({ ...EN_BLANCO, ...conservado })
       setGuardado(textoNombre ?? 'el animal')
     }
+
+    /** El arete, ya con el id del animal que la API confirmó. */
+    const ponerElArete = (animalId: string, valor: string): void => {
+      const contenido = `${animalId}|${valor}`
+      if (envioDelArete.current === null || envioDelArete.current.contenido !== contenido) {
+        envioDelArete.current = { id: crypto.randomUUID(), markId: crypto.randomUUID(), contenido }
+      }
+      const arete = envioDelArete.current
+      ponerArete.mutate(
+        {
+          animalId,
+          cuerpo: {
+            commandId: arete.id,
+            marcaId: arete.markId,
+            tipo: 'siniiga',
+            valor,
+          },
+        },
+        { onSuccess: () => terminar(animalId) },
+      )
+    }
+
+    /*
+      El animal ya está guardado y lo que falló fue el arete. Se reintenta solo
+      el arete: el alta no se vuelve a mandar.
+    */
+    const yaGuardado = animalGuardado.current
+    if (yaGuardado !== null) {
+      if (textoArete === undefined) {
+        terminar(yaGuardado)
+        return
+      }
+      ponerElArete(yaGuardado, textoArete)
+      return
+    }
+
+    envio.current ??= { commandId: crypto.randomUUID(), id: crypto.randomUUID() }
+    const ids = envio.current
 
     registrar.mutate(
       {
@@ -188,30 +233,8 @@ export function Alta() {
             terminar(ficha.id)
             return
           }
-
-          const contenido = `${ficha.id}|${textoArete}`
-          if (envioDelArete.current === null || envioDelArete.current.contenido !== contenido) {
-            envioDelArete.current = {
-              id: crypto.randomUUID(),
-              markId: crypto.randomUUID(),
-              contenido,
-            }
-          }
-          const arete = envioDelArete.current
-
-          // El arete se pone ya con el animal guardado.
-          ponerArete.mutate(
-            {
-              animalId: ficha.id,
-              cuerpo: {
-                commandId: arete.id,
-                marcaId: arete.markId,
-                tipo: 'siniiga',
-                valor: textoArete,
-              },
-            },
-            { onSuccess: () => terminar(ficha.id) },
-          )
+          animalGuardado.current = ficha.id
+          ponerElArete(ficha.id, textoArete)
         },
       },
     )

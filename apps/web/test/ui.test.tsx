@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { BarraInferior } from '../src/ui/BarraInferior'
 import { CampoDeKilos } from '../src/ui/CampoDeKilos'
+import { Desplegable } from '../src/ui/Desplegable'
 import { Filtros } from '../src/ui/Filtros'
 import { Mosaicos } from '../src/ui/Mosaicos'
+import { Pildoras } from '../src/ui/Pildoras'
 import { Segmentado } from '../src/ui/Segmentado'
 
 const SEXOS = [
@@ -73,12 +75,76 @@ describe('Mosaicos', () => {
   })
 })
 
+describe('Pildoras', () => {
+  it('elige una tenencia con un toque y deja «No sé» como una píldora más', async () => {
+    const usuario = userEvent.setup()
+
+    const TENENCIAS = [
+      { valor: 'ranch', texto: 'Del rancho' },
+      { valor: 'a_la_parte', texto: 'A la parte' },
+      { valor: 'third_party', texto: 'De otra persona' },
+      { valor: 'unknown', texto: 'No sé' },
+    ]
+
+    function Arnes() {
+      const [valor, setValor] = useState('unknown')
+      return (
+        <Pildoras
+          etiqueta="¿De quién es?"
+          opciones={TENENCIAS}
+          valor={valor}
+          alElegir={setValor}
+        />
+      )
+    }
+
+    render(<Arnes />)
+
+    expect((screen.getByRole('radio', { name: 'No sé' }) as HTMLInputElement).checked).toBe(true)
+    await usuario.click(screen.getByRole('radio', { name: 'A la parte' }))
+
+    expect((screen.getByRole('radio', { name: 'A la parte' }) as HTMLInputElement).checked).toBe(
+      true,
+    )
+    // No se pinta como error: es una respuesta válida del rancho.
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('Desplegable', () => {
+  it('empieza cerrado, avisa su estado y conserva el contenido al abrir y cerrar', async () => {
+    const usuario = userEvent.setup()
+    render(
+      <Desplegable titulo="Más datos" resumen="nota y arreglo">
+        <p>Contenido plegado</p>
+      </Desplegable>,
+    )
+
+    const boton = screen.getByRole('button', { name: /Más datos/ })
+    const contenido = screen.getByText('Contenido plegado').parentElement
+    expect(boton.getAttribute('aria-expanded')).toBe('false')
+    // El cuerpo se queda montado y solo se oculta: cerrar sin querer no borra
+    // lo que alguien estaba escribiendo.
+    expect(contenido?.hidden).toBe(true)
+
+    await usuario.click(boton)
+    expect(boton.getAttribute('aria-expanded')).toBe('true')
+    expect(contenido?.hidden).toBe(false)
+
+    await usuario.click(boton)
+    expect(boton.getAttribute('aria-expanded')).toBe('false')
+    expect(contenido?.hidden).toBe(true)
+  })
+})
+
 describe('Filtros', () => {
   it('deja activa la píldora que se toca', async () => {
     const usuario = userEvent.setup()
     const alElegir = vi.fn()
 
-    render(<Filtros etiqueta="Filtrar el hato" opciones={FILTROS} valor="todos" alElegir={alElegir} />)
+    render(
+      <Filtros etiqueta="Filtrar el hato" opciones={FILTROS} valor="todos" alElegir={alElegir} />,
+    )
 
     expect((screen.getByRole('radio', { name: 'Todos' }) as HTMLInputElement).checked).toBe(true)
     await usuario.click(screen.getByRole('radio', { name: 'Becerros' }))

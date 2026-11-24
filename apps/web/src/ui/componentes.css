@@ -843,6 +843,11 @@
   gap: 16px;
 }
 
+.alta .campo__etiqueta,
+.alta .campo__ayuda {
+  font-size: 14px;
+}
+
 /*
  * Nombre y arete en el mismo renglón, como en la maqueta. En un celular muy
  * angosto el navegador los baja solo: `minmax(0, 1fr)` deja que se encojan

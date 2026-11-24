@@ -254,6 +254,54 @@ describe('Alta de un animal', () => {
     expect(cuerpo.detalleCategoria).toBe('Semental joven')
   })
 
+  it('si el arete falla, el reintento manda solo el arete y no crea otro animal', async () => {
+    const usuario = userEvent.setup()
+    let intentosDeArete = 0
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'POST /api/animals': () => ({ estado: 201, cuerpo: fichaDeAnimal({ nombre: 'Pinto' }) }),
+      [`POST /api/animals/${ANIMAL}/marks`]: () => {
+        intentosDeArete += 1
+        if (intentosDeArete === 1) {
+          return { estado: 409, cuerpo: { codigo: 'marca_siniiga_duplicada' } }
+        }
+        return areteDePrueba('MX-2002')
+      },
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ nombre: 'Pinto' }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp('#/alta')
+
+    await usuario.type(await screen.findByLabelText('Arete SINIIGA'), 'MX-2002')
+    await usuario.click(screen.getByRole('button', { name: /^Guardar$/ }))
+
+    // El animal sí se guardó; se dice, y la ficha no se da por buena.
+    expect(await screen.findByText('El animal sí se guardó. El arete no.')).toBeDefined()
+    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+
+    // Se corrige el número y se reintenta: solo viaja el arete, con un comando
+    // nuevo porque el contenido cambió.
+    await usuario.clear(screen.getByLabelText('Arete SINIIGA'))
+    await usuario.type(screen.getByLabelText('Arete SINIIGA'), 'MX-3003')
+    await usuario.click(screen.getByRole('button', { name: /^Guardar$/ }))
+
+    await waitFor(() => {
+      expect(api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))).toHaveLength(2)
+    })
+
+    // El alta no se repitió: un solo comando de animal.
+    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+    const intentos = api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))
+    const primero = intentos[0]?.cuerpo as Record<string, unknown>
+    const segundo = intentos[1]?.cuerpo as Record<string, unknown>
+    expect(segundo.valor).toBe('MX-3003')
+    expect(segundo.commandId).not.toBe(primero.commandId)
+  })
+
   it('encuentra al animal por un arete que ya se cambió', async () => {
     const usuario = userEvent.setup()
     montarApi({
