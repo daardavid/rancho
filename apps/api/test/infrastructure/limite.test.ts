@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { esperarHasta, segundosDeEspera } from '../../src/infrastructure/identity/limite'
+import {
+  esperarHasta,
+  segundosDeEspera,
+  type Fallos,
+} from '../../src/infrastructure/identity/limite'
 import {
   ESPERA_BASE_MS,
   ESPERA_MAXIMA_MS,
@@ -15,8 +19,8 @@ function fallos(delUsuarioEnEstaDireccion: number, deEstaDireccion: number) {
 }
 
 /** Lo que falta, en milisegundos, contado desde el último fallo. */
-function espera(fallos: ReturnType<typeof fallos>): number | null {
-  const hasta = esperarHasta(fallos)
+function espera(entrada: Fallos): number | null {
+  const hasta = esperarHasta(entrada)
   return hasta === null ? null : hasta.getTime() - ULTIMO.getTime()
 }
 
