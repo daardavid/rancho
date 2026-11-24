@@ -263,6 +263,48 @@ describe('Corregir un peso desde la sesión', () => {
     // Los kilos no cambiaron: no viajan.
     expect(cuerpo.kilos).toBeUndefined()
   })
+
+  it('la foto de la báscula se ve, se sube y se quita', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({
+        estado: 200,
+        cuerpo: { animales: [animalDeLista({ nombre: 'Canelo' })] },
+      }),
+      'GET /api/weighing-sessions/latest': () => ({ estado: 200, cuerpo: SESION_GUARDADA }),
+      [`GET /api/weighing-sessions/${SESION}`]: () => ({ estado: 200, cuerpo: SESION_GUARDADA }),
+      'POST /api/evidencia': () => ({
+        estado: 201,
+        cuerpo: {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          tipo: 'image/jpeg',
+          tamano: 4,
+        },
+      }),
+    })
+
+    pintarApp(`#/sesion/${SESION}`)
+    await usuario.click(await screen.findByRole('button', { name: 'Corregir este peso' }))
+
+    const entrada = screen.getByLabelText('Foto de la báscula') as HTMLInputElement
+    const contenedor = entrada.closest('.foto-bascula')
+    expect(contenedor).not.toBeNull()
+    expect(contenedor?.classList.contains('ui-sr')).toBe(false)
+    expect(entrada.classList.contains('ui-sr')).toBe(false)
+    expect(entrada.classList.contains('campo__entrada')).toBe(true)
+    expect(entrada.tabIndex).not.toBe(-1)
+    expect(screen.getByText('Foto de la báscula', { selector: 'label' }).closest('.ui-sr')).toBeNull()
+
+    await usuario.upload(
+      entrada,
+      new File([Uint8Array.from([0xff, 0xd8, 0xff, 0xd9])], 'bascula.jpg', { type: 'image/jpeg' }),
+    )
+    expect(await screen.findByRole('img', { name: 'Foto de la báscula' })).toBeDefined()
+    await usuario.click(screen.getByRole('button', { name: 'Quitar la foto' }))
+    expect(screen.queryByRole('img', { name: 'Foto de la báscula' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Quitar la foto' })).toBeNull()
+  })
 })
 
 describe('Corregir un peso desde la ficha', () => {

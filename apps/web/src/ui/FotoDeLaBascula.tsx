@@ -1,5 +1,5 @@
 import { AUSENCIA_DE_FOTO } from '@rancho/api-contracts'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 
 import { subirFoto } from '../api/evidencia'
@@ -50,8 +50,12 @@ export function FotoDeLaBascula({
    */
   readonly idDelCampo?: string
   /**
-   * Dónde se ve la miniatura. `null` la deja fuera de la tarjeta, montada, para
-   * que una foto que todavía sube no se pierda al pasar al siguiente animal.
+   * Dónde se ve la miniatura.
+   *
+   * - Sin ancla (`undefined`): el campo va en línea, como al corregir un peso.
+   * - Un elemento: la miniatura del animal en turno, dentro de su tarjeta.
+   * - `null`: la fila no está en turno. Solo queda el input oculto, para que
+   *   una foto que todavía sube no se pierda, sin imagen ni «Quitar la foto».
    */
   readonly ancla?: HTMLElement | null
 }) {
@@ -113,24 +117,14 @@ export function FotoDeLaBascula({
     )
   }
 
-  const cuerpo = (
-    <div className="pesaje__foto">
-      <input
-        id={id}
-        className="ui-sr"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture="environment"
-        aria-label="Foto de la báscula"
-        disabled={ocupada}
-        tabIndex={-1}
-        onChange={(evento) => {
-          const archivo = evento.target.files?.[0]
-          evento.target.value = ''
-          elegir(archivo)
-        }}
-      />
-      <FotoVisible evidenciaId={evidenciaId} />
+  const alElegirArchivo = (evento: ChangeEvent<HTMLInputElement>): void => {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    elegir(archivo)
+  }
+
+  const controles = (
+    <>
       {ocupada ? <p className="campo__ayuda">Subiendo la foto…</p> : null}
       {error === null ? null : <AvisoDeError error={error} />}
       {evidenciaId === null ? null : (
@@ -147,14 +141,61 @@ export function FotoDeLaBascula({
       {evidenciaId === null ? null : (
         <p className="campo__ayuda">Si la quitas, deja de verse en este peso. La foto no se borra.</p>
       )}
-    </div>
+    </>
   )
 
-  // La miniatura del animal en turno se pinta en la tarjeta. Las demás se quedan
-  // montadas y fuera de vista: si el dueño ya pasó al siguiente, la foto que
-  // todavía sube no se tira.
-  if (ancla !== null && ancla !== undefined) {
-    return createPortal(cuerpo, ancla)
+  // Corregir un peso no pasa ancla: el campo se ve y se enfoca, como los demás.
+  if (ancla === undefined) {
+    return (
+      <div className="foto-bascula">
+        <label className="campo__etiqueta" htmlFor={id}>
+          Foto de la báscula
+        </label>
+        <p className="campo__ayuda" id={`${id}-ayuda`}>
+          Opcional. No cambia si el peso se midió, se vio o te lo dijeron.
+        </p>
+        <FotoVisible evidenciaId={evidenciaId} />
+        <input
+          id={id}
+          className="campo__entrada"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          aria-describedby={`${id}-ayuda`}
+          disabled={ocupada}
+          onChange={alElegirArchivo}
+        />
+        {controles}
+      </div>
+    )
   }
-  return <div className="ui-sr">{cuerpo}</div>
+
+  const entradaOculta = (
+    <input
+      id={id}
+      className="ui-sr"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      capture="environment"
+      aria-label="Foto de la báscula"
+      disabled={ocupada}
+      tabIndex={-1}
+      onChange={alElegirArchivo}
+    />
+  )
+
+  // Fila que no está en turno. El input sigue montado para no cortar la subida,
+  // pero la imagen y «Quitar la foto» no entran al foco ni al lector.
+  if (ancla === null) {
+    return entradaOculta
+  }
+
+  return createPortal(
+    <div className="pesaje__foto">
+      {entradaOculta}
+      <FotoVisible evidenciaId={evidenciaId} />
+      {controles}
+    </div>,
+    ancla,
+  )
 }
