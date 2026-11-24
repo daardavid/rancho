@@ -21,10 +21,15 @@ export const SECRETO_DE_PRUEBA = 'secreto-de-prueba-para-la-fabrica-0001'
  * Con `TEST_DATABASE_URL` se conecta a ese PostgreSQL. Sin ella arranca PGlite
  * en este proceso. En los dos casos aplica las migraciones con `aplicarMigraciones`,
  * el mismo código que `db:migrate`. Si no puede, lanza: la prueba falla, no se salta.
+ *
+ * `aislada` es para las pruebas que tiran esquemas (`db:reset`): siempre abre
+ * una PGlite nueva en este proceso, aunque haya `TEST_DATABASE_URL`. Así un
+ * `DROP SCHEMA ... CASCADE` no puede borrarle las tablas a otra suite que
+ * comparta la misma base en CI.
  */
-export async function abrirBaseDePruebas() {
+export async function abrirBaseDePruebas(opciones: { readonly aislada?: boolean } = {}) {
   const url = process.env['TEST_DATABASE_URL']
-  if (url !== undefined && url.trim() !== '') {
+  if (opciones.aislada !== true && url !== undefined && url.trim() !== '') {
     return abrirPostgres(url)
   }
   return abrirPglite()

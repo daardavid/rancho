@@ -1,24 +1,24 @@
 import { fileURLToPath } from 'node:url'
 
-import { readMigrationFiles, type MigrationConfig, type MigrationMeta } from 'drizzle-orm/migrator'
+import { is } from 'drizzle-orm'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { migrate as migrarPostgres } from 'drizzle-orm/node-postgres/migrator'
+import { PgliteDatabase } from 'drizzle-orm/pglite'
+import { migrate as migrarPglite } from 'drizzle-orm/pglite/migrator'
 
 const CARPETA = fileURLToPath(new URL('../../../drizzle', import.meta.url))
 
 /**
- * `dialect` y `session` existen en el cliente de Drizzle. El tipo público los
- * marca internos; node-postgres y PGlite aplican las migraciones por el mismo
- * `PgDialect.migrate`, que es lo que hace el `migrate()` de cada driver.
+ * Las dos bases que el repo usa: el PostgreSQL de node-postgres y la PGlite de
+ * las pruebas ([ADR-014](../../../../../docs/architecture/adr/ADR-014-local-test-database.md)).
+ *
+ * El tipo es estrecho a propósito: no entra cualquier objeto ni se tocan las
+ * piezas internas de Drizzle (`dialect`, `session`). Quien migra tiene que
+ * pasar un cliente de uno de los dos drivers, y el que no lo sea no compila.
  */
-type BaseMigrable = {
-  dialect: {
-    migrate: (
-      migrations: MigrationMeta[],
-      session: unknown,
-      config: MigrationConfig,
-    ) => Promise<void>
-  }
-  session: unknown
-}
+export type BaseMigrable =
+  | NodePgDatabase<Record<string, never>>
+  | PgliteDatabase<Record<string, never>>
 
 /** Carpeta del SQL generado. El comando y las pruebas leen esta misma ruta. */
 export function carpetaDeMigraciones(): string {
@@ -26,14 +26,16 @@ export function carpetaDeMigraciones(): string {
 }
 
 /**
- * Aplica la secuencia de `drizzle/` .
+ * Aplica la secuencia de `drizzle/` con el `migrate` público del driver.
  *
  * La llama `db:migrate` y la fábrica de pruebas. Ningún arranque del servidor
  * la llama: el proceso HTTP no migra.
  */
-export async function aplicarMigraciones(db: object): Promise<void> {
-  const base = db as BaseMigrable
-  const config: MigrationConfig = { migrationsFolder: CARPETA }
-  const migraciones = readMigrationFiles(config)
-  await base.dialect.migrate(migraciones, base.session, config)
+export async function aplicarMigraciones(db: BaseMigrable): Promise<void> {
+  const config = { migrationsFolder: CARPETA }
+  if (is(db, PgliteDatabase)) {
+    await migrarPglite(db as PgliteDatabase<Record<string, never>>, config)
+    return
+  }
+  await migrarPostgres(db as NodePgDatabase<Record<string, never>>, config)
 }

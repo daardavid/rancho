@@ -4,7 +4,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { crearAlmacenDeIdempotencia } from '../../src/infrastructure/db/almacen-idempotencia'
 import { filasDe, type EjecutorSql } from '../../src/infrastructure/db/filas'
 import { aplicarMigraciones } from '../../src/infrastructure/db/migrar'
-import { restablecerEsquemas } from '../../src/infrastructure/db/reset'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { enTransaccion } from '../../src/infrastructure/db/transaccion'
 import { actualizarConVersion } from '../../src/infrastructure/db/version'
@@ -118,23 +117,6 @@ describe('migración inicial', () => {
       await db.execute(sql`SELECT id, nombre FROM identity.ranch`),
     )
     expect(filas).toEqual([{ id: primero.id, nombre: 'Potrero de prueba' }])
-  })
-
-  it('db:reset borra lo sembrado y deja los esquemas otra vez', async () => {
-    await sembrarRancho(db, 'Potrero de prueba')
-    await restablecerEsquemas(db)
-
-    const ranchos = filasDe(await db.execute(sql`SELECT id FROM identity.ranch`))
-    expect(ranchos).toEqual([])
-
-    const esquemas = filasDe<{ schema_name: string }>(
-      await db.execute(sql`
-        SELECT schema_name
-        FROM information_schema.schemata
-        WHERE schema_name IN ('herd', 'growth', 'identity')
-      `),
-    )
-    expect(esquemas.map((fila) => fila.schema_name).sort()).toEqual(['growth', 'herd', 'identity'])
   })
 })
 
