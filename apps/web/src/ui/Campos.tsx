@@ -24,6 +24,7 @@ export function CampoDeTexto({
   autoComplete,
   requerido = false,
   maxLength,
+  marcador,
 }: {
   readonly etiqueta: string
   readonly valor: string
@@ -40,6 +41,8 @@ export function CampoDeTexto({
   readonly autoComplete?: string
   readonly requerido?: boolean
   readonly maxLength?: number
+  /** El ejemplo en gris dentro del campo, cuando está vacío. No es un valor. */
+  readonly marcador?: string
 }) {
   const id = useId()
   const descrito = [ayuda === undefined ? null : `${id}-ayuda`, error === undefined ? null : `${id}-error`]
@@ -70,6 +73,7 @@ export function CampoDeTexto({
         aria-describedby={descrito === '' ? undefined : descrito}
         {...(error === undefined ? {} : { 'aria-invalid': true })}
         maxLength={maxLength}
+        placeholder={marcador}
       />
       {error === undefined ? null : (
         <p className="campo__error" id={`${id}-error`}>

@@ -9,6 +9,19 @@
 /** Una opción tal como la pinta un campo: el código que viaja y lo que se lee. */
 export type Etiquetado = { readonly codigo: string; readonly texto: string }
 
+/** La misma opción, con la forma que piden `Mosaicos`, `Segmentado` y `Pildoras`. */
+export type OpcionElegible = { readonly valor: string; readonly texto: string }
+
+/**
+ * El vocabulario de la pantalla, para un control de una sola elección.
+ *
+ * Es la misma tabla de siempre con otro nombre de campo: no hay un segundo
+ * vocabulario que se pueda desincronizar.
+ */
+export function opcionesElegibles(tabla: readonly Etiquetado[]): readonly OpcionElegible[] {
+  return tabla.map((fila) => ({ valor: fila.codigo, texto: fila.texto }))
+}
+
 function textoDe(tabla: readonly Etiquetado[], codigo: string): string {
   return tabla.find((fila) => fila.codigo === codigo)?.texto ?? codigo
 }
