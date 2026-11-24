@@ -10,6 +10,7 @@ export default defineConfig({
   // sola secuencia con las de infraestructura.
   schema: [
     './src/infrastructure/db/esquema.ts',
+    './src/infrastructure/evidence/tablas.ts',
     './src/modules/herd/persistence/tablas.ts',
     './src/modules/growth/persistence/tablas.ts',
   ],

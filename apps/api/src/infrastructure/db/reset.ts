@@ -40,6 +40,7 @@ export async function restablecerEsquemas(db: BaseMigrable & EjecutorSql): Promi
   await db.execute(sql`DROP SCHEMA IF EXISTS herd CASCADE`)
   await db.execute(sql`DROP SCHEMA IF EXISTS growth CASCADE`)
   await db.execute(sql`DROP SCHEMA IF EXISTS identity CASCADE`)
+  await db.execute(sql`DROP SCHEMA IF EXISTS evidence CASCADE`)
   await db.execute(sql`DROP SCHEMA IF EXISTS drizzle CASCADE`)
   await db.execute(sql`DROP TABLE IF EXISTS command_idempotency`)
   await aplicarMigraciones(db)
