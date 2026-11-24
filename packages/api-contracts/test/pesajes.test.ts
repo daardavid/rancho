@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { crearCorregirPesoSchema, crearRegistrarSesionSchema, sesionDePesajeSchema } from '../src/index'
+import {
+  correccionDePesoSchema,
+  crearCorregirPesoSchema,
+  crearRegistrarSesionSchema,
+  sesionDePesajeSchema,
+} from '../src/index'
 
 const commandId = '33333333-3333-4333-8333-333333333333'
 const sesionId = '44444444-4444-4444-8444-444444444444'
@@ -99,5 +104,42 @@ describe('sesión leída', () => {
     expect(sesion.filas[0]).toEqual({ id: filaId, animalId, resultado: 'hueco' })
     expect(sesion.filas[0]).not.toHaveProperty('kilos')
     expect(sesion.filas[0]).not.toHaveProperty('baja')
+  })
+
+  it('quién registró no se exige UUID, y una corrección sigue la misma regla', () => {
+    const sesion = sesionDePesajeSchema.parse({
+      id: sesionId,
+      fecha: '2026-03-15',
+      nota: null,
+      reportedBy: 'un trabajador',
+      commandId,
+      recordedBy: 'propietario',
+      recordedAt: '2026-03-15T18:00:00.000Z',
+      filas: [],
+    })
+    expect(sesion.recordedBy).toBe('propietario')
+    expect(sesion.reportedBy).toBe('un trabajador')
+
+    expect(
+      sesionDePesajeSchema.safeParse({
+        id: sesionId,
+        fecha: '2026-03-15',
+        nota: null,
+        reportedBy: null,
+        commandId,
+        recordedBy: '  ',
+        recordedAt: '2026-03-15T18:00:00.000Z',
+        filas: [],
+      }).success,
+    ).toBe(false)
+
+    const correccion = correccionDePesoSchema.parse({
+      campo: 'kilos',
+      valorAnterior: '351.125',
+      motivo: 'leí de más',
+      correctedBy: 'propietario',
+      correctedAt: '2026-03-16T18:00:00.000Z',
+    })
+    expect(correccion.correctedBy).toBe('propietario')
   })
 })

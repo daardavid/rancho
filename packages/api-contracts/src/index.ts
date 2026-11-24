@@ -30,6 +30,7 @@ export {
   listaDeAnimalesSchema,
   marcarPerdidaSchema,
   marcaSchema,
+  registradoPorSchema,
   registrarAnimalSchema,
   reemplazarMarcaSchema,
   reemplazoDeMarcaSchema,

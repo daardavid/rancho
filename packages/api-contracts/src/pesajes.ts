@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { diaSchema } from './animales'
+import { diaSchema, registradoPorSchema } from './animales'
 
 /**
  * Contratos de la sesión de pesaje y de la corrección de un peso.
@@ -100,7 +100,7 @@ export const sesionDePesajeSchema = z.strictObject({
   nota: notaSchema.nullable(),
   reportedBy: reportedBySchema.nullable(),
   commandId: z.uuid(),
-  recordedBy: z.uuid(),
+  recordedBy: registradoPorSchema,
   recordedAt: instanteSchema,
   filas: z.array(filaDeSesionSchema),
 })
@@ -109,7 +109,7 @@ export const correccionDePesoSchema = z.strictObject({
   campo: campoDePesoSchema,
   valorAnterior: z.string().trim().min(1),
   motivo: motivoSchema,
-  correctedBy: z.uuid(),
+  correctedBy: registradoPorSchema,
   correctedAt: instanteSchema,
 })
 

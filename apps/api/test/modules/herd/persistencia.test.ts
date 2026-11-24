@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { filasDe } from '../../../src/infrastructure/db/filas'
 import { sembrarRancho } from '../../../src/infrastructure/db/semilla'
 import { crearHerd } from '../../../src/modules/herd'
+import { RechazoDeHerd } from '../../../src/modules/herd/domain/errores'
 import { recordedBySchema } from '../../../src/shared-kernel/actores'
 import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../src/shared-kernel/conflictos'
 import { nuevoId, ranchIdSchema, type RanchId } from '../../../src/shared-kernel/ids'
@@ -248,6 +249,84 @@ describe('marcas', () => {
     const encontradas = await herd.buscarPorMarca(ranchId, 'PRUEBA-ARETE-REUSO')
     expect(encontradas.map((ficha) => ficha.id)).toEqual([animalId])
     expect(encontradas[0]?.marcas).toHaveLength(2)
+  })
+
+  it('un id de marca que no es UUID se rechaza como marca_invalida, no como error del motor', async () => {
+    const animalId = nuevoId()
+    await herd.registrar({ commandId: nuevoId(), ranchId, recordedBy, id: animalId })
+
+    const rechazo = await herd
+      .agregarMarca({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        animalId,
+        marcaId: 'no-es-un-uuid',
+        tipo: 'other',
+        valor: 'seña-ilegible',
+      })
+      .catch((error: unknown) => error)
+
+    expect(rechazo).toBeInstanceOf(RechazoDeHerd)
+    expect(rechazo).toMatchObject({ codigo: 'marca_invalida' })
+
+    // Tampoco al reemplazar ni al marcar perdida, y ninguno toca la base.
+    await expect(
+      herd.reemplazarMarca({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        animalId,
+        marcaAnteriorId: 'tampoco-es-uuid',
+        marcaId: nuevoId(),
+        tipo: 'other',
+        valor: 'seña-nueva',
+      }),
+    ).rejects.toMatchObject({ codigo: 'marca_invalida' })
+
+    await expect(
+      herd.marcarPerdida({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        animalId,
+        marcaId: 'tampoco-es-uuid',
+      }),
+    ).rejects.toMatchObject({ codigo: 'marca_invalida' })
+
+    const marcas = filasDe(
+      await db.execute(sql`SELECT id FROM herd.animal_mark WHERE animal_id = ${animalId}`),
+    )
+    expect(marcas).toEqual([])
+  })
+
+  it('la base no admite un detalle de categoría en blanco', async () => {
+    const id = nuevoId()
+    const insertar = (detalle: string) =>
+      db.execute(sql`
+        INSERT INTO herd.animal (
+          id, ranch_id, sex, category, category_detail, tenure, economic_participation,
+          active, version, recorded_by, recorded_at
+        ) VALUES (
+          ${id}, ${ranchId}, 'unknown', 'other', ${detalle}, 'unknown', 'unknown',
+          true, 1, ${recordedBy}, ${new Date()}
+        )
+      `)
+
+    const definicion = filasDe<{ definicion: string }>(
+      await db.execute(sql`
+        SELECT pg_get_constraintdef(oid) AS definicion
+        FROM pg_constraint
+        WHERE conname = 'animal_detalle_presente'
+          AND conrelid = 'herd.animal'::regclass
+      `),
+    )
+    expect(definicion).toHaveLength(1)
+    expect(definicion[0]?.definicion).toMatch(/btrim/i)
+
+    await expect(insertar('   ')).rejects.toThrow()
+    const filas = filasDe(await db.execute(sql`SELECT id FROM herd.animal WHERE id = ${id}`))
+    expect(filas).toEqual([])
   })
 })
 

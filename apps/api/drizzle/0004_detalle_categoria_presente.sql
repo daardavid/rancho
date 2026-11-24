@@ -1,0 +1,1 @@
+ALTER TABLE "herd"."animal" ADD CONSTRAINT "animal_detalle_presente" CHECK ("herd"."animal"."category_detail" is null or length(btrim("herd"."animal"."category_detail")) > 0);
