@@ -86,7 +86,7 @@ None. The increment is designed so every open question can be recorded as unknow
 - `packages/api-contracts`: Zod contracts for these commands and queries.
 - PostgreSQL schemas `herd`, `growth`, `identity`; one migration stream; one seeded ranch.
 - A command to create the owner account.
-- CI: lint, typecheck, unit, persistence, and API tests.
+- CI: lint, typecheck, unit, persistence, and API tests, plus the Playwright end-to-end flows.
 
 ## Explicitly out of scope
 
