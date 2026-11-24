@@ -4,6 +4,7 @@
 Cursor programa; el primer revisor (Gemini con Antigravity o ChatGPT con Codex, según
 `[revisor] primero` en config.toml) revisa; el otro es respaldo; Claude (Claude Code) entra
 solo en los escalamientos. Este script no es IA: decide con reglas fijas.
+Un PR aprobado espera el CI (`[ci]` en config.toml) y solo entonces hace merge.
 
 Uso (desde la raíz del repo):
     python fabrica/correr.py --verificar        revisa que todo esté listo
@@ -381,6 +382,91 @@ def aplicar_pruebas(decision: dict, pruebas_ok: bool, tarea_id: str) -> dict:
         "prueba": "npm run lint && npm run typecheck && npm test en verde", "origen": "orquestador",
     }
     return {**decision, "veredicto": "cambios", "incluidos": ordenar([pendiente, *decision["incluidos"]])}
+
+
+LINEAS_LOG_CI = 120
+ESTADOS_CHECK = {"pass", "fail", "pending", "skipping", "cancel"}
+
+
+def sin_color(texto: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", texto or "")
+
+
+def filas_de_checks(salida: str) -> list[tuple[str, str, str]]:
+    """Filas de `gh pr checks`: (nombre, estado, línea completa).
+
+    `gh` alinea las columnas con espacios (tabwriter). El nombre puede llevar espacios,
+    así que el estado se reconoce por la palabra, no por la posición fija.
+    """
+    filas = []
+    for linea in sin_color(salida).splitlines():
+        partes = [p.strip() for p in re.split(r"\t+|\s{2,}", linea.strip()) if p.strip()]
+        estado = next((p.lower() for p in partes if p.lower() in ESTADOS_CHECK), "")
+        if not estado:
+            continue
+        nombre = partes[0] if partes[0].lower() != estado else ""
+        filas.append((nombre, estado, linea))
+    return filas
+
+
+def clasificar_ci(codigo: int, salida: str) -> str:
+    """Qué dijo `gh pr checks` (o el reloj de `correr`).
+
+    verde: código 0.
+    rojo: hay un check en fail o cancel.
+    sin_checks: GitHub dice que no hay checks.
+    tiempo: `correr` cortó el proceso (código 124).
+    pendiente: siguen en curso (código 8) sin haber fallado.
+    error: no se pudo leer un resultado.
+    """
+    texto = sin_color(salida)
+    if codigo == 124:
+        return "tiempo"
+    if re.search(r"no checks reported", texto, re.I):
+        return "sin_checks"
+    if codigo == 0:
+        return "verde"
+    estados = {estado for _, estado, _ in filas_de_checks(texto)}
+    if "fail" in estados or "cancel" in estados:
+        return "rojo"
+    if codigo == 8 or "pending" in estados:
+        return "pendiente"
+    return "error"
+
+
+def ids_de_runs_fallidos(salida: str) -> list[str]:
+    ids: list[str] = []
+    for _, estado, linea in filas_de_checks(salida):
+        if estado not in {"fail", "cancel"}:
+            continue
+        for run_id in re.findall(r"/actions/runs/(\d+)", linea):
+            if run_id not in ids:
+                ids.append(run_id)
+    return ids
+
+
+def cola_texto(texto: str, n: int = LINEAS_LOG_CI) -> str:
+    return "\n".join((texto or "").splitlines()[-n:])
+
+
+def accion_tras_ci(estado: str) -> str:
+    """verde → merge; rojo → otro ciclo de Cursor; cualquier otra cosa → detener sin merge."""
+    if estado == "verde":
+        return "merge"
+    if estado == "rojo":
+        return "otro_ciclo"
+    return "detener"
+
+
+def mensaje_detencion_ci(tarea_id: str, pr: str, estado: str, timeout_min: float) -> str:
+    if estado == "tiempo":
+        motivo = f"se agotaron {timeout_min:g} min esperando los checks"
+    elif estado == "sin_checks":
+        motivo = f"no aparecieron checks tras {timeout_min:g} min"
+    else:
+        motivo = f"no pude leer el resultado del CI ({estado})"
+    return (f"La tarea {tarea_id} se detuvo: {motivo} en el PR #{pr}. No hice merge.\n\n"
+            f"David: revisa el CI y vuelve a correr `python fabrica/correr.py --revisar {tarea_id}`.")
 
 
 def ordenar(hallazgos: list[dict]) -> list[dict]:
@@ -804,6 +890,66 @@ class Fabrica:
         if pr:
             gh("pr", "comment", pr, "--body-file", "-", entrada=texto, check=False)
 
+    def guardar_log_ci(self, t: Tarea, salida_checks: str) -> None:
+        """Últimas líneas de `gh run view --log-failed` en `.fabrica/trabajo/<tarea>/ci.txt`."""
+        trozos = []
+        for run_id in ids_de_runs_fallidos(salida_checks):
+            try:
+                r = correr(["gh", "run", "view", run_id, "--log-failed"], timeout_min=2, check=False)
+            except FileNotFoundError as e:
+                trozos.append(str(e))
+                break
+            trozos.append(f"{r.stdout or ''}{r.stderr or ''}".strip())
+        bruto = "\n".join(x for x in trozos if x).strip() or (salida_checks or "").strip() or "(sin log del CI)"
+        (t.dir / "ci.txt").write_text(cola_texto(bruto) + "\n", encoding="utf-8")
+
+    def esperar_ci(self, t: Tarea, pr: str) -> str:
+        """Espera los checks del PR. No hace merge.
+
+        GitHub tarda unos segundos en registrar el workflow después del push, y
+        `gh pr checks --watch` sale al instante si todavía no hay checks. Por eso,
+        «sin checks» se reintenta hasta `timeout_min`. Si se acaba el tiempo sin checks,
+        o con checks a medias, se detiene: no hay merge.
+        """
+        ci = self.cfg.get("ci", {})
+        if not ci.get("esperar", True):
+            log("CI: esperar = false; no consulto los checks.")
+            return "verde"
+        timeout_min = float(ci.get("timeout_min", 30))
+        limite = time.monotonic() + timeout_min * 60
+        while True:
+            restante_s = limite - time.monotonic()
+            if restante_s <= 0:
+                log(f"El PR #{pr} no tiene checks tras {timeout_min:g} min. No hago merge.")
+                return "sin_checks"
+            try:
+                r = correr(["gh", "pr", "checks", pr, "--watch"], timeout_min=restante_s / 60, check=False)
+            except FileNotFoundError as e:
+                log(f"No pude consultar el CI ({e}). No hago merge.")
+                return "error"
+            salida = f"{r.stdout or ''}\n{r.stderr or ''}"
+            estado = clasificar_ci(r.returncode, salida)
+            if estado == "verde":
+                log(f"CI del PR #{pr} en verde.")
+                return "verde"
+            if estado == "rojo":
+                log(f"CI del PR #{pr} en rojo. Guardo el log en {t.rel}/ci.txt.")
+                self.guardar_log_ci(t, salida)
+                return "rojo"
+            if estado == "sin_checks":
+                pausa = min(SONDEO_S, max(0.0, limite - time.monotonic()))
+                if pausa <= 0:
+                    log(f"El PR #{pr} no tiene checks. No hago merge.")
+                    return "sin_checks"
+                log(f"El PR #{pr} todavía no tiene checks; vuelvo a mirar en {pausa:.0f} s.")
+                time.sleep(pausa)
+                continue
+            if estado == "tiempo":
+                log(f"Se agotó el tiempo ({timeout_min:g} min) esperando el CI del PR #{pr}. No hago merge.")
+                return "tiempo"
+            log(f"No pude leer el CI del PR #{pr} ({estado}). No hago merge.")
+            return estado
+
     # --- ciclo completo -----------------------------------------------------
 
     def correr_tarea(self, tarea_id: str, solo_revisar: bool = False) -> str:
@@ -852,11 +998,24 @@ class Fabrica:
                 return "entorno"
             self.comentar(pr, comentario(t, ciclo, pruebas_ok, decision))
             if decision["veredicto"] == "aprobar" and pr:
-                log(f"{t.id} aprobada: hago merge a {self.base}")
-                gh("pr", "merge", pr, "--squash", "--delete-branch")
-                git("checkout", self.base, check=False)
-                git("pull", "--ff-only", check=False)
-                return "aprobada"
+                estado_ci = self.esperar_ci(t, pr)
+                accion = accion_tras_ci(estado_ci)
+                if accion == "merge":
+                    log(f"{t.id} aprobada y con el CI en verde: hago merge a {self.base}")
+                    gh("pr", "merge", pr, "--squash", "--delete-branch")
+                    git("checkout", self.base, check=False)
+                    git("pull", "--ff-only", check=False)
+                    return "aprobada"
+                if accion == "otro_ciclo":
+                    log(f"{t.id}: la revisión aprobó, pero el CI está en rojo. Otro ciclo de Cursor.")
+                    self.comentar(pr, f"El CI de {t.id} falló en el ciclo {ciclo}. No hice merge. "
+                                      f"Log: `{t.rel}/ci.txt`.")
+                    instrucciones = instrucciones_ci(t, ciclo)
+                    continue
+                log(f"{t.id} detenida: el CI no dio un resultado para mergear ({estado_ci}).")
+                self.comentar(pr, mensaje_detencion_ci(
+                    t.id, pr, estado_ci, float(self.cfg.get("ci", {}).get("timeout_min", 30))))
+                return "detenida"
             if decision["veredicto"] == "entorno":
                 if pr:
                     gh("label", "create", "fabrica:entorno", "--color", "FBCA04", "--force", check=False)
@@ -870,7 +1029,11 @@ class Fabrica:
         if pr:
             gh("label", "create", "fabrica:atorado", "--color", "B60205", "--force", check=False)
             gh("pr", "edit", pr, "--add-label", "fabrica:atorado", check=False)
-        self.comentar(pr, f"La tarea {t.id} quedó **atorada** después de {self.cfg['limites']['ciclos_max']} ciclos. David: revisa el PR y decide.")
+        aviso = (f"La tarea {t.id} quedó **atorada** después de {self.cfg['limites']['ciclos_max']} ciclos. "
+                 "David: revisa el PR y decide.")
+        if (t.dir / "ci.txt").exists():
+            aviso += f"\n\nEl último CI falló. Log: `{t.rel}/ci.txt`."
+        self.comentar(pr, aviso)
         log(f"{t.id} atorada. Te dejé el aviso en el PR #{pr}." if pr else f"{t.id} atorada (sin PR abierto).")
         return "atorada"
 
@@ -987,6 +1150,27 @@ Origen: {decision['origen']}. Atiende estos puntos en orden.
 Resultado de las últimas pruebas: `{t.rel}/pruebas.txt`.
 La especificación sigue siendo `fabrica/tareas/{t.id}.md`.
 Si no estás de acuerdo con un punto, no lo ignores: explícalo en `{t.rel}/nota_cursor.md`.
+No cambies de rama, no hagas push ni merge.
+"""
+
+
+def instrucciones_ci(t: Tarea, ciclo: int) -> str:
+    """Otro ciclo de Cursor cuando el CI quedó en rojo. El log va en el texto, no solo la ruta."""
+    archivo = t.dir / "ci.txt"
+    log_ci = archivo.read_text(encoding="utf-8").replace("```", "'''") if archivo.exists() else "(sin log)"
+    return f"""# Correcciones para {t.id} (después del ciclo {ciclo})
+
+La revisión aprobó, pero el CI del PR falló. No se hizo merge. Arregla la causa.
+
+Log del CI (últimas líneas), también en `{t.rel}/ci.txt`:
+
+```
+{log_ci.rstrip()}
+```
+
+Resultado de las pruebas locales: `{t.rel}/pruebas.txt`.
+La especificación sigue siendo `fabrica/tareas/{t.id}.md`.
+Si no estás de acuerdo, no lo ignores: explícalo en `{t.rel}/nota_cursor.md`.
 No cambies de rama, no hagas push ni merge.
 """
 
