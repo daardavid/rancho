@@ -11,7 +11,8 @@ import { numeroLegible } from './fechas'
  * no hay meta de ganancia del rancho y no se inventa una. Un animal se revisa
  * solo por lo que dicen sus propios datos:
  *
- * 1. se esperaba en la última vuelta y no se pesó (hueco, no baja);
+ * 1. se esperaba en la última vuelta y no se pesó (hueco, no baja). Manda
+ *    sobre todo lo demás: también sobre «Sin pesajes» y «Falta otro pesaje»,
  * 2. su último intervalo descansa en un peso que no se midió en la báscula;
  * 3. perdió kilos, o su ganancia por día bajó contra su propio intervalo
  *    anterior;
@@ -38,6 +39,13 @@ export function etiquetaDeGanancia(
 ): EtiquetaDeGanancia {
   const intervalo = fila.ultimoIntervalo
 
+  // Ser hueco manda sobre cualquier otra lectura: el animal se esperaba en la
+  // última vuelta y no se pesó, y eso es lo primero que el dueño debe ver, tenga
+  // los pesos previos que tenga (incluso ninguno). Es un hueco, no una baja y no
+  // un dato que falta.
+  if (fila.fueHuecoEnLaUltimaSesion) {
+    return { tono: 'revisar', texto: 'No se pesó' }
+  }
   if (fila.ultimoPeso === null) {
     // Sin ningún peso no es un mal resultado: es un dato que falta.
     return { tono: 'sinDatos', texto: 'Sin pesajes' }
@@ -45,9 +53,6 @@ export function etiquetaDeGanancia(
   if (intervalo === null) {
     // Un solo peso: todavía no hay intervalo con qué comparar.
     return { tono: 'sinDatos', texto: 'Falta otro pesaje' }
-  }
-  if (fila.fueHuecoEnLaUltimaSesion) {
-    return { tono: 'revisar', texto: 'No se pesó' }
   }
   if (intervalo.incluyeCalidadNoMedida) {
     return { tono: 'revisar', texto: 'Revisar' }
