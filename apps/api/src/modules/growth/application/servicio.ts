@@ -131,12 +131,26 @@ export async function registrar(alcance: AlcanceDeGrowth, entrada: EntradaRegist
   )
 }
 
-export async function corregir(deps: DepsDeGrowth, entrada: EntradaCorregir): Promise<PesoPublico> {
-  return ejecutarComandoIdempotente(
-    deps.idempotencia,
-    entrada.commandId,
-    contenidoDeCorreccion(entrada),
-    async () => {
+export async function corregir(alcance: AlcanceDeGrowth, entrada: EntradaCorregir): Promise<PesoPublico> {
+  const contenido = contenidoDeCorreccion(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as PesoPublico
+  }
+
+  // Fuera de la transacción del peso. En la base embebida una consulta aparte,
+  // con esa transacción abierta, no vuelve: las dos se esperan.
+  if (entrada.evidenciaId !== undefined && entrada.evidenciaId !== null) {
+    await exigirEvidenciaDelRancho(alcance.evidencia, ranchIdSchema.parse(entrada.ranchId), [
+      entrada.evidenciaId,
+    ])
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const linea = await deps.sesiones.obtenerLinea(ranchId, z.uuid().parse(entrada.pesoId), true)
       if (linea === null) {
@@ -175,7 +189,7 @@ export async function corregir(deps: DepsDeGrowth, entrada: EntradaCorregir): Pr
         throw new Error('El peso corregido no se pudo leer.')
       }
       return publicarPeso(guardada)
-    },
+    }),
   )
 }
 

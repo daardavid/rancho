@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
 
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -9,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { construirApp } from '../../src/http/app'
 import { filasDe } from '../../src/infrastructure/db/filas'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
+import { TAMANO_MAXIMO_DE_FOTO } from '../../src/infrastructure/evidence/imagen'
 import { crearPuertoDeEvidencia } from '../../src/infrastructure/evidence/puerto'
 import { hashDeContrasena } from '../../src/infrastructure/identity/contrasena'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
@@ -296,7 +298,132 @@ describe('foto de la báscula', () => {
     expect(rechazo.statusCode).toBe(422)
     expect(rechazo.json()).toEqual({ codigo: 'evidencia_ajena' })
   }, 30_000)
+
+  it('una foto de otro rancho no corrige el peso, y repetir el comando con otra foto es choque', async () => {
+    const cookie = await entrar(USUARIO)
+    const pesoId = await crearPeso(cookie)
+    const subida = await app.inject({
+      method: 'POST',
+      url: '/api/evidencia',
+      headers: { cookie, 'content-type': 'image/jpeg' },
+      payload: Buffer.from(JPEG),
+    })
+    expect(subida.statusCode).toBe(201)
+    const fotoId = subida.json().id as string
+
+    const cookieAjena = await entrar(AJENO)
+    const ajena = await app.inject({
+      method: 'POST',
+      url: '/api/evidencia',
+      headers: { cookie: cookieAjena, 'content-type': 'image/png' },
+      payload: Buffer.from(PNG),
+    })
+    expect(ajena.statusCode).toBe(201)
+    const fotoAjena = ajena.json().id as string
+
+    const rechazo = await app.inject({
+      method: 'POST',
+      url: `/api/weights/${pesoId}/corrections`,
+      headers: { cookie },
+      payload: {
+        commandId: nuevoId(),
+        version: 1,
+        motivo: 'esa foto es de otro rancho',
+        evidenciaId: fotoAjena,
+      },
+    })
+    expect(rechazo.statusCode).toBe(422)
+    expect(rechazo.json()).toEqual({ codigo: 'evidencia_ajena' })
+
+    const commandId = nuevoId()
+    const corregida = await app.inject({
+      method: 'POST',
+      url: `/api/weights/${pesoId}/corrections`,
+      headers: { cookie },
+      payload: {
+        commandId,
+        version: 1,
+        motivo: 'era la foto de este becerro',
+        evidenciaId: fotoId,
+      },
+    })
+    expect(corregida.statusCode).toBe(200)
+
+    const repetida = await app.inject({
+      method: 'POST',
+      url: `/api/weights/${pesoId}/corrections`,
+      headers: { cookie },
+      payload: {
+        commandId,
+        version: 1,
+        motivo: 'era la foto de este becerro',
+        evidenciaId: nuevoId(),
+      },
+    })
+    expect(repetida.statusCode).toBe(409)
+    expect(repetida.json()).toEqual({ codigo: 'idempotency_mismatch' })
+  }, 30_000)
+
+  it('rechaza una foto de más de 25 MB', async () => {
+    const cookie = await entrar(USUARIO)
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: '/api/evidencia',
+      headers: { cookie, 'content-type': 'application/octet-stream' },
+      payload: cuerpoMayorAlTope(),
+    })
+
+    expect(respuesta.statusCode).toBe(413)
+    expect(respuesta.json()).toMatchObject({
+      codigo: 'foto_demasiado_grande',
+      mensaje: expect.stringMatching(/25 MB/),
+    })
+  }, 30_000)
 })
+
+/** Sin `content-length`: Fastify corta por `bodyLimit` y no por el encabezado. */
+function cuerpoMayorAlTope(): Readable {
+  const total = TAMANO_MAXIMO_DE_FOTO + 1
+  const trozo = 1024 * 1024
+  let enviado = 0
+  return new Readable({
+    read() {
+      if (enviado >= total) {
+        this.push(null)
+        return
+      }
+      const n = Math.min(trozo, total - enviado)
+      enviado += n
+      this.push(Buffer.alloc(n, 0xff))
+    },
+  })
+}
+
+async function crearPeso(cookie: string): Promise<string> {
+  const animal = await alta(cookie)
+  const pesoId = nuevoId()
+  const registrada = await app.inject({
+    method: 'POST',
+    url: '/api/weighing-sessions',
+    headers: { cookie },
+    payload: {
+      commandId: nuevoId(),
+      id: nuevoId(),
+      fecha: '2026-04-02',
+      filas: [
+        {
+          id: pesoId,
+          animalId: animal,
+          resultado: 'pesado',
+          kilos: '180.500',
+          calidad: 'measured',
+        },
+      ],
+    },
+  })
+  expect(registrada.statusCode).toBe(201)
+  return pesoId
+}
 
 async function alta(cookie: string): Promise<string> {
   const id = nuevoId()

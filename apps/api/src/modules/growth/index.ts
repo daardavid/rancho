@@ -1,6 +1,5 @@
 import { crearAlmacenDeIdempotencia } from '../../infrastructure/db/almacen-idempotencia'
 import type { EjecutorSql } from '../../infrastructure/db/filas'
-import { ranchIdSchema } from '../../shared-kernel/ids'
 import type { Herd } from '../herd'
 
 import { RechazoDeGrowth } from './domain/errores'
@@ -62,20 +61,7 @@ export function crearGrowth(
 
   return {
     registrar: (entrada) => registrar(alcance, entrada),
-    corregir: async (entrada) => {
-      // La foto se comprueba antes de abrir la transacción del peso. En la
-      // base embebida una consulta aparte, con la transacción abierta, no
-      // vuelve: las dos se esperan.
-      if (entrada.evidenciaId !== undefined && entrada.evidenciaId !== null) {
-        const ranchId = ranchIdSchema.parse(entrada.ranchId)
-        const pertenece =
-          evidencia !== null && (await evidencia.perteneceAlRancho(ranchId, entrada.evidenciaId))
-        if (!pertenece) {
-          throw new RechazoDeGrowth('evidencia_ajena')
-        }
-      }
-      return escribir((deps) => corregir(deps, entrada))
-    },
+    corregir: (entrada) => corregir(alcance, entrada),
     obtener: (ranchId, id) => escribir((deps) => obtener(deps, ranchId, id)),
     ultima: (ranchId) => escribir((deps) => ultima(deps, ranchId)),
     pesosDe: (ranchId, animalId) => escribir((deps) => pesosDe(deps, ranchId, animalId)),
