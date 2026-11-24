@@ -18,7 +18,13 @@ export const LARGO_MAXIMO_MOTIVO_DE_PESAJE = 2000
 export const LARGO_MAXIMO_REPORTED_BY = 200
 
 export const calidadDePesoSchema = z.enum(['measured', 'observed', 'declared'])
-export const campoDePesoSchema = z.enum(['kilos', 'calidad'])
+export const campoDePesoSchema = z.enum(['kilos', 'calidad', 'evidencia'])
+
+/**
+ * Lo que guarda la historia cuando el peso no tenía foto.
+ * El mismo texto lo escribe Growth al corregir.
+ */
+export const AUSENCIA_DE_FOTO = 'ninguna'
 
 const notaSchema = z.string().trim().min(1).max(LARGO_MAXIMO_NOTA_DE_PESAJE)
 const motivoSchema = z.string().trim().min(1).max(LARGO_MAXIMO_MOTIVO_DE_PESAJE)
@@ -41,6 +47,7 @@ export function crearRegistrarSesionSchema(kilos: ValidadorDeKilos) {
     resultado: z.literal('pesado'),
     kilos,
     calidad: calidadDePesoSchema,
+    evidenciaId: z.uuid().optional(),
   })
   const filaHueco = z.strictObject({
     id: z.uuid(),
@@ -58,7 +65,12 @@ export function crearRegistrarSesionSchema(kilos: ValidadorDeKilos) {
   })
 }
 
-/** El cuerpo de «corregir peso». Hace falta kilos, calidad o los dos. */
+/**
+ * El cuerpo de «corregir peso».
+ *
+ * Hace falta kilos, calidad o la foto. `evidenciaId: null` quita la foto del
+ * peso; omitirla no la toca. La foto no sustituye a la calidad.
+ */
 export function crearCorregirPesoSchema(kilos: ValidadorDeKilos) {
   return z
     .strictObject({
@@ -67,12 +79,13 @@ export function crearCorregirPesoSchema(kilos: ValidadorDeKilos) {
       motivo: motivoSchema,
       kilos: kilos.optional(),
       calidad: calidadDePesoSchema.optional(),
+      evidenciaId: z.uuid().nullable().optional(),
     })
     .superRefine((valor, ctx) => {
-      if (valor.kilos === undefined && valor.calidad === undefined) {
+      if (valor.kilos === undefined && valor.calidad === undefined && valor.evidenciaId === undefined) {
         ctx.addIssue({
           code: 'custom',
-          message: 'La corrección tiene que cambiar los kilos, la calidad o los dos.',
+          message: 'La corrección tiene que cambiar los kilos, la calidad, la foto o alguno de ellos.',
         })
       }
     })
@@ -86,6 +99,11 @@ export const filaDeSesionSchema = z.discriminatedUnion('resultado', [
     kilos: kilosConTresDecimalesSchema,
     calidad: calidadDePesoSchema,
     version: z.number().int().positive(),
+    /**
+     * Foto del indicador. El servidor la manda; `null` es no tenerla.
+     * Opcional para no romper una lectura que todavía no la trae.
+     */
+    evidenciaId: z.uuid().nullable().optional(),
   }),
   z.strictObject({
     id: z.uuid(),
@@ -121,6 +139,7 @@ export const pesoSchema = z.strictObject({
   kilos: kilosConTresDecimalesSchema,
   calidad: calidadDePesoSchema,
   version: z.number().int().positive(),
+  evidenciaId: z.uuid().nullable().optional(),
   correcciones: z.array(correccionDePesoSchema),
 })
 
@@ -147,6 +166,7 @@ export const codigoDeErrorDePesajeSchema = z.enum([
   'texto_invalido',
   'sesion_ya_existe',
   'fila_ya_existe',
+  'evidencia_ajena',
 ])
 
 export const errorDePesajeSchema = z.strictObject({

@@ -1,5 +1,5 @@
 import { reportedBySchema, type RecordedBy, type ReportedBy } from '../../../shared-kernel/actores'
-import type { AnimalId, RanchId } from '../../../shared-kernel/ids'
+import type { AnimalId, EvidenceId, RanchId } from '../../../shared-kernel/ids'
 import type { Gramos } from '../../../shared-kernel/kilos'
 import type { SourceQuality } from '../../../shared-kernel/source-quality'
 
@@ -22,6 +22,8 @@ export type FilaPesada = {
   readonly kilos: Gramos
   readonly calidad: SourceQuality
   readonly version: number
+  /** Foto del indicador. `null` es un peso sin foto. No cambia la calidad. */
+  readonly evidenciaId: EvidenceId | null
 }
 
 export type FilaHueco = {
@@ -51,6 +53,7 @@ export type EntradaDeFila =
       readonly resultado: 'pesado'
       readonly kilos: Gramos
       readonly calidad?: SourceQuality
+      readonly evidenciaId?: EvidenceId
     }
   | {
       readonly id: string
@@ -140,6 +143,7 @@ function filaDe(entrada: EntradaDeFila): FilaDeSesion {
     kilos: entrada.kilos,
     calidad: entrada.calidad,
     version: VERSION_INICIAL,
+    evidenciaId: entrada.evidenciaId ?? null,
   }
 }
 

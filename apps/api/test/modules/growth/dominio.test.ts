@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { recordedBySchema } from '../../../src/shared-kernel/actores'
-import { animalIdSchema, ranchIdSchema } from '../../../src/shared-kernel/ids'
+import { animalIdSchema, evidenceIdSchema, ranchIdSchema } from '../../../src/shared-kernel/ids'
 import { parsearKilosAGramos } from '../../../src/shared-kernel/kilos'
 import { corregirPeso } from '../../../src/modules/growth/domain/correccion'
 import { RechazoDeGrowth } from '../../../src/modules/growth/domain/errores'
@@ -115,5 +115,42 @@ describe('corregir un peso', () => {
     expect(corregido.fila).not.toHaveProperty('fecha')
     expect(sesion.fecha).toBe('2026-03-15')
     expect(() => corregirPeso(hueco, { calidad: 'declared' }, 'no aplica')).toThrow(RechazoDeGrowth)
+  })
+
+  it('poner o quitar la foto no cambia la calidad ni los kilos', () => {
+    const foto = evidenceIdSchema.parse('99999999-9999-4999-8999-999999999999')
+    const otra = evidenceIdSchema.parse('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+    const sesion = registrarSesion({
+      ...base(),
+      filas: [
+        {
+          id: '77777777-7777-4777-8777-777777777777',
+          animalId: animalA,
+          resultado: 'pesado',
+          kilos: parsearKilosAGramos('180.000'),
+          calidad: 'observed',
+          evidenciaId: foto,
+        },
+      ],
+    })
+    const peso = sesion.filas[0]
+    if (peso === undefined || peso.resultado !== 'pesado') {
+      throw new Error('Se esperaba un peso.')
+    }
+
+    expect(peso.calidad).toBe('observed')
+    expect(peso.evidenciaId).toBe(foto)
+
+    const cambiada = corregirPeso(peso, { evidenciaId: otra }, 'era otra foto')
+    expect(cambiada.fila.calidad).toBe('observed')
+    expect(cambiada.fila.kilos).toBe(peso.kilos)
+    expect(cambiada.fila.evidenciaId).toBe(otra)
+    expect(cambiada.anteriores).toEqual([{ campo: 'evidencia', valorAnterior: foto }])
+
+    const quitada = corregirPeso(cambiada.fila, { evidenciaId: null }, 'no era de este becerro')
+    expect(quitada.fila.calidad).toBe('observed')
+    expect(quitada.fila.kilos).toBe(peso.kilos)
+    expect(quitada.fila.evidenciaId).toBeNull()
+    expect(quitada.anteriores).toEqual([{ campo: 'evidencia', valorAnterior: otra }])
   })
 })

@@ -63,6 +63,11 @@ export const filaDePesaje = esquemaGrowth.table(
     kilos: numeric('kilos', { precision: 12, scale: 3 }),
     quality: text('quality'),
     version: integer('version'),
+    /**
+     * Foto del indicador. Es el id de `evidence.file`, sin llave foránea:
+     * Growth no escribe esa tabla y no guarda una ruta.
+     */
+    evidenceId: uuid('evidence_id'),
   },
   (tabla) => [
     uniqueIndex('weighing_line_session_animal').on(tabla.sessionId, tabla.animalId),
@@ -82,6 +87,7 @@ export const filaDePesaje = esquemaGrowth.table(
         and ${tabla.kilos} is null
         and ${tabla.quality} is null
         and ${tabla.version} is null
+        and ${tabla.evidenceId} is null
       )`,
     ),
   ],
@@ -104,7 +110,10 @@ export const correccionDePeso = esquemaGrowth.table(
   },
   (tabla) => [
     index('weight_correction_line').on(tabla.lineId, tabla.correctedAt),
-    check('weight_correction_campo_valido', sql`${tabla.campo} in ('kilos', 'calidad')`),
+    check(
+      'weight_correction_campo_valido',
+      sql`${tabla.campo} in ('kilos', 'calidad', 'evidencia')`,
+    ),
     check('weight_correction_valor_presente', sql`length(btrim(${tabla.valorAnterior})) > 0`),
     check('weight_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
   ],
