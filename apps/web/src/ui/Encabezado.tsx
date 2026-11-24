@@ -42,7 +42,7 @@ export function Encabezado({
 }: {
   readonly etiqueta?: string
   readonly titulo: string
-  readonly subtitulo?: string
+  readonly subtitulo?: ReactNode
   readonly acciones?: readonly AccionDeEncabezado[]
   readonly alRegresar?: () => void
   readonly hrefRegresar?: string
@@ -75,7 +75,11 @@ export function Encabezado({
         >
           {titulo}
         </h1>
-        {subtitulo === undefined ? null : <p className="ui-encabezado__subtitulo">{subtitulo}</p>}
+        {subtitulo === undefined ? null : typeof subtitulo === 'string' ? (
+          <p className="ui-encabezado__subtitulo">{subtitulo}</p>
+        ) : (
+          <div className="ui-encabezado__subtitulo">{subtitulo}</div>
+        )}
       </div>
       {botones.length === 0 ? null : (
         <div className="ui-encabezado__acciones">

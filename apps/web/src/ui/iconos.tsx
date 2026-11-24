@@ -109,6 +109,23 @@ export function IconoCerrar({ tamano = 18 }: Tamano) {
   )
 }
 
+export function IconoPalomita({ tamano = 16 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <path d="M5 12l5 5 9-10" />
+    </Icono>
+  )
+}
+
+export function IconoReloj({ tamano = 16 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v5l3 2" />
+    </Icono>
+  )
+}
+
 export function IconoCamara({ tamano = 24 }: Tamano) {
   return (
     <Icono tamano={tamano}>
