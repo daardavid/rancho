@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 import type { PGlite } from '@electric-sql/pglite'
 import { pgDump } from '@electric-sql/pglite-tools/pg_dump'
@@ -57,6 +57,26 @@ export function leerArchivoDeRestauracion(argv: readonly string[]): string {
     throw new Error('Uso: npm run restaurar -- <archivo.sql>')
   }
   return archivo
+}
+
+/**
+ * Dónde está el archivo que se va a restaurar.
+ *
+ * `npm run restaurar -w @rancho/api` deja el proceso en `apps/api` y guarda
+ * la carpeta desde la que se invocó npm en `INIT_CWD`. Una ruta relativa
+ * (la que imprime `npm run respaldo`) se arma contra esa carpeta. Sin ella,
+ * contra el directorio actual. Una ruta absoluta se queda igual.
+ */
+export function resolverArchivoDeRestauracion(
+  ruta: string,
+  directorioInicial: string | undefined = process.env['INIT_CWD'],
+  directorioActual: string = process.cwd(),
+): string {
+  const base =
+    directorioInicial !== undefined && directorioInicial !== ''
+      ? directorioInicial
+      : directorioActual
+  return resolve(base, ruta)
 }
 
 /** Un archivo de `pg_dump`, no un texto cualquiera. */
@@ -190,8 +210,11 @@ function afirmarRespaldoCompleto(sqlTexto: string): void {
 /**
  * Reemplaza los objetos de la app con el SQL del respaldo.
  *
- * El archivo ya trae `DROP … IF EXISTS` y luego los `CREATE` y los `INSERT`.
- * Va en una transacción: si una sentencia falla, la base queda como estaba.
+ * `pg_dump --clean` emite `DROP SCHEMA` sin `CASCADE`. Una tabla que el
+ * archivo no trae —una migración posterior— impediría borrar el esquema y
+ * la restauración fallaría a medias. Por eso, en la misma transacción, se
+ * tiran antes los esquemas de la app y la tabla de recibos. El archivo
+ * vuelve a crearlos. Si una sentencia falla, la base queda como estaba.
  * `pg_dump` deja `search_path` vacío en la sesión; la app busca
  * `command_idempotency` sin esquema, así que se devuelve el que había.
  */
@@ -204,6 +227,8 @@ export async function aplicarRespaldo(cliente: PGlite, sqlTexto: string): Promis
   await soltarTransaccion(cliente)
   await cliente.exec('BEGIN')
   try {
+    await cliente.exec('DROP SCHEMA IF EXISTS herd, growth, identity, drizzle CASCADE')
+    await cliente.exec('DROP TABLE IF EXISTS public.command_idempotency')
     await cliente.exec(sqlTexto)
     await cliente.exec('COMMIT')
   } catch (error) {

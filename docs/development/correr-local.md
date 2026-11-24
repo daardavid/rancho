@@ -308,8 +308,14 @@ npm run restaurar -- respaldos/rancho-2026-11-23-223045-123.sql
 
 Avisa que **reemplaza** lo que hay en `.datos/` y pide que escribas
 `RESTAURAR`. Otra respuesta no cambia nada. Si ya había base, primero guarda
-una copia en `respaldos/` y después carga el archivo. Hay que correrlo en una
-terminal: sin ella no pregunta y no restaura.
+una copia en `respaldos/` y después carga el archivo. Antes de cargarlo borra
+los esquemas `herd`, `growth`, `identity` y `drizzle` (aunque tengan tablas
+que el archivo no trae) y la tabla `public.command_idempotency`, en la misma
+transacción: si algo falla, la base queda como estaba. Así un respaldo
+anterior entra en una base local que ya migró a tablas nuevas. La ruta del
+archivo es relativa a la carpeta desde donde corriste npm (por ejemplo la
+raíz del repo), no a `apps/api`. Hay que correrlo en una terminal: sin ella
+no pregunta y no restaura.
 
 Para pasar ese archivo a un PostgreSQL 17 vacío (el de este repo; el motor
 embebido es PostgreSQL 18 y el SQL que escribe carga en 17):
@@ -320,11 +326,13 @@ psql "postgres://usuario:clave@127.0.0.1:5432/rancho" -v ON_ERROR_STOP=1 --singl
 
 `--single-transaction` hace que, si una sentencia falla, no quede a medias.
 La base de destino puede estar vacía: el archivo crea los esquemas. Si ya
-tenía los de la app, los reemplaza. No hace falta correr las migraciones
-antes. El archivo trae el diario de `drizzle`, así que el siguiente
-`db:migrate` contra esa base no vuelve a crear lo que ya está. Lo mismo pasa
-al restaurar en `.datos/`: el siguiente `npm run local` ve las migraciones
-ya aplicadas.
+tenía los de la app, los reemplaza. El archivo no borra tablas de más que
+una migración posterior haya agregado en el servidor: para eso, cárgalo en
+una base vacía. En `.datos/` ese borrado lo hace `npm run restaurar`. No
+hace falta correr las migraciones antes. El archivo trae el diario de
+`drizzle`, así que el siguiente `db:migrate` contra esa base no vuelve a
+crear lo que ya está. Lo mismo pasa al restaurar en `.datos/`: el siguiente
+`npm run local` ve las migraciones ya aplicadas.
 
 Después apunta `DATABASE_URL` a esa base y arranca con `npm start`, no con
 `npm run local`. `npm run local` sigue usando `.datos/`.

@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { PassThrough } from 'node:stream'
 
 import { PGlite } from '@electric-sql/pglite'
 import { sql } from 'drizzle-orm'
@@ -15,6 +16,7 @@ import { aplicarMigraciones } from '../../src/infrastructure/db/migrar'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { abrirBaseLocal, exponerBaseLocal } from '../../src/infrastructure/local/base'
+import { preguntar } from '../../src/infrastructure/local/cli-restaurar'
 import {
   afirmarRespaldoPermitido,
   aplicarRespaldo,
@@ -23,6 +25,7 @@ import {
   leerArchivoDeRestauracion,
   nombreDeRespaldo,
   respaldarBaseLocal,
+  resolverArchivoDeRestauracion,
   restaurarBaseLocal,
   volcarSql,
 } from '../../src/infrastructure/local/respaldo'
@@ -54,6 +57,44 @@ describe('el comando se niega fuera de su lugar', () => {
     expect(() => leerArchivoDeRestauracion([])).toThrow(/Uso:/)
     expect(() => leerArchivoDeRestauracion(['a.sql', 'b.sql'])).toThrow(/Uso:/)
     expect(() => leerArchivoDeRestauracion(['--forzar'])).toThrow(/Uso:/)
+  })
+
+  it('una ruta relativa se resuelve desde la carpeta donde se invocó npm', () => {
+    const raiz = resolve('/rancho')
+    const api = join(raiz, 'apps', 'api')
+    const previo = process.env['INIT_CWD']
+    try {
+      process.env['INIT_CWD'] = raiz
+      expect(resolverArchivoDeRestauracion('respaldos/rancho.sql', undefined, api)).toBe(
+        resolve(raiz, 'respaldos/rancho.sql'),
+      )
+      delete process.env['INIT_CWD']
+      expect(resolverArchivoDeRestauracion('respaldos/rancho.sql', undefined, api)).toBe(
+        resolve(api, 'respaldos/rancho.sql'),
+      )
+      expect(resolverArchivoDeRestauracion('respaldos/rancho.sql', '', api)).toBe(
+        resolve(api, 'respaldos/rancho.sql'),
+      )
+      const absoluto = resolve(raiz, 'respaldos', 'rancho.sql')
+      expect(resolverArchivoDeRestauracion(absoluto, raiz, api)).toBe(absoluto)
+    } finally {
+      if (previo === undefined) {
+        delete process.env['INIT_CWD']
+      } else {
+        process.env['INIT_CWD'] = previo
+      }
+    }
+  })
+
+  it('la pregunta pausa la entrada para que el comando termine', async () => {
+    const entrada = new PassThrough()
+    const salida = new PassThrough()
+    const promesa = preguntar(entrada, salida, 'Para seguir, escribe RESTAURAR y pulsa Enter: ')
+    entrada.write('RESTAURAR\n')
+    await expect(promesa).resolves.toBe('RESTAURAR')
+    expect(entrada.isPaused()).toBe(true)
+    entrada.destroy()
+    salida.destroy()
   })
 
   it('el nombre lleva la hora del rancho y no usa dos puntos', () => {
@@ -249,6 +290,28 @@ describe('ida y vuelta del respaldo', () => {
       expect(cuentas.every((cuenta) => cuenta.password_hash.startsWith('$argon2id$'))).toBe(true)
     } finally {
       await vacia.close()
+    }
+  }, 120_000)
+
+  it('una tabla que el respaldo no trae no impide restaurar', async () => {
+    const ocupada = new PGlite()
+    await ocupada.waitReady
+    try {
+      await aplicarMigraciones(drizzlePglite(ocupada))
+      await ocupada.exec('CREATE TABLE herd.tabla_de_mas (id integer PRIMARY KEY)')
+      await ocupada.exec('INSERT INTO herd.tabla_de_mas (id) VALUES (1)')
+      await aplicarRespaldo(ocupada, sqlTexto)
+      expect(await fotoDe(drizzlePglite(ocupada))).toEqual(fotoOriginal)
+      const sobra = filasDe<{ nombre: string }>(
+        await ocupada.query(
+          `SELECT table_name AS nombre
+           FROM information_schema.tables
+           WHERE table_schema = 'herd' AND table_name = 'tabla_de_mas'`,
+        ),
+      )
+      expect(sobra).toEqual([])
+    } finally {
+      await ocupada.close()
     }
   }, 120_000)
 

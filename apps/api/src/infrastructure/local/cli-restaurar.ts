@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { relative, resolve } from 'node:path'
+import { relative } from 'node:path'
 import { createInterface } from 'node:readline'
 import type { Readable, Writable } from 'node:stream'
 
@@ -13,6 +13,7 @@ import {
   esRespaldoSql,
   leerArchivoDeRestauracion,
   nodeEnvDelArchivo,
+  resolverArchivoDeRestauracion,
   restaurarBaseLocal,
   rutasDeLaBaseLocal,
 } from './respaldo'
@@ -21,7 +22,7 @@ async function main(): Promise<void> {
   const raiz = raizDelRepo()
   afirmarRespaldoPermitido(process.env['NODE_ENV'], nodeEnvDelArchivo(raiz))
 
-  const archivo = resolve(leerArchivoDeRestauracion(process.argv.slice(2)))
+  const archivo = resolverArchivoDeRestauracion(leerArchivoDeRestauracion(process.argv.slice(2)))
   if (!existsSync(archivo) || !statSync(archivo).isFile()) {
     throw new Error(`No está el archivo ${archivo}.`)
   }
@@ -71,12 +72,13 @@ function exigirTerminal(entrada: Readable): void {
   }
 }
 
-function preguntar(entrada: Readable, salida: Writable, pregunta: string): Promise<string> {
+export function preguntar(entrada: Readable, salida: Writable, pregunta: string): Promise<string> {
   return new Promise((resolvePromesa, reject) => {
     const rl = createInterface({ input: entrada, output: salida, terminal: true })
     rl.question(pregunta, (respuesta) => {
+      // `close()` pausa la entrada. Reanudarla deja el TTY referenciado y
+      // `npm run restaurar` no regresa a la terminal.
       rl.close()
-      entrada.resume()
       resolvePromesa(respuesta)
     })
     rl.once('error', reject)
