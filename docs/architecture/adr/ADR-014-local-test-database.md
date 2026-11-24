@@ -32,7 +32,7 @@ When CI first ran the whole API suite against the service container, every file 
 - The factory can run the full pyramid without Docker.
 - The suite no longer depends on the order the files run in, and a test that leaves rows behind cannot make another file fail. Each file starts from a migrated, empty database.
 - Every test file that opens a database costs one `CREATE DATABASE` and one full migration pass. That is slower than sharing one database; it is the price of the isolation, and the migrations are small.
-- Creating many databases on one server is limited by `max_connections` while they exist and by disk while they hold data. The factory closes its pool and drops the database in the same call, so the count stays at roughly one per running test file.
+- Creating many databases on one server is limited by `max_connections` while they exist and by disk while they hold data. Each open database holds its own pool, and the administrative connection is opened only for the `CREATE DATABASE` and the `DROP DATABASE` and closed right after. In a full local run against a server, the peak stayed well under 30 connections.
 - A feature that behaves differently in PGlite and in server PostgreSQL would pass locally and fail in CI. CI is the authority. If that happens more than occasionally, revisit this ADR.
 - Connection pooling and multi-connection concurrency are not exercised locally. The version-conflict tests rely on `UPDATE ... WHERE version = ?`, which does not need two connections.
 
