@@ -841,6 +841,62 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
     expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
   })
+
+  it('al pasar al siguiente, la fila inactiva no deja «Quitar la foto»', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'POST /api/evidencia': () => ({
+        estado: 201,
+        cuerpo: { id: FOTO_ID, tipo: 'image/jpeg', tamano: 4 },
+      }),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+
+    await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
+    expect(await screen.findByRole('button', { name: 'Quitar la foto' })).toBeDefined()
+
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await screen.findByRole('textbox', { name: 'Kilos de Lucero' })
+
+    expect(screen.queryByRole('button', { name: 'Quitar la foto' })).toBeNull()
+    expect(screen.queryByRole('img', { name: 'Foto de la báscula' })).toBeNull()
+  })
+
+  it('Enter en la nota de la sesión inserta un salto y no envía el pesaje', async () => {
+    const usuario = userEvent.setup()
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'POST /api/weighing-sessions': sesionGuardada({
+        id: '11111111-2222-4333-8444-555555555555',
+        fecha: '2026-11-22',
+        nota: null,
+        reportedBy: null,
+        commandId: '12121212-2222-4333-8444-555555555555',
+        recordedBy: CUENTA,
+        recordedAt: CUANDO,
+        filas: [],
+      }),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.click(screen.getByRole('button', { name: 'Agregar quién reportó o una nota' }))
+
+    const nota = screen.getByRole('textbox', { name: 'Nota de la sesión' }) as HTMLTextAreaElement
+    await usuario.type(nota, 'Línea uno{Enter}Línea dos')
+
+    expect(nota.value).toBe('Línea uno\nLínea dos')
+    expect(screen.queryByText('Escribe los kilos.')).toBeNull()
+    expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(0)
+    expect(screen.getByRole('heading', { name: 'Pesaje' })).toBeDefined()
+  })
 })
 
 const FOTO_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'

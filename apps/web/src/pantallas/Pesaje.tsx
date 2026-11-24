@@ -338,7 +338,11 @@ function EditorDeSesion({
     registrar.error instanceof ErrorDeApi && registrar.error.codigo === 'idempotency_mismatch'
 
   const alTecla = (evento: React.KeyboardEvent<HTMLFormElement>): void => {
-    if (evento.key !== 'Enter' || evento.target instanceof HTMLButtonElement) {
+    if (
+      evento.key !== 'Enter' ||
+      evento.target instanceof HTMLButtonElement ||
+      evento.target instanceof HTMLTextAreaElement
+    ) {
       return
     }
     evento.preventDefault()
