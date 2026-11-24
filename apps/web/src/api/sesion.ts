@@ -1,6 +1,7 @@
 import { sesionActualSchema, type SesionActual } from '@rancho/api-contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { borrarBorrador } from '../dominio/borrador'
 import { ErrorDeApi, pedir, pedirSinContenido } from './http'
 
 /** La llave de la caché de la sesión. Un 401 la deja en `null`. */
@@ -48,6 +49,9 @@ export function useSalir() {
       cache.setQueryData(LLAVE_DE_SESION, null)
       cache.removeQueries({ queryKey: ['hato'] })
       cache.removeQueries({ queryKey: ['ficha'] })
+      // Lo capturado a medias se queda en este celular, pero ya no es de nadie:
+      // la próxima captura empieza limpia y con su propio id de comando.
+      borrarBorrador()
     },
   })
 }

@@ -455,6 +455,67 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     expect(screen.queryAllByLabelText('Kilos')).toHaveLength(0)
   })
 
+  it('el borrador de otra cuenta no aparece en el pesaje y se tira', async () => {
+    // Lo que quedó en este celular lo empezó otra cuenta: no se muestra ni se manda.
+    window.localStorage.setItem(
+      'rancho.pesaje.borrador',
+      JSON.stringify({
+        version: 2,
+        cuentaId: '77777777-7777-4777-8777-777777777777',
+        fecha: '2026-11-20',
+        nota: 'captura de otra sesión',
+        reportedBy: '',
+        sesionId: '88888888-8888-4888-8888-888888888888',
+        commandId: '99999999-9999-4999-8999-999999999998',
+        filas: [],
+      }),
+    )
+
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+
+    // La propuesta de esta cuenta manda, no la captura ajena: la de la otra
+    // cuenta se tiró y en el celular quedó solo la de esta sesión.
+    expect(screen.getAllByLabelText('Kilos').length).toBe(3)
+    expect(screen.queryByDisplayValue('captura de otra sesión')).toBeNull()
+    const guardado = JSON.parse(
+      window.localStorage.getItem('rancho.pesaje.borrador') ?? '{}',
+    ) as { cuentaId?: string }
+    expect(guardado.cuentaId).toBe(CUENTA)
+    expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(0)
+  })
+
+  it('cerrar sesión borra el borrador de este navegador', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'DELETE /api/session': () => ({ estado: 204, cuerpo: null }),
+      'GET /api/session/tras-salir': sesionAbierta(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '199')
+
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).not.toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Salir' }))
+
+    // Lo capturado no sobrevive al cierre: el siguiente que entre en este
+    // celular no hereda una vuelta a medias de otra sesión.
+    await waitFor(() => {
+      expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBeNull()
+    })
+  })
+
   it('el choque de idempotencia se explica y no se ofrece guardar otra vez', async () => {
     const usuario = userEvent.setup()
     montarApi({

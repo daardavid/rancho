@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateActio
 import { useHato } from '../api/hato'
 import { ErrorDeApi } from '../api/http'
 import { useRegistrarPesaje, useUltimaSesion } from '../api/pesajes'
+import { useSesion } from '../api/sesion'
 import { coincide, normalizar, nombreVisible } from '../dominio/animal'
 import {
   borrarBorrador,
@@ -49,9 +50,17 @@ import {
 export function Pesaje() {
   const hato = useHato()
   const ultima = useUltimaSesion()
+  const sesion = useSesion()
+
+  /**
+   * Quién está capturando. `App` solo pinta esta pantalla con sesión abierta,
+   * así que aquí ya se sabe; el respaldo es la cuenta vacía, que no coincide
+   * con ningún borrador y se descarta igual.
+   */
+  const cuentaId = sesion.data?.cuentaId ?? ''
 
   /** Lo que había guardado en el celular al abrir la pantalla, si algo había. */
-  const [guardado] = useState(() => leerBorrador())
+  const [guardado] = useState(() => leerBorrador(cuentaId))
   /** Lo que el dueño ha tocado en esta visita. `null` es «todavía no toca nada». */
   const [cambiado, setCambiado] = useState<BorradorDePesaje | null>(null)
 
@@ -74,8 +83,8 @@ export function Pesaje() {
     if (guardado !== null || hato.isPending || ultima.isPending) {
       return null
     }
-    return nuevoBorrador(ultima.isError ? [] : esperados)
-  }, [guardado, hato.isPending, ultima.isPending, ultima.isError, esperados])
+    return nuevoBorrador(cuentaId, ultima.isError ? [] : esperados)
+  }, [guardado, hato.isPending, ultima.isPending, ultima.isError, esperados, cuentaId])
 
   // Un borrador guardado manda sobre la propuesta: es lo último que el dueño
   // escribió, posiblemente a media captura.
@@ -123,6 +132,7 @@ export function Pesaje() {
   return (
     <EditorDeSesion
       borrador={borrador}
+      cuentaId={cuentaId}
       animales={animales}
       porAnimal={porAnimal}
       huboVueltaAnterior={ultima.data !== null && ultima.data !== undefined}
@@ -133,12 +143,14 @@ export function Pesaje() {
 
 function EditorDeSesion({
   borrador,
+  cuentaId,
   animales,
   porAnimal,
   huboVueltaAnterior,
   alCambiar,
 }: {
   readonly borrador: BorradorDePesaje
+  readonly cuentaId: string
   readonly animales: readonly Animal[]
   readonly porAnimal: ReadonlyMap<string, Animal>
   readonly huboVueltaAnterior: boolean
@@ -440,7 +452,7 @@ function EditorDeSesion({
             <BotonGrande
               alTocar={() => {
                 borrarBorrador()
-                alCambiar(nuevoBorrador([]))
+                alCambiar(nuevoBorrador(cuentaId, []))
                 setIntentado(false)
                 setConfirmandoDescarte(false)
                 registrar.reset()
@@ -587,9 +599,10 @@ function cuerpoDeLaSesion(borrador: BorradorDePesaje): RegistrarSesion {
  * vacías, listas para que el dueño escriba los kilos que le pasaron. La fecha
  * viene con hoy en el rancho y se puede cambiar.
  */
-function nuevoBorrador(esperados: readonly string[]): BorradorDePesaje {
+function nuevoBorrador(cuentaId: string, esperados: readonly string[]): BorradorDePesaje {
   return {
-    version: 1,
+    version: 2,
+    cuentaId,
     fecha: hoyEnElRancho(),
     nota: '',
     reportedBy: '',

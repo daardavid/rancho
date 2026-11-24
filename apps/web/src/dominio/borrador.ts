@@ -11,6 +11,11 @@
  * Eso es lo que hace que un reintento —incluso después de recargar— mande el
  * mismo comando y no duplique la sesión.
  *
+ * El borrador pertenece a una cuenta y a un navegador. Al cerrar sesión se
+ * borra ([`App.tsx`](../App.tsx)), y si otra cuenta entra en el mismo
+ * celular, lo que quedó de la anterior se descarta al abrir la pantalla: nadie
+ * ve ni manda el trabajo de otra sesión.
+ *
  * Todo está dentro de `try/catch`: un navegador en modo privado, el
  * almacenamiento lleno o un borrador de otra versión no pueden romper la
  * captura. Si no se puede leer o guardar, la pantalla sigue funcionando sin
@@ -30,7 +35,13 @@ export type FilaBorrador = {
 }
 
 export type BorradorDePesaje = {
-  readonly version: 1
+  readonly version: 2
+  /**
+   * La cuenta que empezó la captura. El borrador vive en este navegador, pero
+   * es de una cuenta: si otra entra en el mismo celular, lo que hay aquí no es
+   * suyo y se descarta en vez de aparecer en su pantalla.
+   */
+  readonly cuentaId: string
   readonly fecha: string
   readonly nota: string
   readonly reportedBy: string
@@ -40,15 +51,28 @@ export type BorradorDePesaje = {
 }
 
 const CLAVE = 'rancho.pesaje.borrador'
-const VERSION_DEL_FORMATO = 1
+const VERSION_DEL_FORMATO = 2
 
-export function leerBorrador(): BorradorDePesaje | null {
+/**
+ * El borrador de esta cuenta, o `null`.
+ *
+ * Un borrador de otra cuenta —o de una versión vieja del formato— se borra: no
+ * hay nada que el dueño pueda hacer con la captura de otra sesión, y dejarla
+ * ahí sería guardar en el celular el trabajo de alguien más. El de esta cuenta
+ * se devuelve y la pantalla lo recupera como siempre.
+ */
+export function leerBorrador(cuentaId: string): BorradorDePesaje | null {
   try {
     const guardado = window.localStorage.getItem(CLAVE)
     if (guardado === null) {
       return null
     }
-    return interpretar(JSON.parse(guardado) as unknown)
+    const borrador = interpretar(JSON.parse(guardado) as unknown)
+    if (borrador === null || borrador.cuentaId !== cuentaId) {
+      window.localStorage.removeItem(CLAVE)
+      return null
+    }
+    return borrador
   } catch {
     // Sin almacenamiento o con un JSON roto se empieza limpio. Perder un
     // borrador ilegible es mejor que una pantalla que no abre.
@@ -83,6 +107,7 @@ function interpretar(valor: unknown): BorradorDePesaje | null {
   if (bruto.version !== VERSION_DEL_FORMATO) {
     return null
   }
+  const cuentaId = bruto.cuentaId
   const fecha = bruto.fecha
   const nota = bruto.nota
   const reportedBy = bruto.reportedBy
@@ -90,6 +115,7 @@ function interpretar(valor: unknown): BorradorDePesaje | null {
   const commandId = bruto.commandId
   const filas = bruto.filas
   if (
+    typeof cuentaId !== 'string' ||
     typeof fecha !== 'string' ||
     typeof nota !== 'string' ||
     typeof reportedBy !== 'string' ||
@@ -111,6 +137,7 @@ function interpretar(valor: unknown): BorradorDePesaje | null {
 
   return {
     version: VERSION_DEL_FORMATO,
+    cuentaId,
     fecha,
     nota,
     reportedBy,
