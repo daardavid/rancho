@@ -8,11 +8,11 @@
  * empaquetado deja un archivo que corre con el Node del `engines` del repo.
  *
  * Solo se empaqueta el proceso HTTP. Los comandos de base (`db:migrate`,
- * `db:seed`, `cuenta:crear`) se quedan con `tsx`, que es como los documenta
- * [correr-local.md](../../../docs/development/correr-local.md): son pasos
- * explícitos de una laptop o de un despliegue, no el proceso que atiende al
- * rancho. Además `db:migrate` busca la carpeta `drizzle/` junto a su propio
- * archivo, y empaquetarlo movería esa ruta.
+ * `db:seed`, `cuenta:crear`) y `npm run local` se quedan con `tsx`, que es como
+ * los documenta [correr-local.md](../../../docs/development/correr-local.md):
+ * son pasos explícitos de una laptop o de un despliegue, no el proceso que
+ * atiende al rancho. Además `db:migrate` busca la carpeta `drizzle/` junto a su
+ * propio archivo, y empaquetarlo movería esa ruta.
  *
  * Lo nativo se queda afuera: `@node-rs/argon2` es un binario por plataforma y
  * empaquetarlo rompería el `.node` al cargarlo. Los opcionales de `pg` también

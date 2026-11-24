@@ -15,6 +15,9 @@ build/
 .env.*
 !.env.example
 
+# Base local embebida de `npm run local`. No se sube.
+.datos/
+
 # Logs
 logs/
 *.log
