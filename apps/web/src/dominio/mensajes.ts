@@ -181,7 +181,9 @@ export function mensajeDeError(error: unknown): MensajeDeError {
  * en el que todavía no se puede.
  */
 function esperaEnPalabras(segundos: number): string {
-  if (segundos < 60) {
+  // Solo hasta medio minuto se dice «medio minuto»: prometerlo con 45 o 55
+  // segundos por delante sería mentir y la API todavía devolvería 429.
+  if (segundos <= 30) {
     return 'Espera medio minuto y vuelve a intentar.'
   }
   const minutos = Math.ceil(segundos / 60)
