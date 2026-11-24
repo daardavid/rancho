@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
@@ -31,7 +31,7 @@ describe('carpeta de evidencia', () => {
   })
 
   it('fuera del repo y sin EVIDENCE_DIR usa el directorio de trabajo', () => {
-    const fuera = pathToFileURL('C:/fuera-de-rancho/dist/main.js').href
+    const fuera = pathToFileURL(resolve('/fuera-de-rancho/dist/main.js')).href
     expect(carpetaDeEvidencia({}, fuera)).toBe(join(process.cwd(), '.datos', 'evidencia'))
   })
 })
