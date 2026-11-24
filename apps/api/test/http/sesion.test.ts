@@ -8,6 +8,7 @@ import { construirApp } from '../../src/http/app'
 import { filasDe } from '../../src/infrastructure/db/filas'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearCuenta, type CuentaCreada } from '../../src/infrastructure/identity/cuentas'
+import { cargarConfiguracion } from '../../src/infrastructure/configuracion'
 import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { MAX_INTENTOS_FALLIDOS, VENTANA_DE_INTENTOS_MS } from '../../src/infrastructure/identity/parametros'
 import { huellaDeToken } from '../../src/infrastructure/identity/tokens'
@@ -302,10 +303,17 @@ describe('sesión', () => {
   })
 
   it('en producción la cookie es HttpOnly, Secure y SameSite=Lax', async () => {
+    const configuracion = cargarConfiguracion({
+      DATABASE_URL: 'postgres://rancho:rancho@127.0.0.1:5432/rancho',
+      SESSION_SECRET: SECRETO_DE_PRUEBA,
+      NODE_ENV: 'production',
+    })
+    expect(configuracion.cookieSegura).toBe(true)
+
     const publicada = construirApp({
       identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       nivelDeLog: 'silent',
-      produccion: true,
+      produccion: configuracion.cookieSegura,
     })
     try {
       const respuesta = await publicada.inject({

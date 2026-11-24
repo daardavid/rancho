@@ -20,6 +20,8 @@ describe('cargarConfiguracion', () => {
       secretoDeSesion: SECRETO,
       maxConexiones: 10,
       produccion: true,
+      modoLocal: false,
+      cookieSegura: true,
     })
   })
 
@@ -35,6 +37,8 @@ describe('cargarConfiguracion', () => {
     expect(configuracion.puerto).toBe(3000)
     expect(configuracion.host).toBe('127.0.0.1')
     expect(configuracion.produccion).toBe(false)
+    expect(configuracion.modoLocal).toBe(false)
+    expect(configuracion.cookieSegura).toBe(false)
   })
 
   it('sin DATABASE_URL no arranca y lo dice', () => {
