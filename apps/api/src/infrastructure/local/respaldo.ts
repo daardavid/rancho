@@ -16,18 +16,21 @@ import { abrirBaseLocal } from './base'
 export const CONFIRMACION_DE_RESTAURACION = 'RESTAURAR'
 
 /**
- * Esquemas de la app. `drizzle` guarda qué migraciones ya se aplicaron: sin
- * él, el siguiente `npm run local` intentaría crear tablas que el respaldo
- * ya trajo. `public` no entra completo: ahí solo vive `command_idempotency`,
- * y un `pg_dump --schema=public --clean` emite `DROP SCHEMA public`.
+ * Esquemas de la app. `evidence` guarda los metadatos de las fotos: sin él,
+ * una base restaurada queda sin `evidence.file` y `db:migrate` no lo vuelve a
+ * crear porque la migración ya está marcada en `drizzle`. `drizzle` guarda
+ * qué migraciones ya se aplicaron: sin él, el siguiente `npm run local`
+ * intentaría crear tablas que el respaldo ya trajo. `public` no entra
+ * completo: ahí solo vive `command_idempotency`, y un
+ * `pg_dump --schema=public --clean` emite `DROP SCHEMA public`.
  */
-const ESQUEMAS = ['herd', 'growth', 'identity', 'drizzle'] as const
+const ESQUEMAS = ['herd', 'growth', 'identity', 'evidence', 'drizzle'] as const
 
 const ARGUMENTOS_COMUNES = ['--no-owner', '--no-privileges', '--clean', '--if-exists'] as const
 
 const ENCABEZADO = `-- Respaldo de RANCHO.
 -- SQL de pg_dump (INSERT), generado desde la base local embebida.
--- Reemplaza los esquemas herd, growth, identity y drizzle, y la tabla
+-- Reemplaza los esquemas herd, growth, identity, evidence y drizzle, y la tabla
 -- public.command_idempotency. No borra el esquema public.
 -- En un PostgreSQL de servidor:
 --   psql -v ON_ERROR_STOP=1 --single-transaction -f <este archivo> "postgres://…"
@@ -227,7 +230,9 @@ export async function aplicarRespaldo(cliente: PGlite, sqlTexto: string): Promis
   await soltarTransaccion(cliente)
   await cliente.exec('BEGIN')
   try {
-    await cliente.exec('DROP SCHEMA IF EXISTS herd, growth, identity, drizzle CASCADE')
+    await cliente.exec(
+      'DROP SCHEMA IF EXISTS herd, growth, identity, evidence, drizzle CASCADE',
+    )
     await cliente.exec('DROP TABLE IF EXISTS public.command_idempotency')
     await cliente.exec(sqlTexto)
     await cliente.exec('COMMIT')

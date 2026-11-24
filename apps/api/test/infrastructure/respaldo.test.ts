@@ -14,6 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { filasDe, type EjecutorSql } from '../../src/infrastructure/db/filas'
 import { aplicarMigraciones } from '../../src/infrastructure/db/migrar'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
+import { crearPuertoDeEvidencia } from '../../src/infrastructure/evidence/puerto'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { abrirBaseLocal, exponerBaseLocal } from '../../src/infrastructure/local/base'
 import { preguntar } from '../../src/infrastructure/local/cli-restaurar'
@@ -125,6 +126,7 @@ const TABLAS: ReadonlyArray<readonly [string, string, string]> = [
   ['growth', 'weighing_session', 'id'],
   ['growth', 'weighing_line', 'id'],
   ['growth', 'weight_correction', 'id'],
+  ['evidence', 'file', 'id'],
   ['public', 'command_idempotency', 'command_id'],
 ]
 
@@ -135,6 +137,8 @@ describe('ida y vuelta del respaldo', () => {
   let sqlTexto: string
   let ranchId: RanchId
   let animalPesado: string
+  let fotoId: string
+  let carpetaDeFotos = ''
   let cerrarOrigen: () => Promise<void> = async () => {}
 
   beforeAll(async () => {
@@ -198,7 +202,16 @@ describe('ida y vuelta del respaldo', () => {
       categoria: 'calf',
     })
 
-    const growth = crearGrowth(db, herd)
+    carpetaDeFotos = mkdtempSync(join(tmpdir(), 'rancho-respaldo-foto-'))
+    const evidencia = crearPuertoDeEvidencia(db, carpetaDeFotos)
+    const foto = await evidencia.guardar({
+      ranchId,
+      bytes: Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]),
+      nombreOriginal: 'indicador.jpg',
+    })
+    fotoId = foto.id
+
+    const growth = crearGrowth(db, herd, evidencia)
     const pesoId = nuevoId()
     await growth.registrar({
       commandId: nuevoId(),
@@ -215,6 +228,7 @@ describe('ida y vuelta del respaldo', () => {
           resultado: 'pesado',
           kilos: '351.125',
           calidad: 'measured',
+          evidenciaId: foto.id,
         },
         { id: nuevoId(), animalId: animalHueco, resultado: 'hueco' },
       ],
@@ -237,6 +251,9 @@ describe('ida y vuelta del respaldo', () => {
 
   afterAll(async () => {
     await cerrarOrigen()
+    if (carpetaDeFotos !== '') {
+      rmSync(carpetaDeFotos, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
+    }
   })
 
   it('una base vacía queda con los mismos datos, versiones e historias', async () => {
@@ -270,6 +287,7 @@ describe('ida y vuelta del respaldo', () => {
           version: 2,
           kilos: '350.000',
           calidad: 'measured',
+          evidenciaId: fotoId,
           correcciones: [
             expect.objectContaining({ campo: 'kilos', valorAnterior: '351.125', motivo: 'leí de más' }),
           ],
@@ -358,6 +376,7 @@ describe('ida y vuelta del respaldo', () => {
     expect(sqlTexto).toContain('INSERT INTO growth.weighing_line')
     expect(sqlTexto).toContain('INSERT INTO growth.weight_correction')
     expect(sqlTexto).toContain('INSERT INTO identity.account')
+    expect(sqlTexto).toContain('INSERT INTO evidence.file')
     expect(sqlTexto).not.toMatch(/DROP SCHEMA(?: IF EXISTS)? public\b/)
 
     const url = process.env['TEST_DATABASE_URL']?.trim() ?? ''
