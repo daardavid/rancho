@@ -66,7 +66,7 @@ export async function darDeAltaConNombre(page: Page, nombre: string): Promise<vo
 export async function irA(page: Page, pantalla: 'Hato' | 'Pesaje' | 'Crecimiento'): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Pantallas del rancho' })
-    .getByRole('button', { name: pantalla, exact: true })
+    .getByRole('link', { name: pantalla, exact: true })
     .click()
 }
 

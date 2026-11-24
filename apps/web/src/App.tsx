@@ -4,14 +4,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { alVencerLaSesion } from './api/aviso'
 import { LLAVE_DE_SESION, useSalir, useSesion } from './api/sesion'
 import { AvisoDeError, BotonGrande, Cargando } from './ui/Avisos'
+import { BarraInferior } from './ui/BarraInferior'
 import { Alta } from './pantallas/Alta'
 import { Crecimiento } from './pantallas/Crecimiento'
 import { Ficha } from './pantallas/Ficha'
 import { Hato } from './pantallas/Hato'
 import { IniciarSesion } from './pantallas/IniciarSesion'
+import { Muestra } from './pantallas/Muestra'
 import { Pesaje } from './pantallas/Pesaje'
 import { Sesion } from './pantallas/Sesion'
-import { irA, useRuta, type Ruta } from './ruta'
+import { useRuta } from './ruta'
 
 /**
  * La aplicación entera: sesión, ruta y la pantalla que toca.
@@ -21,8 +23,8 @@ import { irA, useRuta, type Ruta } from './ruta'
  * la pantalla de destino en vez de empezar otra vez en el hato.
  *
  * Las pantallas de trabajo —hato, pesaje y crecimiento— se alcanzan desde la
- * barra de abajo, con el pulgar y sin menús. No es un enrutador: son rutas en
- * el `hash` de la URL y un par de botones.
+ * barra de abajo, con el pulgar y sin menús. No es un enrutador: son enlaces
+ * al `hash` de la URL.
  */
 export function App() {
   const sesion = useSesion()
@@ -38,6 +40,10 @@ export function App() {
       }),
     [cache],
   )
+
+  if (import.meta.env.DEV && ruta.nombre === 'muestra') {
+    return <Muestra />
+  }
 
   if (sesion.isPending) {
     return (
@@ -61,7 +67,7 @@ export function App() {
   }
 
   return (
-    <>
+    <div className="con-navegacion">
       <BarraDeSesion />
       {ruta.nombre === 'hato' ? <Hato /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
@@ -70,7 +76,7 @@ export function App() {
       {ruta.nombre === 'sesion' ? <Sesion sesionId={ruta.sesionId} /> : null}
       {ruta.nombre === 'crecimiento' ? <Crecimiento /> : null}
       <BarraInferior ruta={ruta} />
-    </>
+    </div>
   )
 }
 
@@ -93,48 +99,3 @@ function BarraDeSesion() {
   )
 }
 
-/**
- * Las tres pantallas del trabajo diario, abajo y a un toque.
- *
- * El pesaje y el crecimiento están al mismo nivel que el hato porque son el
- * trabajo, no un detalle escondido en un menú. La pantalla en la que estás se
- * marca con `aria-current`.
- */
-function BarraInferior({ ruta }: { readonly ruta: Ruta }) {
-  return (
-    <nav className="barra-inferior" aria-label="Pantallas del rancho">
-      <EnlaceDeBarra ruta={ruta} destino={{ nombre: 'hato' }} etiqueta="Hato" />
-      <EnlaceDeBarra ruta={ruta} destino={{ nombre: 'pesaje' }} etiqueta="Pesaje" />
-      <EnlaceDeBarra ruta={ruta} destino={{ nombre: 'crecimiento' }} etiqueta="Crecimiento" />
-    </nav>
-  )
-}
-
-function EnlaceDeBarra({
-  ruta,
-  destino,
-  etiqueta,
-}: {
-  readonly ruta: Ruta
-  readonly destino: Ruta
-  readonly etiqueta: string
-}) {
-  const activa =
-    (destino.nombre === 'hato' &&
-      (ruta.nombre === 'hato' || ruta.nombre === 'ficha' || ruta.nombre === 'alta')) ||
-    (destino.nombre === 'pesaje' && (ruta.nombre === 'pesaje' || ruta.nombre === 'sesion')) ||
-    ruta.nombre === destino.nombre
-
-  return (
-    <button
-      type="button"
-      className={activa ? 'barra-inferior__enlace barra-inferior__enlace--activa' : 'barra-inferior__enlace'}
-      aria-current={activa ? 'page' : undefined}
-      onClick={() => {
-        irA(destino)
-      }}
-    >
-      {etiqueta}
-    </button>
-  )
-}
