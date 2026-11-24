@@ -1,9 +1,10 @@
 import type { RegistrarSesion } from '@rancho/api-contracts'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import { useHato } from '../api/hato'
 import { ErrorDeApi } from '../api/http'
 import { useRegistrarPesaje, useUltimaSesion } from '../api/pesajes'
+import { useSesion } from '../api/sesion'
 import { coincide, normalizar, nombreVisible } from '../dominio/animal'
 import {
   borrarBorrador,
@@ -19,6 +20,7 @@ import { revisarKilos } from '../dominio/kilos'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
 import {
   CampoDeArea,
   CampoDeFecha,
@@ -48,9 +50,24 @@ import {
 export function Pesaje() {
   const hato = useHato()
   const ultima = useUltimaSesion()
+  const sesion = useSesion()
 
-  /** Lo que había guardado en el celular al abrir la pantalla, si algo había. */
-  const [guardado] = useState(() => leerBorrador())
+  /**
+   * Quién está capturando. `App` solo pinta esta pantalla con la sesión ya
+   * resuelta, así que aquí se sabe; la cadena vacía es solo un respaldo y no
+   * coincide con ningún borrador.
+   */
+  const cuentaId = sesion.data?.cuentaId ?? ''
+
+  /**
+   * Lo que había guardado en el celular al abrir la pantalla, si algo había.
+   *
+   * Se recalcula solo cuando cambia la cuenta. `App` no pinta esta pantalla
+   * hasta tener la sesión, así que la cuenta ya se conoce al montar; el `useMemo`
+   * cubre el caso raro de que llegue un instante después, sin pisar el borrador
+   * de esta cuenta con uno nuevo.
+   */
+  const guardado = useMemo(() => leerBorrador(cuentaId), [cuentaId])
   /** Lo que el dueño ha tocado en esta visita. `null` es «todavía no toca nada». */
   const [cambiado, setCambiado] = useState<BorradorDePesaje | null>(null)
 
@@ -70,11 +87,13 @@ export function Pesaje() {
    * cada repintado, o un reintento mandaría otro comando.
    */
   const propuesto = useMemo(() => {
-    if (guardado !== null || hato.isPending || ultima.isPending) {
+    // Sin cuenta no se propone nada: un borrador con `cuentaId` vacío no sería
+    // de nadie y, al guardarse, pisaría el de la cuenta que sí estaba.
+    if (cuentaId === '' || guardado !== null || hato.isPending || ultima.isPending) {
       return null
     }
-    return nuevoBorrador(ultima.isError ? [] : esperados)
-  }, [guardado, hato.isPending, ultima.isPending, ultima.isError, esperados])
+    return nuevoBorrador(cuentaId, ultima.isError ? [] : esperados)
+  }, [guardado, cuentaId, hato.isPending, ultima.isPending, ultima.isError, esperados])
 
   // Un borrador guardado manda sobre la propuesta: es lo último que el dueño
   // escribió, posiblemente a media captura.
@@ -83,7 +102,9 @@ export function Pesaje() {
   // A cada cambio se guarda el borrador. Es barato y es lo que salva la captura
   // si el celular se apaga o el dueño cierra la pestaña sin querer.
   useEffect(() => {
-    if (borrador !== null) {
+    // Un borrador sin cuenta no se guarda: todavía no se sabe de quién es, y
+    // lo que hubiera en el celular no se toca hasta saberlo.
+    if (borrador !== null && borrador.cuentaId !== '') {
       guardarBorrador(borrador)
     }
   }, [borrador])
@@ -122,6 +143,7 @@ export function Pesaje() {
   return (
     <EditorDeSesion
       borrador={borrador}
+      cuentaId={cuentaId}
       animales={animales}
       porAnimal={porAnimal}
       huboVueltaAnterior={ultima.data !== null && ultima.data !== undefined}
@@ -132,22 +154,25 @@ export function Pesaje() {
 
 function EditorDeSesion({
   borrador,
+  cuentaId,
   animales,
   porAnimal,
   huboVueltaAnterior,
   alCambiar,
 }: {
   readonly borrador: BorradorDePesaje
+  readonly cuentaId: string
   readonly animales: readonly Animal[]
   readonly porAnimal: ReadonlyMap<string, Animal>
   readonly huboVueltaAnterior: boolean
-  readonly alCambiar: (borrador: BorradorDePesaje) => void
+  readonly alCambiar: Dispatch<SetStateAction<BorradorDePesaje | null>>
 }) {
   const registrar = useRegistrarPesaje()
   const [busqueda, setBusqueda] = useState('')
   const [masDatos, setMasDatos] = useState(borrador.nota !== '' || borrador.reportedBy !== '')
   const [intentado, setIntentado] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
+  const [subiendoFoto, setSubiendoFoto] = useState(0)
 
   const filas = borrador.filas
   const capturados = filas.filter(
@@ -166,10 +191,30 @@ function EditorDeSesion({
     )
   }, [animales, filas, busqueda])
 
+  // La foto termina de subir después de que el dueño ya siguió capturando.
+  // El cambio se aplica al borrador de ahora: si se usara el de cuando se
+  // eligió el archivo, se borrarían los kilos escritos mientras tanto.
+  const borradorVigente = useRef(borrador)
+  useEffect(() => {
+    borradorVigente.current = borrador
+  }, [borrador])
+
   const cambiarFila = (id: string, cambios: Partial<FilaBorrador>): void => {
-    alCambiar({
-      ...borrador,
-      filas: filas.map((fila) => (fila.id === id ? { ...fila, ...cambios } : fila)),
+    alCambiar((actual) => {
+      const base = actual ?? borradorVigente.current
+      return {
+        ...base,
+        filas: base.filas.map((fila) => {
+          if (fila.id !== id) {
+            return fila
+          }
+          // Una foto que llega tarde no revive un renglón quitado ni un hueco.
+          if ('evidenciaId' in cambios && fila.resultado !== 'pesado') {
+            return fila
+          }
+          return { ...fila, ...cambios }
+        }),
+      }
     })
   }
 
@@ -199,7 +244,13 @@ function EditorDeSesion({
   const enviar = (evento: React.FormEvent<HTMLFormElement>): void => {
     evento.preventDefault()
     setIntentado(true)
-    if (registrar.isPending || sinFilas || faltan.length > 0 || faltaFecha(borrador.fecha)) {
+    if (
+      registrar.isPending ||
+      subiendoFoto > 0 ||
+      sinFilas ||
+      faltan.length > 0 ||
+      faltaFecha(borrador.fecha)
+    ) {
       return
     }
 
@@ -264,6 +315,9 @@ function EditorDeSesion({
                     intentado={intentado}
                     alCambiar={(cambios) => cambiarFila(fila.id, cambios)}
                     alQuitar={() => quitarFila(fila.id)}
+                    alOcuparse={(ocupada) => {
+                      setSubiendoFoto((cantidad) => cantidad + (ocupada ? 1 : -1))
+                    }}
                   />
                 </li>
               ))}
@@ -368,12 +422,14 @@ function EditorDeSesion({
           <AvisoDeError error={registrar.error} />
         ) : null}
 
-        <BotonGrande tipo="submit" deshabilitado={registrar.isPending}>
+        <BotonGrande tipo="submit" deshabilitado={registrar.isPending || subiendoFoto > 0}>
           {registrar.isPending
             ? 'Guardando…'
-            : sinFilas
-              ? 'Todavía no hay nada que guardar'
-              : 'Guardar la sesión'}
+            : subiendoFoto > 0
+              ? 'Subiendo la foto…'
+              : sinFilas
+                ? 'Todavía no hay nada que guardar'
+                : 'Guardar la sesión'}
         </BotonGrande>
 
         {registrar.isError && !choqueDeIdempotencia ? (
@@ -407,7 +463,7 @@ function EditorDeSesion({
             <BotonGrande
               alTocar={() => {
                 borrarBorrador()
-                alCambiar(nuevoBorrador([]))
+                alCambiar(nuevoBorrador(cuentaId, []))
                 setIntentado(false)
                 setConfirmandoDescarte(false)
                 registrar.reset()
@@ -439,12 +495,14 @@ function RenglonDePesaje({
   intentado,
   alCambiar,
   alQuitar,
+  alOcuparse,
 }: {
   readonly fila: FilaBorrador
   readonly animal: Animal | undefined
   readonly intentado: boolean
   readonly alCambiar: (cambios: Partial<FilaBorrador>) => void
   readonly alQuitar: () => void
+  readonly alOcuparse: (ocupada: boolean) => void
 }) {
   const revision = revisarKilos(fila.kilos)
   const error =
@@ -495,9 +553,14 @@ function RenglonDePesaje({
             valor={fila.calidad}
             alCambiar={(calidad) => alCambiar({ calidad: calidad as CalidadBorrador })}
           />
+          <FotoDeLaBascula
+            evidenciaId={fila.evidenciaId}
+            alCambiar={(evidenciaId) => alCambiar({ evidenciaId })}
+            alOcuparse={alOcuparse}
+          />
           <BotonGrande
             secundario
-            alTocar={() => alCambiar({ resultado: 'hueco', kilos: '' })}
+            alTocar={() => alCambiar({ resultado: 'hueco', kilos: '', evidenciaId: null })}
           >
             No se pesó
           </BotonGrande>
@@ -530,6 +593,7 @@ function cuerpoDeLaSesion(borrador: BorradorDePesaje): RegistrarSesion {
             resultado: 'pesado',
             kilos: fila.kilos.trim(),
             calidad: fila.calidad,
+            ...(fila.evidenciaId === null ? {} : { evidenciaId: fila.evidenciaId }),
           },
     ),
     ...(nota === '' ? {} : { nota }),
@@ -546,9 +610,10 @@ function cuerpoDeLaSesion(borrador: BorradorDePesaje): RegistrarSesion {
  * vacías, listas para que el dueño escriba los kilos que le pasaron. La fecha
  * viene con hoy en el rancho y se puede cambiar.
  */
-function nuevoBorrador(esperados: readonly string[]): BorradorDePesaje {
+function nuevoBorrador(cuentaId: string, esperados: readonly string[]): BorradorDePesaje {
   return {
-    version: 1,
+    version: 2,
+    cuentaId,
     fecha: hoyEnElRancho(),
     nota: '',
     reportedBy: '',
@@ -565,6 +630,7 @@ function filaNueva(animalId: string): FilaBorrador {
     resultado: 'pesado',
     kilos: '',
     calidad: 'measured',
+    evidenciaId: null,
   }
 }
 

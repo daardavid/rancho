@@ -18,6 +18,7 @@ export const CODIGOS_DE_RECHAZO = [
   'texto_invalido',
   'sesion_ya_existe',
   'fila_ya_existe',
+  'evidencia_ajena',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]

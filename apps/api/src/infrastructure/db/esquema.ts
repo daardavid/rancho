@@ -9,6 +9,8 @@ import { check, index, pgSchema, pgTable, text, timestamp, uniqueIndex, uuid } f
 export const esquemaHerd = pgSchema('herd')
 export const esquemaGrowth = pgSchema('growth')
 export const esquemaIdentity = pgSchema('identity')
+/** Metadatos del puerto de archivos. No es un módulo de dominio. */
+export const esquemaEvidence = pgSchema('evidence')
 
 /** El único rancho de la instalación. La semilla lo crea; no es un agregado de Herd. */
 export const ranch = esquemaIdentity.table('ranch', {
@@ -83,17 +85,31 @@ export const sesion = esquemaIdentity.table(
 )
 
 /**
- * Intentos fallidos de entrada, contados por el usuario escrito.
+ * Intentos fallidos de entrada, con el usuario escrito y la IP que los hizo.
  *
- * Es fila técnica: no lleva `ranch_id` porque el usuario puede no existir y
- * el rechazo no es un hecho del rancho. Sirve para el límite simple de entrada.
+ * Es fila técnica: no lleva `ranch_id` porque el usuario puede no existir y la
+ * espera no es un hecho del rancho. Se guardan las dos señales porque el límite
+ * cuenta por pareja usuario + IP y también por IP sola: la cuenta nunca es la
+ * única llave, o bastaría con fallar a propósito para dejar al propietario
+ * afuera.
+ *
+ * La IP la resuelve Fastify (`peticion.ip`), que no confía en un proxy por
+ * omisión. Es la del socket, no una cabecera que el cliente pueda inventar.
  */
 export const intentoFallido = esquemaIdentity.table(
   'login_attempt',
   {
     id: uuid('id').primaryKey(),
     usuario: text('usuario').notNull(),
+    direccion: text('direccion').notNull(),
     ocurridoEn: timestamp('occurred_at', { withTimezone: true, mode: 'date' }).notNull(),
   },
-  (tabla) => [index('login_attempt_usuario_ocurrido').on(tabla.usuario, tabla.ocurridoEn)],
+  (tabla) => [
+    index('login_attempt_usuario_direccion_ocurrido').on(
+      tabla.usuario,
+      tabla.direccion,
+      tabla.ocurridoEn,
+    ),
+    index('login_attempt_direccion_ocurrido').on(tabla.direccion, tabla.ocurridoEn),
+  ],
 )

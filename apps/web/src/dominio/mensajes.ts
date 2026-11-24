@@ -28,7 +28,7 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   demasiados_intentos: {
     quePaso: 'Hubo varios intentos fallidos seguidos.',
-    queHacer: 'Espera quince minutos y vuelve a intentar.',
+    queHacer: 'Espera un momento y vuelve a intentar. Los intentos buenos no se bloquean para siempre.',
   },
   no_autenticado: {
     quePaso: 'La sesión venció.',
@@ -134,6 +134,22 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Uno de los renglones ya estaba guardado en esta vuelta.',
     queHacer: 'Abre la sesión guardada para revisarla.',
   },
+  evidencia_ajena: {
+    quePaso: 'Esa foto no se puede usar en este peso.',
+    queHacer: 'Tómala otra vez desde esta pantalla.',
+  },
+  foto_no_es_imagen: {
+    quePaso: 'Eso no es una foto JPEG, PNG o WebP.',
+    queHacer: 'Toma la foto del indicador con la cámara del celular.',
+  },
+  foto_demasiado_grande: {
+    quePaso: 'La foto pesa más de 25 MB.',
+    queHacer: 'Toma otra más cerca del indicador.',
+  },
+  foto_vacia: {
+    quePaso: 'La foto llegó vacía.',
+    queHacer: 'Tómala otra vez.',
+  },
 }
 
 const GENERICO: { quePaso: string; queHacer: string } = MENSAJES.error_desconocido ?? {
@@ -145,12 +161,35 @@ export function mensajeDeError(error: unknown): MensajeDeError {
   if (error instanceof ErrorDeApi) {
     const conocido = MENSAJES[error.codigo]
     if (conocido !== undefined) {
-      return { ...conocido, codigo: error.codigo }
+      const queHacer =
+        error.codigo === 'demasiados_intentos' && error.segundos !== null
+          ? esperaEnPalabras(error.segundos)
+          : conocido.queHacer
+      return { quePaso: conocido.quePaso, queHacer, codigo: error.codigo }
     }
     return { ...GENERICO, codigo: error.codigo }
   }
 
   return { ...GENERICO, codigo: 'error_desconocido' }
+}
+
+/**
+ * Cuánto esperar, dicho como se dice en el rancho.
+ *
+ * La API manda los segundos que le faltan; la pantalla no inventa un plazo. Si
+ * la espera es de minutos se redondea hacia arriba, para no prometer un momento
+ * en el que todavía no se puede.
+ */
+function esperaEnPalabras(segundos: number): string {
+  // Solo hasta medio minuto se dice «medio minuto»: prometerlo con 45 o 55
+  // segundos por delante sería mentir y la API todavía devolvería 429.
+  if (segundos <= 30) {
+    return 'Espera medio minuto y vuelve a intentar.'
+  }
+  const minutos = Math.ceil(segundos / 60)
+  return minutos === 1
+    ? 'Espera un minuto y vuelve a intentar.'
+    : `Espera ${String(minutos)} minutos y vuelve a intentar.`
 }
 
 export function esConflictoDeVersion(error: unknown): boolean {

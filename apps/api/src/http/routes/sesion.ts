@@ -27,12 +27,13 @@ export function registrarRutasDeSesion(
         .send(errorDeSesionSchema.parse({ codigo: 'cuerpo_invalido' }))
     }
 
-    const resultado = await identidad.iniciar(cuerpo.data)
-    if (resultado.tipo === 'demasiados_intentos') {
+    const resultado = await identidad.iniciar({ ...cuerpo.data, direccion: peticion.ip })
+    if (resultado.tipo === 'esperar') {
       return respuesta
         .header('cache-control', 'no-store')
+        .header('retry-after', String(resultado.segundos))
         .code(429)
-        .send(errorDeSesionSchema.parse({ codigo: 'demasiados_intentos' }))
+        .send(errorDeSesionSchema.parse({ codigo: 'demasiados_intentos', segundos: resultado.segundos }))
     }
     if (resultado.tipo !== 'ok') {
       return respuesta

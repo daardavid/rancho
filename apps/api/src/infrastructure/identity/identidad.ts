@@ -13,7 +13,11 @@ export { crearCuenta }
 
 /** Lo que el borde HTTP necesita. No conoce Drizzle ni la librería de contraseñas. */
 export type IdentidadHttp = {
-  iniciar(entrada: { usuario: string; contrasena: string }): Promise<ResultadoDeInicio>
+  iniciar(entrada: {
+    usuario: string
+    contrasena: string
+    direccion: string
+  }): Promise<ResultadoDeInicio>
   cerrar(token: string): Promise<void>
   resolver(token: string): Promise<SesionActiva | null>
 }
@@ -26,6 +30,9 @@ export type IdentidadHttp = {
  * una vez, al armar la aplicación, y quien llama no lo ve. En producción el
  * proceso se niega a arrancar si falta ([`cargarConfiguracion`](../../main.ts));
  * en las pruebas llega desde `abrirBaseDePruebas`.
+ *
+ * La dirección de quien intenta entrar la resuelve el borde HTTP y llega aquí
+ * ya resuelta: este archivo no lee cabeceras.
  */
 export function crearIdentidad(db: EjecutorSql, secretoDeSesion: string): IdentidadHttp {
   if (secretoDeSesion.trim() === '') {
@@ -33,7 +40,8 @@ export function crearIdentidad(db: EjecutorSql, secretoDeSesion: string): Identi
   }
 
   return {
-    iniciar: (entrada) => iniciarSesion(db, secretoDeSesion, entrada),
+    iniciar: (entrada) =>
+      iniciarSesion(db, secretoDeSesion, entrada, entrada.direccion),
     cerrar: (token) => cerrarSesion(db, secretoDeSesion, token),
     resolver: (token) => resolverSesion(db, secretoDeSesion, token),
   }

@@ -1,4 +1,4 @@
-# INC-002 â€” Todo en local
+# INC-002 — Todo en local
 
 Status:
 DRAFT. Becomes READY when David merges it.

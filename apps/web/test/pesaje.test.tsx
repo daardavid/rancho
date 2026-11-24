@@ -1,7 +1,9 @@
-import { screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Pesaje } from '../src/pantallas/Pesaje'
 import {
   animalDeLista,
   ANIMAL,
@@ -108,6 +110,10 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     const kilos = screen.getAllByLabelText('Kilos')
     expect(kilos).toHaveLength(3)
+
+    const fotos = screen.getAllByLabelText('Foto de la báscula')
+    expect(fotos).toHaveLength(3)
+    expect((fotos[0] as HTMLInputElement).getAttribute('capture')).toBe('environment')
 
     await usuario.type(kilos[0] as HTMLElement, '215.5')
     await usuario.type(kilos[1] as HTMLElement, '188')
@@ -451,6 +457,118 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     expect(screen.queryAllByLabelText('Kilos')).toHaveLength(0)
   })
 
+  it('el borrador de otra cuenta no aparece en el pesaje y se tira', async () => {
+    // Lo que quedó en este celular lo empezó otra cuenta: no se muestra ni se manda.
+    window.localStorage.setItem(
+      'rancho.pesaje.borrador',
+      JSON.stringify({
+        version: 2,
+        cuentaId: '77777777-7777-4777-8777-777777777777',
+        fecha: '2026-11-20',
+        nota: 'captura de otra sesión',
+        reportedBy: '',
+        sesionId: '88888888-8888-4888-8888-888888888888',
+        commandId: '99999999-9999-4999-8999-999999999998',
+        filas: [],
+      }),
+    )
+
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+
+    // La propuesta de esta cuenta manda, no la captura ajena: la de la otra
+    // cuenta se tiró y en el celular quedó solo la de esta sesión.
+    expect(screen.getAllByLabelText('Kilos').length).toBe(3)
+    expect(screen.queryByDisplayValue('captura de otra sesión')).toBeNull()
+    const guardado = JSON.parse(
+      window.localStorage.getItem('rancho.pesaje.borrador') ?? '{}',
+    ) as { cuentaId?: string }
+    expect(guardado.cuentaId).toBe(CUENTA)
+    expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toHaveLength(0)
+  })
+
+  it('sin saber todavía la cuenta no se arma ni se guarda un borrador', async () => {
+    // Lo que quedó en el celular es de una cuenta real. Si la pantalla se
+    // abriera sin saber quién está capturando, no debe pisarlo con un borrador
+    // sin dueño: eso borraría la captura de la sesión anterior.
+    const anterior = {
+      version: 2,
+      cuentaId: CUENTA,
+      fecha: '2026-11-20',
+      nota: 'captura de la cuenta',
+      reportedBy: '',
+      sesionId: '88888888-8888-4888-8888-888888888888',
+      commandId: '99999999-9999-4999-8999-999999999998',
+      filas: [],
+    }
+    const antes = JSON.stringify(anterior)
+    window.localStorage.setItem('rancho.pesaje.borrador', antes)
+    const escrituras = vi.spyOn(Storage.prototype, 'setItem')
+
+    const api = montarApi({
+      // Todavía no se sabe quién está en la sesión: no hay cuenta a quién
+      // atribuir un borrador.
+      'GET /api/session': () => ({ estado: 401, cuerpo: { codigo: 'no_autenticado' } }),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+    })
+
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <Pesaje />
+      </QueryClientProvider>,
+    )
+
+    // Se espera a que la vuelta anterior y el hato lleguen: con el error, es
+    // justo entonces cuando se arma el borrador sin dueño.
+    await waitFor(() => {
+      const rutas = api.peticiones.map((peticion) => `${peticion.metodo} ${peticion.ruta}`)
+      expect(rutas).toContain('GET /api/animals')
+      expect(rutas).toContain('GET /api/weighing-sessions/latest')
+    })
+    await new Promise((resolver) => {
+      setTimeout(resolver, 50)
+    })
+
+    const guardados = escrituras.mock.calls.filter(
+      (llamada) => llamada[0] === 'rancho.pesaje.borrador',
+    )
+    expect(guardados).toHaveLength(0)
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBe(antes)
+  })
+
+  it('cerrar sesión borra el borrador de este navegador', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'DELETE /api/session': () => ({ estado: 204, cuerpo: null }),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+    await usuario.type(screen.getAllByLabelText('Kilos')[0] as HTMLElement, '199')
+
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).not.toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Salir' }))
+
+    // Lo capturado no sobrevive al cierre: el siguiente que entre en este
+    // celular no hereda una vuelta a medias de otra sesión.
+    await waitFor(() => {
+      expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBeNull()
+    })
+  })
+
   it('el choque de idempotencia se explica y no se ofrece guardar otra vez', async () => {
     const usuario = userEvent.setup()
     montarApi({
@@ -477,7 +595,156 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     ).toBeDefined()
     expect(screen.getByRole('button', { name: 'Abrir la sesión guardada' })).toBeDefined()
   })
+
+  it('conserva kilos y calidad si la foto termina de subir después', async () => {
+    const usuario = userEvent.setup()
+    const fotos = colaDeFotos()
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'POST /api/evidencia': fotos.ruta,
+      'POST /api/weighing-sessions': sesionGuardada({
+        id: '11111111-2222-4333-8444-555555555555',
+        fecha: '2026-11-22',
+        nota: null,
+        reportedBy: null,
+        commandId: '12121212-2222-4333-8444-555555555555',
+        recordedBy: CUENTA,
+        recordedAt: CUANDO,
+        filas: [],
+      }),
+      'GET /api/weighing-sessions/11111111-2222-4333-8444-555555555555': () => ({
+        estado: 200,
+        cuerpo: {
+          id: '11111111-2222-4333-8444-555555555555',
+          fecha: '2026-11-22',
+          nota: null,
+          reportedBy: null,
+          commandId: '12121212-2222-4333-8444-555555555555',
+          recordedBy: CUENTA,
+          recordedAt: CUANDO,
+          filas: [],
+        },
+      }),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+
+    const entrada = screen.getAllByLabelText('Foto de la báscula')[0]
+    await usuario.upload(entrada as HTMLElement, archivoDeBascula())
+    expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
+
+    const kilos = screen.getAllByLabelText('Kilos')
+    await usuario.type(kilos[0] as HTMLElement, '215.5')
+    await usuario.selectOptions(screen.getAllByLabelText('¿Cómo se obtuvo?')[0] as HTMLElement, 'observed')
+    await usuario.type(kilos[1] as HTMLElement, '188')
+
+    fotos.soltar()
+
+    expect(await screen.findByRole('button', { name: 'Guardar la sesión' })).toBeDefined()
+    expect((screen.getAllByLabelText('Kilos')[0] as HTMLInputElement).value).toBe('215.5')
+    expect((screen.getAllByLabelText('Kilos')[1] as HTMLInputElement).value).toBe('188')
+    expect((screen.getAllByLabelText('¿Cómo se obtuvo?')[0] as HTMLSelectElement).value).toBe('observed')
+    expect(screen.getByRole('img', { name: 'Foto de la báscula' }).getAttribute('src')).toBe(
+      `/api/evidencia/${FOTO_ID}`,
+    )
+
+    await usuario.click(screen.getAllByRole('button', { name: 'No se pesó' })[2] as HTMLElement)
+    await usuario.click(screen.getByRole('button', { name: 'Guardar la sesión' }))
+
+    await waitFor(() => {
+      expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/weighing-sessions')).toHaveLength(1)
+    })
+    const envio = api.peticiones.find((peticion) => peticion.ruta === '/api/weighing-sessions')
+    if (envio === undefined) {
+      throw new Error('No se mandó la sesión.')
+    }
+    const filas = (
+      envio.cuerpo as {
+        filas: {
+          animalId: string
+          resultado: string
+          kilos?: string
+          calidad?: string
+          evidenciaId?: string
+        }[]
+      }
+    ).filas
+    expect(filas.find((fila) => fila.animalId === ANIMAL)).toMatchObject({
+      resultado: 'pesado',
+      kilos: '215.5',
+      calidad: 'observed',
+      evidenciaId: FOTO_ID,
+    })
+    expect(filas.find((fila) => fila.animalId === ANIMAL_B)).toMatchObject({
+      resultado: 'pesado',
+      kilos: '188',
+      calidad: 'measured',
+    })
+  })
+
+  it('no revive el renglón si se marca «no se pesó» mientras sube la foto', async () => {
+    const usuario = userEvent.setup()
+    const fotos = colaDeFotos()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': vueltaAnterior(),
+      'POST /api/evidencia': fotos.ruta,
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Canelo')
+
+    await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
+    expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
+
+    await usuario.click(screen.getAllByRole('button', { name: 'No se pesó' })[0] as HTMLElement)
+
+    const guardar = await screen.findByRole('button', { name: 'Guardar la sesión' })
+    expect((guardar as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.getByText('No se pesó.')).toBeDefined()
+
+    fotos.soltar()
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Subiendo la foto…' })).toBeNull()
+    })
+    expect(screen.getByText('No se pesó.')).toBeDefined()
+    expect(screen.getAllByLabelText('Kilos')).toHaveLength(2)
+    expect((screen.getByRole('button', { name: 'Guardar la sesión' }) as HTMLButtonElement).disabled).toBe(false)
+
+    await usuario.upload(screen.getAllByLabelText('Foto de la báscula')[0] as HTMLElement, archivoDeBascula())
+    expect(await screen.findByRole('button', { name: 'Subiendo la foto…' })).toBeDefined()
+  })
 })
+
+const FOTO_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+
+function archivoDeBascula(): File {
+  return new File([Uint8Array.from([0xff, 0xd8, 0xff, 0xd9])], 'bascula.jpg', { type: 'image/jpeg' })
+}
+
+function colaDeFotos(): {
+  ruta: () => Promise<{ estado: number; cuerpo: unknown }>
+  soltar: () => void
+} {
+  const pendientes: Array<(respuesta: { estado: number; cuerpo: unknown }) => void> = []
+  return {
+    ruta: () =>
+      new Promise((resolve) => {
+        pendientes.push(resolve)
+      }),
+    soltar: () => {
+      const resolver = pendientes.shift()
+      if (resolver === undefined) {
+        throw new Error('No hay una foto subiéndose.')
+      }
+      resolver({ estado: 201, cuerpo: { id: FOTO_ID, tipo: 'image/jpeg', tamano: 4 } })
+    },
+  }
+}
 
 describe('Sesión guardada', () => {
   it('enseña los pesos y los huecos, y no inventa la ganancia', async () => {

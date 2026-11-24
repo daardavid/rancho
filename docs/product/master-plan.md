@@ -4,7 +4,7 @@
 
 - Status: ACCEPTED PRODUCT DIRECTION GOVERNANCE BASELINE
 - Version: v1
-- Last updated: 2026-11-22
+- Last updated: 2026-11-24
 
 The Master Plan is the canonical repository view of RANCHO's direction and current phase.
 
@@ -65,8 +65,10 @@ INC-001 is executed by the repository factory (`fabrica/`). The interview answer
 
 ## NEXT
 
-1. INC-002, pilot readiness: hosting, backups, loading the notebook or Excel history if it exists, and the owner's first real weighing sessions.
-2. Feed, profitability, and herd-control increments, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path").
+1. [INC-002 — Todo en local](increments/INC-002-todo-en-local.md): run the app on the laptop and on a phone on the same Wi-Fi, with a local backup and a photo of the scale.
+2. A later migration increment publishes the app so it can run off the laptop. It follows INC-002. Its id is assigned when it is framed.
+3. Feed, profitability, and herd-control increments, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path").
+4. Where loading the notebook or Excel history (`OQ-DATA-001`) lands is still open. INC-002 leaves it out.
 
 ## LATER
 

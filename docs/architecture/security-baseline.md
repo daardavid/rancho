@@ -12,6 +12,7 @@ Authentication approach: [ADR-010](adr/ADR-010-authentication.md). Evidence byte
 - CORS is not a wildcard. Development reaches the API through the Vite proxy for `/api`.
 - Same-origin plus `SameSite=Lax` is the CSRF baseline for this first topology. Review it if the SPA and the API stop sharing an origin.
 - Login and other auth routes are rate-limited. Ordinary capture routes are not throttled so tightly that a weighing session cannot be entered.
+- The login limit never makes one account the only key. Failed attempts are counted per user + client address and, separately, per client address; the wait grows from 30 s to 5 min and forgets itself after 15 min. Five deliberate failures from another device therefore cannot keep the owner out of their own phone, while guessing from one address stays throttled. Countdown before a retry is returned to the client (`Retry-After`, `segundos`).
 - A stale version or a bad password fails the request. It does not reveal whether an email exists beyond what the login flow must say to a single known owner.
 - Mutation endpoints use a non-GET method.
 
@@ -77,8 +78,8 @@ The production application does not connect as a superuser.
 
 ## Status
 
-- Version: 0.2
+- Version: 0.3
 - Status: Accepted with the Physical Architecture v1 baseline. No controls implemented
-- Last updated: 2026-10-04
+- Last updated: 2026-11-24
 - Source: ADR-010, ADR-011, ADR-013, a handful of expected users
 - Validation: Proportional to the owner and the two developers. Not a compliance program

@@ -44,9 +44,18 @@ export {
   type ReemplazarMarca,
 } from './animales'
 export {
+  codigoDeErrorDeEvidenciaSchema,
+  errorDeEvidenciaSchema,
+  evidenciaCreadaSchema,
+  tiposDeImagenSchema,
+  type ErrorDeEvidencia,
+  type EvidenciaCreada,
+} from './evidencia'
+export {
   LARGO_MAXIMO_MOTIVO_DE_PESAJE,
   LARGO_MAXIMO_NOTA_DE_PESAJE,
   LARGO_MAXIMO_REPORTED_BY,
+  AUSENCIA_DE_FOTO,
   calidadDePesoSchema,
   codigoDeErrorDePesajeSchema,
   correccionDePesoSchema,

@@ -15,6 +15,7 @@ export type FilaPublica =
       readonly kilos: string
       readonly calidad: SourceQuality
       readonly version: number
+      readonly evidenciaId: string | null
     }
   | {
       readonly id: string
@@ -49,6 +50,7 @@ export type PesoPublico = {
   readonly kilos: string
   readonly calidad: SourceQuality
   readonly version: number
+  readonly evidenciaId: string | null
   readonly correcciones: readonly CorreccionPublica[]
 }
 
@@ -79,6 +81,7 @@ export function publicarPeso(peso: PesoConHistoria): PesoPublico {
     kilos: formatearGramosATexto(peso.fila.kilos),
     calidad: peso.fila.calidad,
     version: peso.fila.version,
+    evidenciaId: peso.fila.evidenciaId,
     correcciones: peso.correcciones.map(publicarCorreccion),
   }
 }
@@ -95,6 +98,7 @@ function publicarFila(fila: FilaDeSesion): FilaPublica {
     kilos: formatearGramosATexto(fila.kilos),
     calidad: fila.calidad,
     version: fila.version,
+    evidenciaId: fila.evidenciaId,
   }
 }
 

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { ErrorDeApi } from '../src/api/http'
 import { compararDecimales, ordenarCrecimiento } from '../src/dominio/crecimiento'
 import { kilosNormales, kilosParaEditar, revisarKilos } from '../src/dominio/kilos'
+import { mensajeDeError } from '../src/dominio/mensajes'
 
 describe('Kilos como texto', () => {
   it('acepta dígitos con punto y hasta tres decimales', () => {
@@ -117,5 +119,32 @@ describe('ordenarCrecimiento', () => {
       fila('b', { porDia: null, ganados: '-1.000' }),
     ])
     expect(orden.map((unaFila) => unaFila.animalId)).toEqual(['b', 'a'])
+  })
+})
+
+describe('Cuánto esperar cuando la API frena los intentos', () => {
+  // El texto de respaldo, para cuando la API no manda segundos.
+  const MENSAJE_SIN_PLAZO =
+    'Espera un momento y vuelve a intentar. Los intentos buenos no se bloquean para siempre.'
+
+  const queHacer = (segundos: number): string =>
+    mensajeDeError(new ErrorDeApi(429, 'demasiados_intentos', segundos)).queHacer
+
+  it('solo hasta medio minuto se dice «medio minuto»', () => {
+    expect(queHacer(1)).toBe('Espera medio minuto y vuelve a intentar.')
+    expect(queHacer(30)).toBe('Espera medio minuto y vuelve a intentar.')
+  })
+
+  it('de 31 a 60 segundos se redondea a un minuto, para no prometer un plazo menor', () => {
+    expect(queHacer(31)).toBe('Espera un minuto y vuelve a intentar.')
+    expect(queHacer(45)).toBe('Espera un minuto y vuelve a intentar.')
+    expect(queHacer(60)).toBe('Espera un minuto y vuelve a intentar.')
+    expect(queHacer(61)).toBe('Espera 2 minutos y vuelve a intentar.')
+  })
+
+  it('sin segundos de la API el mensaje no inventa un plazo', () => {
+    expect(mensajeDeError(new ErrorDeApi(429, 'demasiados_intentos')).queHacer).toBe(
+      MENSAJE_SIN_PLAZO,
+    )
   })
 })

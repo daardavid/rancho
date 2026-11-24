@@ -1,4 +1,4 @@
-import type { Peso } from '@rancho/api-contracts'
+import { AUSENCIA_DE_FOTO, type Peso } from '@rancho/api-contracts'
 import { useState } from 'react'
 
 import { useFicha, usePesos } from '../api/hato'
@@ -17,6 +17,7 @@ import {
 import type { FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { Seccion } from '../ui/Campos'
 import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
@@ -172,6 +173,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
                     <span className="peso__kilos">{kilosLegibles(punto.kilos)}</span>
                     <span className="peso__fecha">{diaLegible(punto.fecha)}</span>
                     <span className="peso__calidad">{calidad(punto.calidad)}</span>
+                    <FotoVisible evidenciaId={correccionesDePeso.get(punto.pesoId)?.evidenciaId} />
                     {punto.intervalo === null ? null : (
                       <span className="peso__intervalo">
                         Desde el {diaLegible(punto.intervalo.fechaPrevia)}:{' '}
@@ -292,20 +294,41 @@ function PesoConCorreccion({
           {peso.correcciones.map((correccion, indice) => (
             <li key={`${correccion.campo}-${correccion.correctedAt}-${indice}`} className="correccion">
               <p className="correccion__campo">
-                {correccion.campo === 'kilos' ? 'Kilos' : 'Cómo se obtuvo'}: antes decía «
-                {correccion.campo === 'kilos'
-                  ? kilosLegibles(correccion.valorAnterior)
-                  : calidad(correccion.valorAnterior)}
+                {etiquetaDeCampo(correccion.campo)}: antes decía «
+                {textoAnterior(correccion.campo, correccion.valorAnterior)}
                 »
               </p>
               <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
               <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
+              {correccion.campo === 'evidencia' ? (
+                <FotoVisible evidenciaId={correccion.valorAnterior} />
+              ) : null}
             </li>
           ))}
         </ul>
       )}
     </>
   )
+}
+
+function etiquetaDeCampo(campo: string): string {
+  if (campo === 'kilos') {
+    return 'Kilos'
+  }
+  if (campo === 'evidencia') {
+    return 'Foto de la báscula'
+  }
+  return 'Cómo se obtuvo'
+}
+
+function textoAnterior(campo: string, valor: string): string {
+  if (campo === 'kilos') {
+    return kilosLegibles(valor)
+  }
+  if (campo === 'evidencia') {
+    return valor === AUSENCIA_DE_FOTO ? 'no tenía foto' : 'tenía una foto'
+  }
+  return calidad(valor)
 }
 
 function Datos({ animal }: { readonly animal: FichaCompleta }) {

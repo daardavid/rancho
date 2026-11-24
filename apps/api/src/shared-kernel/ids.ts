@@ -19,6 +19,15 @@ export type RanchId = z.infer<typeof ranchIdSchema>
 export const animalIdSchema = z.uuid().brand<'AnimalId'>()
 export type AnimalId = z.infer<typeof animalIdSchema>
 
+/**
+ * Id de un archivo de evidencia.
+ *
+ * Es la referencia que guarda el módulo dueño del hecho. No es una ruta ni
+ * una URL del almacén ([ADR-011](../../../../docs/architecture/adr/ADR-011-evidence-storage.md)).
+ */
+export const evidenceIdSchema = z.uuid().brand<'EvidenceId'>()
+export type EvidenceId = z.infer<typeof evidenceIdSchema>
+
 /** Id que el cliente acuña para un comando, para que reintentar no duplique hechos. */
 export const commandIdSchema = z.uuid().brand<'CommandId'>()
 export type CommandId = z.infer<typeof commandIdSchema>

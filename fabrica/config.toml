@@ -69,6 +69,13 @@ comandos = [
 ]
 timeout_min = 20
 
+[ci]
+# Antes de mergear un PR aprobado, espera `gh pr checks --watch`.
+# Verde: merge. Rojo: otro ciclo de Cursor con el log. Sin checks o tiempo agotado: se detiene, sin merge.
+# esperar = false vuelve al merge de antes (no consulta GitHub).
+esperar = true
+timeout_min = 30
+
 [limites]
 ciclos_max = 4                 # ciclos de corrección por tarea antes de marcarla como atorada
 ciclo_cierre = 3               # desde este ciclo (contando corridas anteriores), solo bloquea lo que afecta datos reales

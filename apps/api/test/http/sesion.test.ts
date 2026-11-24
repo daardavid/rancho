@@ -8,8 +8,13 @@ import { construirApp } from '../../src/http/app'
 import { filasDe } from '../../src/infrastructure/db/filas'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearCuenta, type CuentaCreada } from '../../src/infrastructure/identity/cuentas'
+import { cargarConfiguracion } from '../../src/infrastructure/configuracion'
 import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
-import { MAX_INTENTOS_FALLIDOS, VENTANA_DE_INTENTOS_MS } from '../../src/infrastructure/identity/parametros'
+import {
+  INTENTOS_LIBRES_POR_IP,
+  INTENTOS_LIBRES_POR_USUARIO_E_IP,
+  VENTANA_DE_INTENTOS_MS,
+} from '../../src/infrastructure/identity/parametros'
 import { huellaDeToken } from '../../src/infrastructure/identity/tokens'
 import { nuevoId } from '../../src/shared-kernel/ids'
 import { SECRETO_DE_PRUEBA, abrirBaseDePruebas } from '../db/base-de-pruebas'
@@ -55,6 +60,16 @@ async function entrar(usuario: string, contrasena = CONTRASENA) {
   return app.inject({
     method: 'POST',
     url: '/api/session',
+    payload: { usuario, contrasena },
+  })
+}
+
+/** Un intento desde una IP concreta: `inject` la pone en el socket falso. */
+async function entrarDesde(usuario: string, contrasena: string, direccion: string) {
+  return app.inject({
+    method: 'POST',
+    url: '/api/session',
+    remoteAddress: direccion,
     payload: { usuario, contrasena },
   })
 }
@@ -268,31 +283,61 @@ describe('sesión', () => {
     expect(mala.headers['set-cookie']).toBeUndefined()
   })
 
-  it('después de varios intentos fallidos rechaza aunque la contraseña sea la buena', async () => {
-    for (let intento = 0; intento < MAX_INTENTOS_FALLIDOS; intento += 1) {
-      await db.execute(sql`
-        INSERT INTO identity.login_attempt (id, usuario, occurred_at)
-        VALUES (${nuevoId()}, ${USUARIO_BLOQUEO}, ${new Date()})
-      `)
+  it('cinco intentos fallidos desde una IP no le cierran la puerta a otra', async () => {
+    const atacante = '203.0.113.10'
+    for (let intento = 0; intento < INTENTOS_LIBRES_POR_USUARIO_E_IP; intento += 1) {
+      const fallo = await entrarDesde(USUARIO_BLOQUEO, 'no-es-la-contrasena', atacante)
+      expect(fallo.statusCode).toBe(401)
     }
 
-    const respuesta = await entrar(USUARIO_BLOQUEO)
+    // El propietario, desde su celular, entra con la contraseña buena aunque el
+    // otro aparato haya fallado cinco veces con su mismo nombre.
+    const suyo = await entrarDesde(USUARIO_BLOQUEO, CONTRASENA, '198.51.100.7')
+    expect(suyo.statusCode).toBe(200)
+  })
+
+  it('adivinar desde una IP sigue limitado, y dice cuánto falta', async () => {
+    const atacante = '203.0.113.11'
+    for (let intento = 0; intento < INTENTOS_LIBRES_POR_USUARIO_E_IP; intento += 1) {
+      await entrarDesde(USUARIO_BLOQUEO, 'no-es-la-contrasena', atacante)
+    }
+
+    // El sexto se rechaza aunque la contraseña sea la buena: adivinar no avanza.
+    const sexto = await entrarDesde(USUARIO_BLOQUEO, CONTRASENA, atacante)
+    expect(sexto.statusCode).toBe(429)
+    const cuerpo = sexto.json() as { codigo: string; segundos?: number }
+    expect(cuerpo.codigo).toBe('demasiados_intentos')
+    expect(cuerpo.segundos).toBeGreaterThan(0)
+    expect(Number(sexto.headers['retry-after'])).toBe(cuerpo.segundos)
+  })
+
+  it('una IP que prueba muchos usuarios distintos también topa', async () => {
+    const atacante = '203.0.113.12'
+    for (let intento = 0; intento < INTENTOS_LIBRES_POR_IP; intento += 1) {
+      await entrarDesde(`nombre-de-la-lista-${String(intento)}`, 'no-es-la-contrasena', atacante)
+    }
+
+    // Contra un nombre nuevo la pareja usuario + IP no ha fallado nunca, pero
+    // la IP sí: sin este tope, una lista de nombres pasaría entera.
+    const respuesta = await entrarDesde(USUARIO_OWNER, CONTRASENA, atacante)
     expect(respuesta.statusCode).toBe(429)
-    expect(respuesta.json()).toEqual({ codigo: 'demasiados_intentos' })
+    expect(respuesta.json()).toMatchObject({ codigo: 'demasiados_intentos' })
   })
 
   it('los intentos viejos no cuentan y un ingreso bueno los olvida', async () => {
     const viejo = new Date(Date.now() - VENTANA_DE_INTENTOS_MS - 60_000)
-    for (let intento = 0; intento < MAX_INTENTOS_FALLIDOS; intento += 1) {
+    for (let intento = 0; intento < INTENTOS_LIBRES_POR_USUARIO_E_IP; intento += 1) {
       await db.execute(sql`
-        INSERT INTO identity.login_attempt (id, usuario, occurred_at)
-        VALUES (${nuevoId()}, ${USUARIO_VENTANA}, ${viejo})
+        INSERT INTO identity.login_attempt (id, usuario, direccion, occurred_at)
+        VALUES (${nuevoId()}, ${USUARIO_VENTANA}, '127.0.0.1', ${viejo})
       `)
     }
 
     const respuesta = await entrar(USUARIO_VENTANA)
     expect(respuesta.statusCode).toBe(200)
 
+    // El ingreso bueno borra los fallos de esta pareja. Los de fuera de la
+    // ventana se barran solos en la siguiente consulta.
     const quedan = filasDe<{ id: string }>(
       await db.execute(sql`
         SELECT id FROM identity.login_attempt WHERE usuario = ${USUARIO_VENTANA}
@@ -302,10 +347,17 @@ describe('sesión', () => {
   })
 
   it('en producción la cookie es HttpOnly, Secure y SameSite=Lax', async () => {
+    const configuracion = cargarConfiguracion({
+      DATABASE_URL: 'postgres://rancho:rancho@127.0.0.1:5432/rancho',
+      SESSION_SECRET: SECRETO_DE_PRUEBA,
+      NODE_ENV: 'production',
+    })
+    expect(configuracion.cookieSegura).toBe(true)
+
     const publicada = construirApp({
       identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       nivelDeLog: 'silent',
-      produccion: true,
+      produccion: configuracion.cookieSegura,
     })
     try {
       const respuesta = await publicada.inject({
