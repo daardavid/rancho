@@ -1,5 +1,7 @@
 Escalaste a Claude la revisión de la tarea $tarea_id y ya respondió. Ahora te toca contestar sus puntos para llegar a un consenso.
 
+**Sin terminal.** Revisas en modo de solo lectura y aquí no puedes correr comandos (ni `Get-ChildItem`, ni `git`, ni `npm`): cualquier intento detiene tu revisión sin respuesta y se pierde. No los necesitas. La fábrica ya corrió las pruebas y te dejó en archivos el diff, la lista de archivos cambiados y el resultado. Para leer o listar archivos usa solo tus herramientas de archivos.
+
 Lee (no modifiques nada):
 
 - Tu revisión: `$trabajo/$archivo_revision`.

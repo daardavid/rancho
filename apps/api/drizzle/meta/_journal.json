@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795398681949,
+      "tag": "0000_inicial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795400573580,
+      "tag": "0001_cuentas_y_sesiones",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795403170061,
+      "tag": "0002_ficha_del_animal",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795405004577,
+      "tag": "0003_sesiones_de_pesaje",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795484638190,
+      "tag": "0004_detalle_categoria_presente",
+      "breakpoints": true
+    }
+  ]
+}

@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, integracion]
   push:
     branches: [main]
 
@@ -13,6 +13,25 @@ jobs:
   validate:
     name: validate
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rancho
+          POSTGRES_PASSWORD: rancho
+          POSTGRES_DB: rancho_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rancho -d rancho_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Credenciales del servicio desechable de CI, no datos del rancho.
+      # Esta base es solo la conexión de administración: cada archivo de pruebas
+      # crea la suya (`rancho_test_…`) y la borra al terminar (ADR-014).
+      TEST_DATABASE_URL: postgres://rancho:rancho@localhost:5432/rancho_test
     steps:
       - uses: actions/checkout@v7
         with:
@@ -25,9 +44,26 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run lint:map
+      - name: Lint de todos los workspaces
+        run: npm run lint
 
-      - run: npm run build:map
+      - name: Tipos de todos los workspaces
+        run: npm run typecheck
+
+      - name: Pruebas de todos los workspaces
+        run: npm test
+
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas de punta a punta
+        # `test:e2e` construye la web y la API antes de probar; levanta su
+        # propia base desechable con PGlite, así que no usa el servicio de
+        # PostgreSQL de arriba.
+        run: npm run test:e2e
+
+      - name: Build del mapa de dominio
+        run: npm run build:map
 
   fabrica:
     name: Reglas de la fábrica

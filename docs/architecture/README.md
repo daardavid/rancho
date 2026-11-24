@@ -81,7 +81,7 @@ Rejected as standalone contexts: Reproduction, Health, Presence, Security, Land,
 | [adr/ADR-011-evidence-storage.md](adr/ADR-011-evidence-storage.md) | Filesystem in development, S3-compatible when deployed |
 | [adr/ADR-012-repository-module-enforcement.md](adr/ADR-012-repository-module-enforcement.md) | Directories, public index, import test |
 | [adr/ADR-013-ranch-scope.md](adr/ADR-013-ranch-scope.md) | `RanchId` from the first persistence version. Not SaaS |
-| [adr/ADR-014-local-test-database.md](adr/ADR-014-local-test-database.md) | Proposed. Persistence tests on embedded PostgreSQL locally, PostgreSQL service in CI |
+| [adr/ADR-014-local-test-database.md](adr/ADR-014-local-test-database.md) | Proposed. Persistence tests on embedded PostgreSQL locally, one fresh database per test file on the PostgreSQL service in CI |
 
 Physical ADRs are accepted as the Physical Architecture v1 baseline. They do not scaffold the application.
 

@@ -8,11 +8,26 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "scripts": {
     "dev:map": "npm run dev -w @rancho/domain-map",
     "build:map": "npm run build -w @rancho/domain-map",
-    "lint:map": "npm run lint -w @rancho/domain-map"
+    "lint:map": "npm run lint -w @rancho/domain-map",
+    "dev:api": "npm run dev -w @rancho/api",
+    "dev:web": "npm run dev -w @rancho/web",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "npm run build -w @rancho/web",
+    "build:api": "npm run build -w @rancho/api",
+    "start": "npm start -w @rancho/api",
+    "test:e2e": "npm run build && playwright test",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite-socket": "^0.2.20",
+    "@playwright/test": "^1.62.0"
   }
 }

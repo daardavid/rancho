@@ -1,0 +1,761 @@
+{
+  "id": "9c0a63f4-5854-45f5-b4fa-117e96cf97a2",
+  "prevId": "583a8729-870f-4d52-9798-02ab151a927d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "identity.account": {
+      "name": "account",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usuario": {
+          "name": "usuario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_usuario_unique": {
+          "name": "account_usuario_unique",
+          "columns": [
+            {
+              "expression": "usuario",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_ranch_id_ranch_id_fk": {
+          "name": "account_ranch_id_ranch_id_fk",
+          "tableFrom": "account",
+          "tableTo": "ranch",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "ranch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "account_rol_valido": {
+          "name": "account_rol_valido",
+          "value": "\"identity\".\"account\".\"rol\" in ('owner', 'support')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "identity.login_attempt": {
+      "name": "login_attempt",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "usuario": {
+          "name": "usuario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "login_attempt_usuario_ocurrido": {
+          "name": "login_attempt_usuario_ocurrido",
+          "columns": [
+            {
+              "expression": "usuario",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.ranch": {
+      "name": "ranch",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.command_idempotency": {
+      "name": "command_idempotency",
+      "schema": "",
+      "columns": {
+        "command_id": {
+          "name": "command_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.session": {
+      "name": "session",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_token_hash_unique": {
+          "name": "session_token_hash_unique",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_account_id_account_id_fk": {
+          "name": "session_account_id_account_id_fk",
+          "tableFrom": "session",
+          "tableTo": "account",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "session_ranch_id_ranch_id_fk": {
+          "name": "session_ranch_id_ranch_id_fk",
+          "tableFrom": "session",
+          "tableTo": "ranch",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "ranch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "session_rol_valido": {
+          "name": "session_rol_valido",
+          "value": "\"identity\".\"session\".\"rol\" in ('owner', 'support')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal": {
+      "name": "animal",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sex": {
+          "name": "sex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_detail": {
+          "name": "category_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tenure": {
+          "name": "tenure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "economic_participation": {
+          "name": "economic_participation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arrangement_note": {
+          "name": "arrangement_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_ranch_activo": {
+          "name": "animal_ranch_activo",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_sexo_valido": {
+          "name": "animal_sexo_valido",
+          "value": "\"herd\".\"animal\".\"sex\" in ('female', 'male', 'unknown')"
+        },
+        "animal_categoria_valida": {
+          "name": "animal_categoria_valida",
+          "value": "\"herd\".\"animal\".\"category\" in ('calf', 'cow', 'bull', 'other', 'unknown')"
+        },
+        "animal_tenencia_valida": {
+          "name": "animal_tenencia_valida",
+          "value": "\"herd\".\"animal\".\"tenure\" in ('ranch', 'a_la_parte', 'third_party', 'unknown')"
+        },
+        "animal_participacion_valida": {
+          "name": "animal_participacion_valida",
+          "value": "\"herd\".\"animal\".\"economic_participation\" in ('known', 'partially_known', 'unknown')"
+        },
+        "animal_detalle_solo_en_other": {
+          "name": "animal_detalle_solo_en_other",
+          "value": "\"herd\".\"animal\".\"category_detail\" is null or \"herd\".\"animal\".\"category\" = 'other'"
+        },
+        "animal_version_positiva": {
+          "name": "animal_version_positiva",
+          "value": "\"herd\".\"animal\".\"version\" >= 1"
+        },
+        "animal_nombre_presente": {
+          "name": "animal_nombre_presente",
+          "value": "\"herd\".\"animal\".\"name\" is null or length(btrim(\"herd\".\"animal\".\"name\")) > 0"
+        },
+        "animal_nota_arreglo_presente": {
+          "name": "animal_nota_arreglo_presente",
+          "value": "\"herd\".\"animal\".\"arrangement_note\" is null or length(btrim(\"herd\".\"animal\".\"arrangement_note\")) > 0"
+        },
+        "animal_nota_presente": {
+          "name": "animal_nota_presente",
+          "value": "\"herd\".\"animal\".\"note\" is null or length(btrim(\"herd\".\"animal\".\"note\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal_correction": {
+      "name": "animal_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_correction_animal": {
+          "name": "animal_correction_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "animal_correction_animal_id_animal_id_fk": {
+          "name": "animal_correction_animal_id_animal_id_fk",
+          "tableFrom": "animal_correction",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_correction_campo_valido": {
+          "name": "animal_correction_campo_valido",
+          "value": "\"herd\".\"animal_correction\".\"field\" in ('nombre', 'sexo', 'categoria', 'detalleCategoria', 'tenencia', 'participacionEconomica', 'notaDelArreglo', 'nota')"
+        },
+        "animal_correction_motivo_presente": {
+          "name": "animal_correction_motivo_presente",
+          "value": "length(btrim(\"herd\".\"animal_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal_mark": {
+      "name": "animal_mark",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_on": {
+          "name": "changed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_mark_ranch_valor": {
+          "name": "animal_mark_ranch_valor",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "animal_mark_animal": {
+          "name": "animal_mark_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "animal_mark_siniiga_activa": {
+          "name": "animal_mark_siniiga_activa",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"herd\".\"animal_mark\".\"type\" = 'siniiga' and \"herd\".\"animal_mark\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "animal_mark_animal_id_animal_id_fk": {
+          "name": "animal_mark_animal_id_animal_id_fk",
+          "tableFrom": "animal_mark",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_mark_tipo_valido": {
+          "name": "animal_mark_tipo_valido",
+          "value": "\"herd\".\"animal_mark\".\"type\" in ('siniiga', 'other')"
+        },
+        "animal_mark_estado_valido": {
+          "name": "animal_mark_estado_valido",
+          "value": "\"herd\".\"animal_mark\".\"status\" in ('active', 'replaced', 'lost')"
+        },
+        "animal_mark_valor_presente": {
+          "name": "animal_mark_valor_presente",
+          "value": "length(btrim(\"herd\".\"animal_mark\".\"value\")) > 0"
+        },
+        "animal_mark_vigente_sin_cierre": {
+          "name": "animal_mark_vigente_sin_cierre",
+          "value": "\"herd\".\"animal_mark\".\"status\" <> 'active' or \"herd\".\"animal_mark\".\"changed_on\" is null"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "growth": "growth",
+    "herd": "herd",
+    "identity": "identity"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
