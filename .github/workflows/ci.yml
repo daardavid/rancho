@@ -51,6 +51,15 @@ jobs:
       - name: Pruebas de todos los workspaces
         run: npm test
 
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas de punta a punta
+        # `test:e2e` construye la web y la API antes de probar; levanta su
+        # propia base desechable con PGlite, así que no usa el servicio de
+        # PostgreSQL de arriba.
+        run: npm run test:e2e
+
       - name: Build del mapa de dominio
         run: npm run build:map
 

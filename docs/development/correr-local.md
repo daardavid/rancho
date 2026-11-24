@@ -41,8 +41,17 @@ Edita `.env`:
   En PowerShell sin OpenSSL:
 
   ```powershell
-  [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+  # Cryptography.RandomNumberGenerator, no Get-Random: el secreto firma las
+  # cookies de sesión. `Create()`/`GetBytes()` funciona en Windows PowerShell
+  # 5.1 y en pwsh 7; `Fill()` solo existe de .NET Core 3.0 en adelante.
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  $bytes = [byte[]]::new(32)
+  $rng.GetBytes($bytes)
+  $rng.Dispose()
+  [Convert]::ToBase64String($bytes)
   ```
+
+  La salida son 44 caracteres base64, que pasan el mínimo de 32 del proceso.
 
 Después, ya con la base arriba:
 
