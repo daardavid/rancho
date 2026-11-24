@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 import { IconoCamara } from './iconos'
 
@@ -11,13 +11,25 @@ export function CampoDeKilos({
   valor,
   alCambiar,
   alTomarFoto,
+  enfocar = false,
+  error,
 }: {
   readonly etiqueta: string
   readonly valor: string
   readonly alCambiar: (valor: string) => void
   readonly alTomarFoto?: () => void
+  /** Al montar, el teclado decimal queda listo. El pesaje lo usa al cambiar de animal. */
+  readonly enfocar?: boolean
+  readonly error?: string
 }) {
   const id = useId()
+  const entrada = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (enfocar) {
+      entrada.current?.focus()
+    }
+  }, [enfocar])
 
   return (
     <div className="ui-kilos">
@@ -27,12 +39,15 @@ export function CampoDeKilos({
       <div className="ui-kilos__renglon">
         <div className="ui-kilos__caja">
           <input
+            ref={entrada}
             id={id}
             className="ui-kilos__entrada"
             type="text"
             inputMode="decimal"
             autoComplete="off"
             value={valor}
+            aria-invalid={error === undefined ? undefined : true}
+            aria-describedby={error === undefined ? undefined : `${id}-error`}
             onChange={(evento) => {
               alCambiar(evento.target.value)
             }}
@@ -50,6 +65,11 @@ export function CampoDeKilos({
           <IconoCamara />
         </button>
       </div>
+      {error === undefined ? null : (
+        <p className="campo__error" id={`${id}-error`} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

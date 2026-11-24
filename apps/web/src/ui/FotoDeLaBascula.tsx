@@ -1,5 +1,6 @@
 import { AUSENCIA_DE_FOTO } from '@rancho/api-contracts'
 import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { subirFoto } from '../api/evidencia'
 import { AvisoDeError } from './Avisos'
@@ -36,13 +37,26 @@ export function FotoDeLaBascula({
   evidenciaId,
   alCambiar,
   alOcuparse,
+  idDelCampo,
+  ancla,
 }: {
   readonly evidenciaId: string | null
   readonly alCambiar: (evidenciaId: string | null) => void
   /** Avisa mientras los bytes van al rancho, para no guardar el peso antes. */
   readonly alOcuparse?: (ocupada: boolean) => void
+  /**
+   * Id estable del input. El botón de la cámara lo busca para abrirlo aunque
+   * la tarjeta activa haya cambiado: la subida sigue viva en este componente.
+   */
+  readonly idDelCampo?: string
+  /**
+   * Dónde se ve la miniatura. `null` la deja fuera de la tarjeta, montada, para
+   * que una foto que todavía sube no se pierda al pasar al siguiente animal.
+   */
+  readonly ancla?: HTMLElement | null
 }) {
-  const id = useId()
+  const idGenerado = useId()
+  const id = idDelCampo ?? idGenerado
   const [ocupada, setOcupada] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const alCambiarVigente = useRef(alCambiar)
@@ -99,29 +113,24 @@ export function FotoDeLaBascula({
     )
   }
 
-  return (
-    <div className="foto-bascula">
-      <label className="campo__etiqueta" htmlFor={id}>
-        Foto de la báscula
-      </label>
-      <p className="campo__ayuda" id={`${id}-ayuda`}>
-        Opcional. No cambia si el peso se midió, se vio o te lo dijeron.
-      </p>
-      <FotoVisible evidenciaId={evidenciaId} />
+  const cuerpo = (
+    <div className="pesaje__foto">
       <input
         id={id}
-        className="campo__entrada"
+        className="ui-sr"
         type="file"
         accept="image/jpeg,image/png,image/webp"
         capture="environment"
-        aria-describedby={`${id}-ayuda`}
+        aria-label="Foto de la báscula"
         disabled={ocupada}
+        tabIndex={-1}
         onChange={(evento) => {
           const archivo = evento.target.files?.[0]
           evento.target.value = ''
           elegir(archivo)
         }}
       />
+      <FotoVisible evidenciaId={evidenciaId} />
       {ocupada ? <p className="campo__ayuda">Subiendo la foto…</p> : null}
       {error === null ? null : <AvisoDeError error={error} />}
       {evidenciaId === null ? null : (
@@ -140,4 +149,12 @@ export function FotoDeLaBascula({
       )}
     </div>
   )
+
+  // La miniatura del animal en turno se pinta en la tarjeta. Las demás se quedan
+  // montadas y fuera de vista: si el dueño ya pasó al siguiente, la foto que
+  // todavía sube no se tira.
+  if (ancla !== null && ancla !== undefined) {
+    return createPortal(cuerpo, ancla)
+  }
+  return <div className="ui-sr">{cuerpo}</div>
 }

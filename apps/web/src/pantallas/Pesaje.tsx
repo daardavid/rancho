@@ -1,4 +1,4 @@
-import type { RegistrarSesion } from '@rancho/api-contracts'
+import type { RegistrarSesion, SesionDePesaje } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import { useHato } from '../api/hato'
@@ -14,38 +14,42 @@ import {
   type CalidadBorrador,
   type FilaBorrador,
 } from '../dominio/borrador'
-import { hoyEnElRancho } from '../dominio/fechas'
-import { CALIDADES, categoria, tipoDeMarca } from '../dominio/etiquetas'
-import { revisarKilos } from '../dominio/kilos'
+import { diasEntre, diasLegibles, fechaDelPesaje, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
+import { calidad, categoria, tipoDeMarca } from '../dominio/etiquetas'
+import { compararConElAnterior, revisarKilos, type ComparacionDePeso } from '../dominio/kilos'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { BarraDeAccion } from '../ui/BarraDeAccion'
+import { BarraDeAvance } from '../ui/BarraDeAvance'
+import { BotonPrincipal } from '../ui/Botones'
+import { CampoDeArea, CampoDeTexto, Seccion } from '../ui/Campos'
+import { CampoDeKilos } from '../ui/CampoDeKilos'
+import { Encabezado } from '../ui/Encabezado'
 import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
-import {
-  CampoDeArea,
-  CampoDeFecha,
-  CampoDeSeleccion,
-  CampoDeTexto,
-  Seccion,
-} from '../ui/Campos'
+import { IconoAbajo, IconoCerrar, IconoMas, IconoPalomita, IconoReloj } from '../ui/iconos'
+import { Segmentado } from '../ui/Segmentado'
+import { Tarjeta } from '../ui/Tarjeta'
 
 /**
- * Una vuelta por la báscula, de una sola sentada ([UX-07](../../../../../docs/product/ux-principles.md)).
+ * Una vuelta por la báscula, de un animal a la vez
+ * ([Pesaje](../../../../../docs/design/maqueta/Pesaje.dc.html)).
  *
- * La sesión ya viene armada con los animales de la vuelta anterior como
- * esperados, porque casi siempre son los mismos ([UX-06](../../../../../docs/product/ux-principles.md)).
- * El dueño solo escribe los kilos de los que pasaron, marca «no se pesó» a los
- * que se esperaban y no pasaron, y agrega o quita los que hagan falta. Todo se
- * manda en un solo comando, con un solo botón.
+ * La sesión ya viene armada con los de la vuelta anterior como esperados,
+ * porque casi siempre son los mismos. El dueño escribe los kilos del que está
+ * en la báscula, toma la foto con un toque y pasa al siguiente. Los ya
+ * capturados quedan abajo, para reabrirlos si hay que corregir.
  *
  * Dos cosas se cuidan aquí porque cuestan caro si se pierden:
  *
  * 1. **Nada escrito se pierde al recargar.** El borrador vive en el celular
- *    ([borrador.ts](../dominio/borrador.ts)) con el id de la sesión y el id del
- *    comando ya generados.
- * 2. **Un reintento no duplica.** Esos dos ids se generan una vez, al empezar
- *    el borrador, y no cambian aunque se caiga la señal o se recargue la
- *    pantalla: la API devuelve la sesión que ya guardó en vez de crear otra.
+ *    con el id de la sesión y el id del comando ya generados.
+ * 2. **Un reintento no duplica.** Esos dos ids se generan una vez y no cambian
+ *    aunque se caiga la señal o se recargue: la API devuelve la sesión que ya
+ *    guardó en vez de crear otra.
+ *
+ * La diferencia contra el peso anterior se calcula al vuelo, en gramos enteros.
+ * No se guarda: es lo que el dueño ve mientras escribe, no un hecho nuevo.
  */
 export function Pesaje() {
   const hato = useHato()
@@ -77,6 +81,8 @@ export function Pesaje() {
     }
     return ultima.data.filas.map((fila) => fila.animalId)
   }, [ultima.data])
+
+  const anteriores = useMemo(() => pesosAnteriores(ultima.data), [ultima.data])
 
   /**
    * La propuesta se arma una sola vez, cuando ya se sabe qué animales había en
@@ -146,17 +152,27 @@ export function Pesaje() {
       cuentaId={cuentaId}
       animales={animales}
       porAnimal={porAnimal}
+      anteriores={anteriores}
       huboVueltaAnterior={ultima.data !== null && ultima.data !== undefined}
       alCambiar={setCambiado}
     />
   )
 }
 
+type PesoAnterior = { readonly kilos: string; readonly fecha: string }
+
+const OPCIONES_DE_CALIDAD = [
+  { valor: 'measured', texto: 'Báscula' },
+  { valor: 'observed', texto: 'Visto' },
+  { valor: 'declared', texto: 'Me lo dijeron' },
+] as const
+
 function EditorDeSesion({
   borrador,
   cuentaId,
   animales,
   porAnimal,
+  anteriores,
   huboVueltaAnterior,
   alCambiar,
 }: {
@@ -164,24 +180,34 @@ function EditorDeSesion({
   readonly cuentaId: string
   readonly animales: readonly Animal[]
   readonly porAnimal: ReadonlyMap<string, Animal>
+  readonly anteriores: ReadonlyMap<string, PesoAnterior>
   readonly huboVueltaAnterior: boolean
   readonly alCambiar: Dispatch<SetStateAction<BorradorDePesaje | null>>
 }) {
   const registrar = useRegistrarPesaje()
   const [busqueda, setBusqueda] = useState('')
+  const [buscando, setBuscando] = useState(false)
   const [masDatos, setMasDatos] = useState(borrador.nota !== '' || borrador.reportedBy !== '')
   const [intentado, setIntentado] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
   const [subiendoFoto, setSubiendoFoto] = useState(0)
+  const [elegida, setElegida] = useState<string | null>(null)
+  const [cerrada, setCerrada] = useState(false)
+  const [ancla, setAncla] = useState<HTMLDivElement | null>(null)
 
   const filas = borrador.filas
-  const capturados = filas.filter(
-    (fila) => fila.resultado === 'hueco' || revisarKilos(fila.kilos).ok,
-  )
-  const faltan = filas.filter(
-    (fila) => fila.resultado === 'pesado' && !revisarKilos(fila.kilos).ok,
-  )
+  const conteo = contarFilas(filas)
   const sinFilas = filas.length === 0
+  // El turno se queda en el animal que se está escribiendo. Si solo se
+  // derivara del primer pendiente, el primer kilo válido lo sacaría de la
+  // tarjeta y el siguiente dígito caería en otro becerro.
+  const turnoVigente = elegida !== null && filas.some((fila) => fila.id === elegida)
+  const activaId = cerrada ? null : turnoVigente ? elegida : (filas.find(esPendiente)?.id ?? null)
+  if (!cerrada && activaId !== elegida) {
+    setElegida(activaId)
+  }
+  const activa = activaId === null ? undefined : filas.find((fila) => fila.id === activaId)
+  const resto = filas.filter((fila) => fila.id !== activaId)
 
   const sugeridos = useMemo(() => {
     const enLaSesion = new Set(filas.map((fila) => fila.animalId))
@@ -219,38 +245,81 @@ function EditorDeSesion({
   }
 
   const quitarFila = (id: string): void => {
-    alCambiar({ ...borrador, filas: filas.filter((fila) => fila.id !== id) })
+    const quedan = filas.filter((fila) => fila.id !== id)
+    const proxima = quedan.find(esPendiente)?.id ?? null
+    setElegida(proxima)
+    setCerrada(proxima === null)
+    alCambiar((actual) => {
+      const base = actual ?? borradorVigente.current
+      return { ...base, filas: base.filas.filter((fila) => fila.id !== id) }
+    })
   }
 
   const agregarAnimal = (animalId: string): void => {
+    const fila = filaNueva(animalId)
     setBusqueda('')
-    alCambiar({
-      ...borrador,
-      filas: [...filas, filaNueva(animalId)],
+    setBuscando(false)
+    setCerrada(false)
+    setElegida(fila.id)
+    alCambiar((actual) => {
+      const base = actual ?? borradorVigente.current
+      return { ...base, filas: [...base.filas, fila] }
     })
   }
 
-  const marcarFaltantesComoNoPesados = (): void => {
-    alCambiar({
-      ...borrador,
-      filas: filas.map((fila) =>
-        fila.resultado === 'pesado' && !revisarKilos(fila.kilos).ok
-          ? { ...fila, resultado: 'hueco' }
-          : fila,
-      ),
+  const marcarHueco = (id: string): void => {
+    const comoQuedaran = filas.map((fila) =>
+      fila.id === id ? { ...fila, resultado: 'hueco' as const, kilos: '', evidenciaId: null } : fila,
+    )
+    const proxima = siguientePendiente(comoQuedaran, id)
+    setElegida(proxima)
+    setCerrada(proxima === null)
+    alCambiar((actual) => {
+      const base = actual ?? borradorVigente.current
+      return {
+        ...base,
+        filas: base.filas.map((fila) =>
+          fila.id === id ? { ...fila, resultado: 'hueco', kilos: '', evidenciaId: null } : fila,
+        ),
+      }
     })
+  }
+
+  const alSiguiente = (): void => {
+    if (activaId === null) {
+      return
+    }
+    const actual = filas.find((fila) => fila.id === activaId)
+    const proxima = siguientePendiente(filas, activaId)
+    if (proxima !== null) {
+      setCerrada(false)
+      setElegida(proxima)
+      return
+    }
+    if (actual !== undefined && !esPendiente(actual)) {
+      setCerrada(true)
+      setElegida(null)
+    }
+  }
+
+  const abrir = (id: string): void => {
+    setCerrada(false)
+    setElegida(id)
   }
 
   const enviar = (evento: React.FormEvent<HTMLFormElement>): void => {
     evento.preventDefault()
     setIntentado(true)
-    if (
-      registrar.isPending ||
-      subiendoFoto > 0 ||
-      sinFilas ||
-      faltan.length > 0 ||
-      faltaFecha(borrador.fecha)
-    ) {
+    if (registrar.isPending || subiendoFoto > 0) {
+      return
+    }
+    const primeraInvalida = filas.find(esPendiente)
+    if (primeraInvalida !== undefined) {
+      setCerrada(false)
+      setElegida(primeraInvalida.id)
+      return
+    }
+    if (sinFilas || faltaFecha(borrador.fecha)) {
       return
     }
 
@@ -268,26 +337,33 @@ function EditorDeSesion({
   const choqueDeIdempotencia =
     registrar.error instanceof ErrorDeApi && registrar.error.codigo === 'idempotency_mismatch'
 
-  return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">Pesaje</p>
-        <h1>La vuelta por la báscula</h1>
-        <p className="subtitulo">
-          {sinFilas
-            ? 'Agrega los animales que pasaron por la báscula.'
-            : `${String(filas.length)} ${filas.length === 1 ? 'animal' : 'animales'} · ${String(
-                capturados.length,
-              )} ${capturados.length === 1 ? 'capturado' : 'capturados'}`}
-        </p>
-      </header>
+  const alTecla = (evento: React.KeyboardEvent<HTMLFormElement>): void => {
+    if (evento.key !== 'Enter' || evento.target instanceof HTMLButtonElement) {
+      return
+    }
+    evento.preventDefault()
+    if (evento.target instanceof HTMLInputElement && evento.target.inputMode === 'decimal') {
+      alSiguiente()
+    }
+  }
 
-      <form className="formulario" onSubmit={enviar}>
-        <CampoDeFecha
-          etiqueta="¿Cuándo se pesó?"
-          valor={borrador.fecha}
-          alCambiar={(fecha) => alCambiar({ ...borrador, fecha })}
-          ayuda="Viene con hoy. Cámbialo si la vuelta fue otro día."
+  return (
+    <main className="pantalla pantalla--pesaje">
+      <form className="pesaje__cuerpo" onSubmit={enviar} onKeyDown={alTecla}>
+        <Encabezado
+          titulo="Pesaje"
+          etiquetaRegresar="Regresar al hato"
+          alRegresar={() => {
+            irA({ nombre: 'hato' })
+          }}
+          subtitulo={
+            <FechaDelPesaje
+              valor={borrador.fecha}
+              alCambiar={(fecha) => {
+                alCambiar({ ...borrador, fecha })
+              }}
+            />
+          }
         />
         {intentado && faltaFecha(borrador.fecha) ? (
           <p className="campo__error" role="alert">
@@ -295,106 +371,141 @@ function EditorDeSesion({
           </p>
         ) : null}
 
-        <Seccion titulo="Los animales de esta vuelta">
-          {sinFilas ? (
-            <div className="vacio">
-              <p className="vacio__titulo">Todavía no hay animales en la sesión.</p>
-              <p>
-                {huboVueltaAnterior
-                  ? 'Quitaste todos los de la vuelta anterior. Busca abajo los que sí pasaron.'
-                  : 'Todavía no hay una vuelta anterior que proponer. Busca abajo los animales que pasaron.'}
-              </p>
-            </div>
-          ) : (
-            <ul className="lista lista--planas">
-              {filas.map((fila) => (
-                <li key={fila.id}>
-                  <RenglonDePesaje
-                    fila={fila}
-                    animal={porAnimal.get(fila.animalId)}
-                    intentado={intentado}
-                    alCambiar={(cambios) => cambiarFila(fila.id, cambios)}
-                    alQuitar={() => quitarFila(fila.id)}
-                    alOcuparse={(ocupada) => {
-                      setSubiendoFoto((cantidad) => cantidad + (ocupada ? 1 : -1))
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+        {sinFilas ? null : (
+          <div className="pesaje__avance">
+            <Avance pesados={conteo.pesados} huecos={conteo.huecos} faltan={conteo.faltan} total={filas.length} />
+          </div>
+        )}
 
-          {faltan.length > 0 ? (
-            <div className="vacio">
-              <p className="vacio__titulo">
-                {faltan.length === 1
-                  ? 'Falta 1 por capturar'
-                  : `Faltan ${String(faltan.length)} por capturar`}
-              </p>
-              <p>
-                Escribe los kilos de cada uno, o marca «no se pesó» a los que se esperaban y no
-                pasaron.
-              </p>
-              {faltan.length > 1 ? (
-                <BotonGrande secundario alTocar={marcarFaltantesComoNoPesados}>
-                  Los que faltan no se pesaron
-                </BotonGrande>
-              ) : null}
-            </div>
-          ) : null}
-        </Seccion>
-
-        <Seccion titulo="Agregar un animal">
-          <CampoDeTexto
-            etiqueta="Buscar"
-            valor={busqueda}
-            alCambiar={setBusqueda}
-            ayuda="Por nombre, seña o arete."
-          />
-          {sugeridos.length === 0 ? (
-            <p className="campo__ayuda">
-              {animales.length === 0
-                ? 'Todavía no hay animales en el hato. Dalos de alta primero.'
-                : 'Ningún animal coincide o ya está en la sesión.'}
+        {sinFilas ? (
+          <div className="vacio">
+            <p className="vacio__titulo">Todavía no hay animales en la sesión.</p>
+            <p>
+              {huboVueltaAnterior
+                ? 'Quitaste todos los de la vuelta anterior. Busca abajo los que sí pasaron.'
+                : 'Todavía no hay una vuelta anterior que proponer. Busca abajo los animales que pasaron.'}
             </p>
-          ) : (
-            <ul className="lista lista--planas">
-              {sugeridos.map((animal) => (
-                <li key={animal.id}>
-                  <button
-                    type="button"
-                    className="fila"
-                    onClick={() => {
-                      agregarAnimal(animal.id)
-                    }}
-                  >
-                    <span className="fila__nombre">+ {nombreVisible(animal)}</span>
-                    <span className="fila__datos">{datosDelAnimal(animal)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Seccion>
+          </div>
+        ) : null}
+
+        {activa === undefined ? null : (
+          <div className="pesaje__tarjeta pesaje__renglon">
+            <Tarjeta activa>
+              <TarjetaActiva
+                fila={activa}
+                animal={porAnimal.get(activa.animalId)}
+                anterior={anteriores.get(activa.animalId)}
+                fecha={borrador.fecha}
+                intentado={intentado}
+                ancla={setAncla}
+                alCambiar={(cambios) => {
+                  cambiarFila(activa.id, cambios)
+                }}
+                alQuitar={() => {
+                  quitarFila(activa.id)
+                }}
+                alHueco={() => {
+                  marcarHueco(activa.id)
+                }}
+                alSiguiente={alSiguiente}
+                alAbrirFoto={() => {
+                  abrirFoto(activa.id)
+                }}
+              />
+            </Tarjeta>
+          </div>
+        )}
+
+        {resto.length === 0 ? null : (
+          <ul className="pesaje__lista">
+            {resto.map((fila) => (
+              <li key={fila.id}>
+                <FilaCompacta
+                  fila={fila}
+                  animal={porAnimal.get(fila.animalId)}
+                  comparacion={comparacionDe(fila, anteriores, borrador.fecha)}
+                  alAbrir={() => {
+                    abrir(fila.id)
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <button
+          type="button"
+          className="pesaje__agregar"
+          onClick={() => {
+            setBuscando((actual) => !actual)
+          }}
+        >
+          <IconoMas tamano={18} />
+          Agregar otro animal
+        </button>
+
+        {buscando ? (
+          <div className="pesaje__extra">
+            <CampoDeTexto
+              etiqueta="Buscar"
+              valor={busqueda}
+              alCambiar={setBusqueda}
+              ayuda="Por nombre, seña o arete."
+            />
+            {sugeridos.length === 0 ? (
+              <p className="campo__ayuda">
+                {animales.length === 0
+                  ? 'Todavía no hay animales en el hato. Dalos de alta primero.'
+                  : 'Ningún animal coincide o ya está en la sesión.'}
+              </p>
+            ) : (
+              <ul className="pesaje__lista">
+                {sugeridos.map((animal) => (
+                  <li key={animal.id}>
+                    <button
+                      type="button"
+                      className="pesaje__sugerido"
+                      onClick={() => {
+                        agregarAnimal(animal.id)
+                      }}
+                    >
+                      <span className="pesaje__sugerido-nombre">+ {nombreVisible(animal)}</span>
+                      <span className="pesaje__sugerido-datos">{datosDelAnimal(animal)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
 
         {masDatos ? (
           <Seccion titulo="Si hace falta">
             <CampoDeTexto
               etiqueta="¿Quién te pasó los números?"
               valor={borrador.reportedBy}
-              alCambiar={(reportedBy) => alCambiar({ ...borrador, reportedBy })}
+              alCambiar={(reportedBy) => {
+                alCambiar({ ...borrador, reportedBy })
+              }}
               ayuda="El nombre de quien estaba en la báscula. Si no sabes, déjalo vacío."
               maxLength={200}
             />
             <CampoDeArea
               etiqueta="Nota de la sesión"
               valor={borrador.nota}
-              alCambiar={(nota) => alCambiar({ ...borrador, nota })}
+              alCambiar={(nota) => {
+                alCambiar({ ...borrador, nota })
+              }}
               ayuda="Por ejemplo, si hubo que sacar a un animal de la manga."
             />
           </Seccion>
         ) : (
-          <BotonGrande secundario alTocar={() => setMasDatos(true)}>
+          <BotonGrande
+            secundario
+            alTocar={() => {
+              setMasDatos(true)
+            }}
+          >
             Agregar quién reportó o una nota
           </BotonGrande>
         )}
@@ -422,36 +533,17 @@ function EditorDeSesion({
           <AvisoDeError error={registrar.error} />
         ) : null}
 
-        <BotonGrande tipo="submit" deshabilitado={registrar.isPending || subiendoFoto > 0}>
-          {registrar.isPending
-            ? 'Guardando…'
-            : subiendoFoto > 0
-              ? 'Subiendo la foto…'
-              : sinFilas
-                ? 'Todavía no hay nada que guardar'
-                : 'Guardar la sesión'}
-        </BotonGrande>
-
         {registrar.isError && !choqueDeIdempotencia ? (
           <p className="campo__ayuda">
-            Lo que escribiste sigue aquí, aunque recargues la pantalla. Vuelve a tocar «Guardar la
-            sesión» cuando haya señal: es el mismo envío, no se duplica.
+            Lo que escribiste sigue aquí, aunque recargues la pantalla. Vuelve a tocar «Guardar
+            pesaje» cuando haya señal: es el mismo envío, no se duplica.
           </p>
         ) : null}
-
-        <BotonGrande
-          secundario
-          alTocar={() => {
-            irA({ nombre: 'hato' })
-          }}
-        >
-          Regresar al hato
-        </BotonGrande>
 
         {/*
           Descartar la vuelta a medias. Va al final y pide un segundo toque: es
           lo único de esta pantalla que tira trabajo, y el dueño tiene que
-          querer hacerlo ([UX-15](../../../../../docs/product/ux-principles.md)).
+          querer hacerlo.
         */}
         {confirmandoDescarte ? (
           <div className="aviso aviso--ojo" role="alert">
@@ -464,6 +556,8 @@ function EditorDeSesion({
               alTocar={() => {
                 borrarBorrador()
                 alCambiar(nuevoBorrador(cuentaId, []))
+                setElegida(null)
+                setCerrada(false)
                 setIntentado(false)
                 setConfirmandoDescarte(false)
                 registrar.reset()
@@ -471,7 +565,12 @@ function EditorDeSesion({
             >
               Sí, empezar de cero
             </BotonGrande>
-            <BotonGrande secundario alTocar={() => setConfirmandoDescarte(false)}>
+            <BotonGrande
+              secundario
+              alTocar={() => {
+                setConfirmandoDescarte(false)
+              }}
+            >
               Seguir capturando
             </BotonGrande>
           </div>
@@ -479,50 +578,167 @@ function EditorDeSesion({
           <button
             type="button"
             className="enlace"
-            onClick={() => setConfirmandoDescarte(true)}
+            onClick={() => {
+              setConfirmandoDescarte(true)
+            }}
           >
             Empezar una vuelta nueva
           </button>
         )}
+
+        <div className="pesaje__fotos">
+          {filas.map((fila) =>
+            fila.resultado === 'pesado' ? (
+              <FotoDeLaBascula
+                key={fila.id}
+                evidenciaId={fila.evidenciaId}
+                idDelCampo={idDeLaFoto(fila.id)}
+                ancla={fila.id === activaId ? ancla : null}
+                alCambiar={(evidenciaId) => {
+                  cambiarFila(fila.id, { evidenciaId })
+                }}
+                alOcuparse={(ocupada) => {
+                  setSubiendoFoto((cantidad) => cantidad + (ocupada ? 1 : -1))
+                }}
+              />
+            ) : null,
+          )}
+        </div>
+
+        <BarraDeAccion
+          anclaje="ventana"
+          sobreLaNavegacion
+          nota="Se guarda en el celular mientras capturas"
+        >
+          <BotonPrincipal
+            tipo="submit"
+            deshabilitado={registrar.isPending || subiendoFoto > 0}
+          >
+            {registrar.isPending
+              ? 'Guardando…'
+              : subiendoFoto > 0
+                ? 'Subiendo la foto…'
+                : `Guardar pesaje (${String(conteo.pesados)})`}
+          </BotonPrincipal>
+        </BarraDeAccion>
       </form>
     </main>
   )
 }
 
-function RenglonDePesaje({
+function FechaDelPesaje({
+  valor,
+  alCambiar,
+}: {
+  readonly valor: string
+  readonly alCambiar: (fecha: string) => void
+}) {
+  return (
+    <div className="pesaje__fecha">
+      <span aria-hidden="true">{fechaDelPesaje(valor)}</span>
+      <IconoAbajo tamano={14} />
+      <input
+        className="pesaje__fecha-input"
+        type="date"
+        aria-label="¿Cuándo se pesó?"
+        value={valor}
+        onChange={(evento) => {
+          alCambiar(evento.target.value)
+        }}
+      />
+    </div>
+  )
+}
+
+function SelectorDeCalidad({
+  valor,
+  comparacion,
+  alElegir,
+}: {
+  readonly valor: CalidadBorrador
+  readonly comparacion: ComparacionDePeso | null
+  readonly alElegir: (calidad: CalidadBorrador) => void
+}) {
+  const [abierta, setAbierta] = useState(false)
+
+  return (
+    <div className="pesaje__meta">
+      <div className="pesaje__diferencia">
+        {comparacion === null ? <span /> : (
+          <span className="pesaje__pill">{textoDeLaComparacion(comparacion)}</span>
+        )}
+        <button
+          type="button"
+          className="pesaje__calidad"
+          aria-expanded={abierta}
+          onClick={() => {
+            setAbierta((actual) => !actual)
+          }}
+        >
+          {calidad(valor)}
+          <IconoAbajo tamano={12} />
+        </button>
+      </div>
+      {abierta ? (
+        <Segmentado
+          etiqueta="¿Cómo se obtuvo?"
+          opciones={OPCIONES_DE_CALIDAD}
+          valor={valor}
+          alElegir={(elegida) => {
+            if (esCalidad(elegida)) {
+              alElegir(elegida)
+            }
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function TarjetaActiva({
   fila,
   animal,
+  anterior,
+  fecha,
   intentado,
+  ancla,
   alCambiar,
   alQuitar,
-  alOcuparse,
+  alHueco,
+  alSiguiente,
+  alAbrirFoto,
 }: {
   readonly fila: FilaBorrador
   readonly animal: Animal | undefined
+  readonly anterior: PesoAnterior | undefined
+  readonly fecha: string
   readonly intentado: boolean
+  readonly ancla: (nodo: HTMLDivElement | null) => void
   readonly alCambiar: (cambios: Partial<FilaBorrador>) => void
   readonly alQuitar: () => void
-  readonly alOcuparse: (ocupada: boolean) => void
+  readonly alHueco: () => void
+  readonly alSiguiente: () => void
+  readonly alAbrirFoto: () => void
 }) {
+  const nombre = nombreDe(animal)
   const revision = revisarKilos(fila.kilos)
   const error =
     intentado && fila.resultado === 'pesado' && !revision.ok ? revision.motivo : undefined
+  const dias = anterior === undefined ? null : diasEntre(anterior.fecha, fecha)
+  const comparacion =
+    fila.resultado === 'pesado' && revision.ok && anterior !== undefined
+      ? compararConElAnterior(fila.kilos, anterior.kilos, dias ?? -1)
+      : null
 
   return (
-    <div className="renglon">
-      <div className="renglon__encabezado">
-        <span className="renglon__nombre">
-          {animal === undefined ? 'Animal que ya no está en el hato' : nombreVisible(animal)}
-        </span>
-        <span className="renglon__quitar">
-          <button type="button" className="enlace" onClick={alQuitar}>
-            Quitar
-          </button>
-        </span>
+    <>
+      <div className="pesaje__animal">
+        <span className="pesaje__nombre">{nombre}</span>
+        <button type="button" className="enlace" onClick={alQuitar}>
+          Quitar
+        </button>
       </div>
-      {animal === undefined ? null : (
-        <span className="renglon__datos">{datosDelAnimal(animal)}</span>
-      )}
+      {anterior === undefined ? null : <p className="pesaje__antes">{textoDeAntes(anterior, fecha)}</p>}
 
       {fila.resultado === 'hueco' ? (
         <div className="renglon__hueco">
@@ -538,35 +754,72 @@ function RenglonDePesaje({
           </button>
         </div>
       ) : (
-        <div className="renglon__captura">
-          <CampoDeTexto
-            etiqueta="Kilos"
+        <>
+          <CampoDeKilos
+            key={`kilos-${fila.id}`}
+            etiqueta={`Kilos de ${nombre}`}
             valor={fila.kilos}
-            alCambiar={(kilos) => alCambiar({ kilos })}
-            inputMode="decimal"
-            maxLength={16}
+            enfocar
             {...(error === undefined ? {} : { error })}
+            alCambiar={(kilos) => {
+              alCambiar({ kilos })
+            }}
+            alTomarFoto={alAbrirFoto}
           />
-          <CampoDeSeleccion
-            etiqueta="¿Cómo se obtuvo?"
-            opciones={CALIDADES}
+          <div ref={ancla} />
+          <SelectorDeCalidad
+            key={`calidad-${fila.id}`}
             valor={fila.calidad}
-            alCambiar={(calidad) => alCambiar({ calidad: calidad as CalidadBorrador })}
+            comparacion={comparacion}
+            alElegir={(elegida) => {
+              alCambiar({ calidad: elegida })
+            }}
           />
-          <FotoDeLaBascula
-            evidenciaId={fila.evidenciaId}
-            alCambiar={(evidenciaId) => alCambiar({ evidenciaId })}
-            alOcuparse={alOcuparse}
-          />
-          <BotonGrande
-            secundario
-            alTocar={() => alCambiar({ resultado: 'hueco', kilos: '', evidenciaId: null })}
-          >
-            No se pesó
-          </BotonGrande>
-        </div>
+          <div className="pesaje__acciones">
+            <button type="button" className="pesaje__no" onClick={alHueco}>
+              No se pesó
+            </button>
+            <button type="button" className="pesaje__siguiente" onClick={alSiguiente}>
+              Siguiente
+            </button>
+          </div>
+        </>
       )}
-    </div>
+    </>
+  )
+}
+
+function FilaCompacta({
+  fila,
+  animal,
+  comparacion,
+  alAbrir,
+}: {
+  readonly fila: FilaBorrador
+  readonly animal: Animal | undefined
+  readonly comparacion: ComparacionDePeso | null
+  readonly alAbrir: () => void
+}) {
+  const nombre = nombreDe(animal)
+  const pesado = fila.resultado === 'pesado' && revisarKilos(fila.kilos).ok
+  const hueco = fila.resultado === 'hueco'
+  const estado = hueco ? 'No se pesó' : pesado ? (comparacion?.diferencia ?? '') : 'Falta'
+  const peso = pesado ? kilosLegibles(fila.kilos) : ''
+  const tono = hueco ? 'hueco' : pesado ? 'pesado' : 'falta'
+
+  return (
+    <button
+      type="button"
+      className={tono === 'falta' ? 'pesaje__fila pesaje__fila--falta pesaje__renglon' : 'pesaje__fila pesaje__renglon'}
+      onClick={alAbrir}
+    >
+      <span className={`pesaje__icono pesaje__icono--${tono}`} aria-hidden="true">
+        {tono === 'pesado' ? <IconoPalomita /> : tono === 'hueco' ? <IconoCerrar tamano={16} /> : <IconoReloj />}
+      </span>
+      <span className="pesaje__fila-nombre">{nombre}</span>
+      {estado === '' ? null : <span className="pesaje__fila-estado">{estado}</span>}
+      {peso === '' ? null : <span className="pesaje__fila-peso">{peso}</span>}
+    </button>
   )
 }
 
@@ -575,6 +828,7 @@ function RenglonDePesaje({
  *
  * Los kilos viajan tal como se escribieron, solo sin espacios: no se convierten
  * a `number` ni se reformatean. La API los vuelve a leer con aritmética entera.
+ * Un hueco no lleva kilos ni calidad.
  */
 function cuerpoDeLaSesion(borrador: BorradorDePesaje): RegistrarSesion {
   const nota = borrador.nota.trim()
@@ -643,4 +897,149 @@ function datosDelAnimal(animal: Animal): string {
   const arete =
     puesto === undefined ? 'Sin arete puesto' : `${tipoDeMarca(puesto.tipo)} ${puesto.valor}`
   return `${arete} · ${categoria(animal.categoria)}`
+}
+
+function nombreDe(animal: Animal | undefined): string {
+  return animal === undefined ? 'Animal que ya no está en el hato' : nombreVisible(animal)
+}
+
+/** El último peso de cada animal en la vuelta anterior. Un hueco no es un peso. */
+function pesosAnteriores(sesion: SesionDePesaje | null | undefined): ReadonlyMap<string, PesoAnterior> {
+  const mapa = new Map<string, PesoAnterior>()
+  if (sesion === null || sesion === undefined) {
+    return mapa
+  }
+  for (const fila of sesion.filas) {
+    if (fila.resultado === 'pesado') {
+      mapa.set(fila.animalId, { kilos: fila.kilos, fecha: sesion.fecha })
+    }
+  }
+  return mapa
+}
+
+function esPendiente(fila: FilaBorrador): boolean {
+  return fila.resultado === 'pesado' && !revisarKilos(fila.kilos).ok
+}
+
+/** El siguiente que todavía no tiene kilos, después de `desdeId`, dando la vuelta. */
+function siguientePendiente(filas: readonly FilaBorrador[], desdeId: string): string | null {
+  const indice = filas.findIndex((fila) => fila.id === desdeId)
+  if (indice < 0) {
+    return filas.find(esPendiente)?.id ?? null
+  }
+  for (let paso = 1; paso < filas.length; paso += 1) {
+    const fila = filas[(indice + paso) % filas.length]
+    if (fila !== undefined && esPendiente(fila)) {
+      return fila.id
+    }
+  }
+  return null
+}
+
+function contarFilas(filas: readonly FilaBorrador[]): {
+  pesados: number
+  huecos: number
+  faltan: number
+} {
+  let pesados = 0
+  let huecos = 0
+  let faltan = 0
+  for (const fila of filas) {
+    if (fila.resultado === 'hueco') {
+      huecos += 1
+    } else if (revisarKilos(fila.kilos).ok) {
+      pesados += 1
+    } else {
+      faltan += 1
+    }
+  }
+  return { pesados, huecos, faltan }
+}
+
+function Avance({
+  pesados,
+  huecos,
+  faltan,
+  total,
+}: {
+  readonly pesados: number
+  readonly huecos: number
+  readonly faltan: number
+  readonly total: number
+}) {
+  const detalle = detalleDeAvance(huecos, faltan)
+  return (
+    <BarraDeAvance
+      texto={`${String(pesados)} de ${String(total)} pesados`}
+      {...(detalle === undefined ? {} : { detalle })}
+      pesados={pesados}
+      sinPeso={huecos}
+      total={total}
+    />
+  )
+}
+
+function detalleDeAvance(huecos: number, faltan: number): string | undefined {
+  const partes: string[] = []
+  if (huecos === 1) {
+    partes.push('1 no se pesó')
+  } else if (huecos > 1) {
+    partes.push(`${String(huecos)} no se pesaron`)
+  }
+  if (faltan === 1) {
+    partes.push('1 falta')
+  } else if (faltan > 1) {
+    partes.push(`${String(faltan)} faltan`)
+  }
+  if (partes.length === 0) {
+    return undefined
+  }
+  return partes.join(' · ')
+}
+
+function comparacionDe(
+  fila: FilaBorrador,
+  anteriores: ReadonlyMap<string, PesoAnterior>,
+  fecha: string,
+): ComparacionDePeso | null {
+  if (fila.resultado !== 'pesado' || !revisarKilos(fila.kilos).ok) {
+    return null
+  }
+  const anterior = anteriores.get(fila.animalId)
+  if (anterior === undefined) {
+    return null
+  }
+  const dias = diasEntre(anterior.fecha, fecha)
+  return compararConElAnterior(fila.kilos, anterior.kilos, dias ?? -1)
+}
+
+function textoDeAntes(anterior: PesoAnterior, fecha: string): string {
+  const peso = `Antes: ${kilosLegibles(anterior.kilos)}`
+  const dias = diasEntre(anterior.fecha, fecha)
+  if (dias === null || dias < 0) {
+    return peso
+  }
+  return `${peso} · ${diasLegibles(dias)}`
+}
+
+function textoDeLaComparacion(comparacion: ComparacionDePeso): string {
+  if (comparacion.porDia === null) {
+    return comparacion.diferencia
+  }
+  return `${comparacion.diferencia} · ${comparacion.porDia}`
+}
+
+function esCalidad(valor: string): valor is CalidadBorrador {
+  return valor === 'measured' || valor === 'observed' || valor === 'declared'
+}
+
+function idDeLaFoto(filaId: string): string {
+  return `foto-${filaId}`
+}
+
+function abrirFoto(filaId: string): void {
+  const campo = document.getElementById(idDeLaFoto(filaId))
+  if (campo instanceof HTMLInputElement) {
+    campo.click()
+  }
 }
