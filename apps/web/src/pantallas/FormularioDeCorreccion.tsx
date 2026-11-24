@@ -2,11 +2,26 @@ import type { CorregirAnimal } from '@rancho/api-contracts'
 import { useRef, useState } from 'react'
 
 import { useCorregirAnimal } from '../api/hato'
+import {
+  CATEGORIAS,
+  PARTICIPACIONES,
+  SEXOS,
+  TENENCIAS,
+  opcionesElegibles,
+} from '../dominio/etiquetas'
 import { esConflictoDeVersion } from '../dominio/mensajes'
-import { CATEGORIAS, PARTICIPACIONES, SEXOS, TENENCIAS } from '../dominio/etiquetas'
 import type { FichaCompleta } from '../dominio/tipos'
-import { AvisoDeError, BotonGrande } from '../ui/Avisos'
-import { CampoDeArea, CampoDeOpciones, CampoDeTexto } from '../ui/Campos'
+import { AvisoDeError } from '../ui/Avisos'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeArea, CampoDeTexto } from '../ui/Campos'
+import { Mosaicos } from '../ui/Mosaicos'
+import { Pildoras } from '../ui/Pildoras'
+import { Segmentado } from '../ui/Segmentado'
+
+const TIPOS_DE_ANIMAL = opcionesElegibles(CATEGORIAS)
+const OPCIONES_DE_SEXO = opcionesElegibles(SEXOS)
+const OPCIONES_DE_TENENCIA = opcionesElegibles(TENENCIAS)
+const OPCIONES_DE_PARTICIPACION = opcionesElegibles(PARTICIPACIONES)
 
 /**
  * Corregir la ficha.
@@ -14,7 +29,12 @@ import { CampoDeArea, CampoDeOpciones, CampoDeTexto } from '../ui/Campos'
  * Corregir es normal ([UX-05](../../../../../docs/product/ux-principles.md)):
  * se cambia el dato equivocado y se dice por qué. Lo que estaba no se borra: la
  * API guarda el valor anterior, quién lo cambió y cuándo, y la ficha lo enseña
- * abajo en la historia de correcciones.
+ * en la historia de correcciones.
+ *
+ * Se corrige con los mismos controles que el alta —mosaicos, segmentado y
+ * píldoras— para que la ficha se sienta igual que la pantalla donde el animal
+ * nació. Lo que no cambia es la lógica: se manda la versión que se tiene
+ * abierta, el motivo es obligatorio y solo viaja lo que de verdad cambió.
  *
  * Si alguien más cambió la ficha mientras esta pantalla estaba abierta, la API
  * responde `version_conflict` y no guarda nada. La pantalla lo dice en palabras
@@ -25,10 +45,12 @@ export function FormularioDeCorreccion({
   ficha,
   alRecargar,
   alGuardar,
+  alCancelar,
 }: {
   readonly ficha: FichaCompleta
   readonly alRecargar: () => void
   readonly alGuardar: () => void
+  readonly alCancelar: () => void
 }) {
   const [nombre, setNombre] = useState(ficha.nombre ?? '')
   const [sexo, setSexo] = useState<string>(ficha.sexo)
@@ -100,7 +122,7 @@ export function FormularioDeCorreccion({
           Tu corrección no se guardó y no se perdió nada de lo que había. Recarga la ficha para ver
           lo último y vuelve a escribir el cambio si todavía hace falta.
         </p>
-        <BotonGrande alTocar={alRecargar}>Recargar la ficha</BotonGrande>
+        <BotonPrincipal alTocar={alRecargar}>Recargar la ficha</BotonPrincipal>
       </div>
     )
   }
@@ -113,26 +135,37 @@ export function FormularioDeCorreccion({
         alCambiar={setNombre}
         ayuda="Déjalo vacío si el animal no tiene nombre o seña."
       />
-      <CampoDeOpciones etiqueta="Sexo" opciones={SEXOS} valor={sexo} alCambiar={setSexo} />
-      <CampoDeOpciones
+
+      <Mosaicos
         etiqueta="Categoría"
-        opciones={CATEGORIAS}
+        opciones={TIPOS_DE_ANIMAL}
         valor={categoria}
-        alCambiar={setCategoria}
+        alElegir={setCategoria}
       />
+
       {categoria === 'other' ? (
         <CampoDeTexto
           etiqueta="¿Cuál?"
           valor={detalleCategoria}
           alCambiar={setDetalleCategoria}
+          ayuda="Lo que escribas aquí acompaña a «Otra»."
         />
       ) : null}
-      <CampoDeOpciones
-        etiqueta="¿De quién es?"
-        opciones={TENENCIAS}
-        valor={tenencia}
-        alCambiar={setTenencia}
+
+      <Segmentado
+        etiqueta="Sexo"
+        opciones={OPCIONES_DE_SEXO}
+        valor={sexo}
+        alElegir={setSexo}
       />
+
+      <Pildoras
+        etiqueta="¿De quién es?"
+        opciones={OPCIONES_DE_TENENCIA}
+        valor={tenencia}
+        alElegir={setTenencia}
+      />
+
       {tenencia === 'a_la_parte' ? (
         <CampoDeArea
           etiqueta="Nota del arreglo"
@@ -141,12 +174,14 @@ export function FormularioDeCorreccion({
           ayuda="En tus palabras. No se calcula ninguna parte."
         />
       ) : null}
-      <CampoDeOpciones
+
+      <Segmentado
         etiqueta="Participación económica"
-        opciones={PARTICIPACIONES}
+        opciones={OPCIONES_DE_PARTICIPACION}
         valor={participacion}
-        alCambiar={setParticipacion}
+        alElegir={setParticipacion}
       />
+
       <CampoDeArea etiqueta="Nota" valor={nota} alCambiar={setNota} />
 
       <CampoDeArea
@@ -159,9 +194,11 @@ export function FormularioDeCorreccion({
 
       {corregir.isError ? <AvisoDeError error={corregir.error} /> : null}
 
-      <BotonGrande tipo="submit" deshabilitado={faltaMotivo || corregir.isPending}>
+      <BotonPrincipal tipo="submit" deshabilitado={faltaMotivo || corregir.isPending}>
         {corregir.isPending ? 'Guardando…' : 'Guardar corrección'}
-      </BotonGrande>
+      </BotonPrincipal>
+
+      <BotonSecundario alTocar={alCancelar}>Dejarlo como está</BotonSecundario>
     </form>
   )
 }

@@ -506,6 +506,87 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+.ui-pildoras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ui-pildora {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radio-pildora);
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-pildora--activa {
+  border: 2px solid var(--verde);
+  background: var(--verde-fondo);
+  color: var(--verde);
+  font-weight: 600;
+}
+
+.ui-desplegable {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+  background: var(--superficie);
+}
+
+.ui-desplegable__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ui-desplegable__titulo {
+  font-weight: 600;
+}
+
+.ui-desplegable__resumen {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.ui-desplegable__flecha {
+  display: inline-flex;
+  flex: none;
+  color: var(--texto-suave);
+  transition: transform 0.15s ease;
+}
+
+.ui-desplegable[data-abierto='true'] .ui-desplegable__flecha {
+  transform: rotate(180deg);
+}
+
+.ui-desplegable__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+/* El `display: flex` de arriba pisaría el `hidden` del navegador. */
+.ui-desplegable__cuerpo[hidden] {
+  display: none;
+}
+
 .ui-aviso {
   display: flex;
   align-items: center;
@@ -745,6 +826,37 @@
   flex-wrap: wrap;
   gap: 12px;
   color: var(--texto);
+}
+
+/* Alta ------------------------------------------------------------------ */
+
+/*
+ * La barra de guardar está fija encima de la navegación. Este aire es para que
+ * el último campo y un aviso no queden debajo de ella.
+ */
+.pantalla--alta {
+  padding-bottom: calc(160px + env(safe-area-inset-bottom));
+}
+
+.alta {
+  margin-top: 12px;
+  gap: 16px;
+}
+
+.alta .campo__etiqueta,
+.alta .campo__ayuda {
+  font-size: 14px;
+}
+
+/*
+ * Nombre y arete en el mismo renglón, como en la maqueta. En un celular muy
+ * angosto el navegador los baja solo: `minmax(0, 1fr)` deja que se encojan
+ * antes de desbordar.
+ */
+.alta__fila {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 /* Hato ----------------------------------------------------------------- */

@@ -2,10 +2,14 @@ import { useRef, useState } from 'react'
 
 import { useAgregarMarca, useMarcarPerdida, useReemplazarMarca } from '../api/hato'
 import { diaLegible } from '../dominio/fechas'
-import { TIPOS_DE_MARCA, estadoDeMarca, tipoDeMarca } from '../dominio/etiquetas'
+import { TIPOS_DE_MARCA, estadoDeMarca, opcionesElegibles, tipoDeMarca } from '../dominio/etiquetas'
 import type { MarcaAnimal } from '../dominio/tipos'
-import { AvisoDeError, BotonGrande } from '../ui/Avisos'
-import { CampoDeOpciones, CampoDeTexto } from '../ui/Campos'
+import { AvisoDeError } from '../ui/Avisos'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeTexto } from '../ui/Campos'
+import { Segmentado } from '../ui/Segmentado'
+
+const OPCIONES_DE_TIPO = opcionesElegibles(TIPOS_DE_MARCA)
 
 /**
  * Los aretes del animal y su historia.
@@ -33,7 +37,7 @@ export function Aretes({
   )
 
   return (
-    <>
+    <div className="aretes">
       {marcas.length === 0 ? (
         <p className="campo__ayuda">Todavía no tiene ningún arete registrado.</p>
       ) : (
@@ -74,18 +78,24 @@ export function Aretes({
 
       {formulario === null ? (
         puestos.length === 0 ? null : (
-          <BotonGrande secundario alTocar={() => setFormulario({ anterior: null })}>
+          <BotonSecundario
+            alTocar={() => {
+              setFormulario({ anterior: null })
+            }}
+          >
             Poner otro arete
-          </BotonGrande>
+          </BotonSecundario>
         )
       ) : (
         <FormularioDeArete
           animalId={animalId}
           anterior={formulario.anterior}
-          alTerminar={() => setFormulario(null)}
+          alTerminar={() => {
+            setFormulario(null)
+          }}
         />
       )}
-    </>
+    </div>
   )
 }
 
@@ -186,12 +196,11 @@ function FormularioDeArete({
           : `Reemplaza el ${tipoDeMarca(anterior.tipo)} ${anterior.valor}. El anterior queda en la historia.`}
       </p>
 
-      <CampoDeOpciones
+      <Segmentado
         etiqueta="Tipo de arete"
-        opciones={TIPOS_DE_MARCA}
+        opciones={OPCIONES_DE_TIPO}
         valor={tipo}
-        alCambiar={setTipo}
-        valorDesconocido={null}
+        alElegir={setTipo}
       />
 
       <CampoDeTexto
@@ -199,6 +208,7 @@ function FormularioDeArete({
         valor={valor}
         alCambiar={setValor}
         ayuda="Tal como viene en el arete."
+        inputMode="numeric"
         requerido
       />
 
@@ -212,13 +222,11 @@ function FormularioDeArete({
       {agregar.isError ? <AvisoDeError error={agregar.error} /> : null}
       {reemplazar.isError ? <AvisoDeError error={reemplazar.error} /> : null}
 
-      <BotonGrande tipo="submit" deshabilitado={faltaValor || enviando}>
+      <BotonPrincipal tipo="submit" deshabilitado={faltaValor || enviando}>
         {enviando ? 'Guardando…' : anterior === null ? 'Guardar el arete' : 'Guardar el cambio'}
-      </BotonGrande>
+      </BotonPrincipal>
 
-      <BotonGrande secundario alTocar={alTerminar}>
-        Cancelar
-      </BotonGrande>
+      <BotonSecundario alTocar={alTerminar}>Cancelar</BotonSecundario>
     </form>
   )
 }

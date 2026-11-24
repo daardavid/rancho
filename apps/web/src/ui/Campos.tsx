@@ -24,6 +24,7 @@ export function CampoDeTexto({
   autoComplete,
   requerido = false,
   maxLength,
+  marcador,
 }: {
   readonly etiqueta: string
   readonly valor: string
@@ -40,6 +41,8 @@ export function CampoDeTexto({
   readonly autoComplete?: string
   readonly requerido?: boolean
   readonly maxLength?: number
+  /** El ejemplo en gris dentro del campo, cuando está vacío. No es un valor. */
+  readonly marcador?: string
 }) {
   const id = useId()
   const descrito = [ayuda === undefined ? null : `${id}-ayuda`, error === undefined ? null : `${id}-error`]
@@ -70,6 +73,7 @@ export function CampoDeTexto({
         aria-describedby={descrito === '' ? undefined : descrito}
         {...(error === undefined ? {} : { 'aria-invalid': true })}
         maxLength={maxLength}
+        placeholder={marcador}
       />
       {error === undefined ? null : (
         <p className="campo__error" id={`${id}-error`}>
@@ -117,49 +121,6 @@ export function CampoDeFecha({
         }}
         aria-describedby={ayuda === undefined ? undefined : `${id}-ayuda`}
       />
-    </div>
-  )
-}
-
-/**
- * Una lista corta de opciones, con un toque.
- *
- * Es el campo del renglón de pesaje: la calidad de un peso tiene tres
- * respuestas y no cabe apilarlas diez veces en un celular. La lista nativa del
- * celular se abre grande y se maneja con el pulgar, y sigue funcionando con el
- * lector de pantalla.
- */
-export function CampoDeSeleccion({
-  etiqueta,
-  opciones,
-  valor,
-  alCambiar,
-}: {
-  readonly etiqueta: string
-  readonly opciones: readonly Opcion[]
-  readonly valor: string
-  readonly alCambiar: (valor: string) => void
-}) {
-  const id = useId()
-  return (
-    <div className="campo">
-      <label className="campo__etiqueta" htmlFor={id}>
-        {etiqueta}
-      </label>
-      <select
-        id={id}
-        className="campo__entrada"
-        value={valor}
-        onChange={(evento) => {
-          alCambiar(evento.target.value)
-        }}
-      >
-        {opciones.map((opcion) => (
-          <option key={opcion.codigo} value={opcion.codigo}>
-            {opcion.texto}
-          </option>
-        ))}
-      </select>
     </div>
   )
 }

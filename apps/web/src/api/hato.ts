@@ -92,13 +92,37 @@ export function useCorregirAnimal(animalId: string) {
 
 /** Poner un arete. El valor nuevo no inventa nada: si no se sabe, no se registra. */
 export function useAgregarMarca(animalId: string) {
+  const poner = usePonerMarca()
+
+  return {
+    ...poner,
+    mutate: (
+      cuerpo: AgregarMarca,
+      opciones?: Parameters<typeof poner.mutate>[1],
+    ): void => {
+      poner.mutate({ animalId, cuerpo }, opciones)
+    },
+  }
+}
+
+/**
+ * Poner un arete cuando el id del animal no se conoce al montar la pantalla.
+ *
+ * Es el mismo comando que `useAgregarMarca`; el alta lo necesita porque el
+ * animal todavía no existe cuando se abre el formulario y el arete se guarda
+ * justo después, con el id que la API acaba de confirmar.
+ */
+export function usePonerMarca() {
   const cache = useQueryClient()
 
   return useMutation({
-    mutationFn: (cuerpo: AgregarMarca) =>
-      pedir(marcaSchema, `/api/animals/${animalId}/marks`, { metodo: 'POST', cuerpo }),
-    onSuccess: () => {
-      void cache.invalidateQueries({ queryKey: ['ficha', animalId] })
+    mutationFn: (entrada: { animalId: string; cuerpo: AgregarMarca }) =>
+      pedir(marcaSchema, `/api/animals/${entrada.animalId}/marks`, {
+        metodo: 'POST',
+        cuerpo: entrada.cuerpo,
+      }),
+    onSuccess: (_marca, entrada) => {
+      void cache.invalidateQueries({ queryKey: ['ficha', entrada.animalId] })
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
     },
   })

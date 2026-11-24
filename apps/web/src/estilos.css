@@ -152,7 +152,7 @@ h2.seccion__titulo {
 
 .campo__etiqueta {
   font-weight: 600;
-  font-size: 0.98rem;
+  font-size: 0.875rem;
   padding: 0;
 }
 
@@ -164,15 +164,16 @@ h2.seccion__titulo {
 .campo__ayuda {
   margin: 0;
   color: var(--texto-suave);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .campo__entrada {
   width: 100%;
-  min-height: 3rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.6rem;
+  min-height: 3.125rem;
+  padding: 0.6rem 0.875rem;
+  /* 14 px, el radio de campos de la guía. */
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
   background: var(--superficie);
   color: var(--texto);
   /* 16px o más: iOS no hace zoom al enfocar. */
@@ -417,6 +418,52 @@ h2.seccion__titulo {
 
 /* Ficha ---------------------------------------------------------------- */
 
+/*
+ * Sin barra fija: la ficha se lee de arriba abajo. Solo deja aire sobre la
+ * navegación de abajo.
+ */
+.pantalla--ficha {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.ficha__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 16px;
+}
+
+.ficha__seccion {
+  margin-bottom: var(--espacio-secciones);
+}
+
+.ficha__titulo {
+  margin: 0 0 10px;
+  font-family: var(--fuente-titulo);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ficha__plegables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
+}
+
+/* El peso de la serie: kilos y fecha arriba, en un solo renglón. */
+.peso__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.peso__fila .peso__kilos {
+  font-family: var(--fuente-titulo);
+  font-size: 19px;
+  font-weight: 700;
+}
+
 .seccion {
   margin-bottom: 1.75rem;
 }
@@ -446,6 +493,12 @@ h2.seccion__titulo {
 .dato__valor {
   margin: 0;
   flex: 1;
+}
+
+.aretes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
 }
 
 .arete,

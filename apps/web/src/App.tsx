@@ -68,8 +68,15 @@ export function App() {
 
   return (
     <div className="con-navegacion">
-      {/* «Salir» vive en el menú del hato: en esa pantalla no se repite arriba. */}
-      {ruta.nombre === 'hato' ? null : <BarraDeSesion />}
+      {/*
+        «Salir» vive en el menú del hato. Las pantallas que ya tienen su
+        encabezado propio —Alta se cierra con la «X», la ficha con la flecha—
+        no repiten arriba una barra de sesión: una acción por pantalla y una
+        sola salida, que es la de volver al hato.
+      */}
+      {ruta.nombre === 'hato' || ruta.nombre === 'alta' || ruta.nombre === 'ficha' ? null : (
+        <BarraDeSesion />
+      )}
       {ruta.nombre === 'hato' ? <Hato /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
       {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}

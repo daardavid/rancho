@@ -250,7 +250,7 @@ describe('Corregir un peso desde la sesión', () => {
     pintarApp(`#/sesion/${SESION}`)
     await usuario.click(await screen.findByRole('button', { name: 'Corregir este peso' }))
 
-    await usuario.selectOptions(screen.getByLabelText('¿Cómo se obtuvo?'), 'measured')
+    await usuario.click(screen.getByRole('radio', { name: 'Báscula' }))
     await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'Sí estaba en la báscula')
     await usuario.click(screen.getByRole('button', { name: 'Guardar corrección' }))
 

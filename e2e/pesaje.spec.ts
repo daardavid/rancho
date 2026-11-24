@@ -131,6 +131,7 @@ test('corregir un peso mal anotado guarda el valor anterior en la historia', asy
 
   await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Pesos' })).toBeVisible()
+  // La historia de cada peso se ve con el peso: es de ese hecho, no de la ficha.
   await expect(page.getByText(/antes decía «201 kg»/)).toBeVisible()
   await expect(page.getByText(/Se anotó mal en el cuaderno\./)).toBeVisible()
 })

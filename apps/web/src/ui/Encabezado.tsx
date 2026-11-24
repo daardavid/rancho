@@ -30,6 +30,10 @@ function BotonDeIcono({ accion }: { readonly accion: AccionDeEncabezado }) {
 /**
  * Título de pantalla. Con regreso el título baja a 24 px, como en Pesaje y Alta.
  * A la derecha caben hasta dos botones de ícono.
+ *
+ * `compacto` baja el título a 24 px también sin flecha de regreso: lo usan las
+ * pantallas que se cierran con una «X» (Alta), donde el título de 30 px de una
+ * pantalla de trabajo no cabe con los dos botones.
  */
 export function Encabezado({
   etiqueta,
@@ -39,6 +43,7 @@ export function Encabezado({
   alRegresar,
   hrefRegresar,
   etiquetaRegresar = 'Regresar',
+  compacto = false,
 }: {
   readonly etiqueta?: string
   readonly titulo: string
@@ -47,9 +52,11 @@ export function Encabezado({
   readonly alRegresar?: () => void
   readonly hrefRegresar?: string
   readonly etiquetaRegresar?: string
+  readonly compacto?: boolean
 }) {
   const conRegreso = alRegresar !== undefined || hrefRegresar !== undefined
   const botones = (acciones ?? []).slice(0, 2)
+  const conTituloChico = conRegreso || compacto
 
   return (
     <header className={conRegreso ? 'ui-encabezado ui-encabezado--regreso' : 'ui-encabezado'}>
@@ -68,7 +75,7 @@ export function Encabezado({
         {etiqueta === undefined ? null : <p className="ui-encabezado__etiqueta">{etiqueta}</p>}
         <h1
           className={
-            conRegreso
+            conTituloChico
               ? 'ui-encabezado__titulo ui-encabezado__titulo--regreso'
               : 'ui-encabezado__titulo'
           }
