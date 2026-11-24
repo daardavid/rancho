@@ -15,7 +15,9 @@
     "db:reset": "tsx src/infrastructure/db/cli-reset.ts",
     "db:seed": "tsx src/infrastructure/db/cli-semilla.ts",
     "cuenta:crear": "tsx src/infrastructure/identity/cli-cuenta.ts",
-    "local": "tsx src/infrastructure/local/cli.ts"
+    "local": "tsx src/infrastructure/local/cli.ts",
+    "respaldo": "tsx src/infrastructure/local/cli-respaldo.ts",
+    "restaurar": "tsx src/infrastructure/local/cli-restaurar.ts"
   },
   "dependencies": {
     "@fastify/static": "^10.1.12",
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.17",
     "@electric-sql/pglite-socket": "^0.2.20",
+    "@electric-sql/pglite-tools": "^0.4.17",
     "@types/node": "^24.13.3",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",

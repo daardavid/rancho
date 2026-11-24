@@ -35,7 +35,7 @@ An in-process PGlite driver would make the HTTP process import a second database
 - A behavior that differs between PGlite and server PostgreSQL can pass locally and fail in CI. CI remains the authority, as ADR-014 says.
 - The data directory is one process at a time. A second `npm run local` while the first is running fails to open it.
 - Plain HTTP on the home network is the accepted UX debt of INC-002. Hosting, when it exists, is HTTPS and `Secure`.
-- `.datos/` is not a backup. Backups are a later task.
+- `.datos/` is not a backup. `npm run respaldo` writes a pg_dump SQL file in `respaldos/` (also gitignored). That file replaces the local data and loads into server PostgreSQL with `psql`. `npm run restaurar` asks for a written confirmation and backs up the current data first. Neither command runs when `NODE_ENV=production`.
 
 ## Revisit when
 
@@ -48,5 +48,5 @@ An in-process PGlite driver would make the HTTP process import a second database
 - Version: 0.1
 - Status: Proposed with INC-002
 - Last updated: 2026-11-23
-- Source: INC-002, ADR-007, ADR-010, ADR-014
+- Source: INC-002, ADR-007, ADR-010, ADR-014, R-13
 - Validation: Decision plus the local-start tests. No production database is created
