@@ -94,4 +94,26 @@ describe('Inicio de sesión', () => {
     expect(await screen.findByText('El usuario o la contraseña no coinciden.')).toBeDefined()
     expect(screen.getByText(/Revísalos y vuelve a escribir la contraseña/)).toBeDefined()
   })
+
+  it('con varios intentos seguidos dice cuánto esperar, con los segundos que manda la API', async () => {
+    montarApi({
+      'GET /api/session': () => ({ estado: 401, cuerpo: { codigo: 'no_autenticado' } }),
+      'POST /api/session': () => ({
+        estado: 429,
+        cuerpo: { codigo: 'demasiados_intentos', segundos: 120 },
+      }),
+    })
+
+    const usuario = userEvent.setup()
+    pintarApp('#/')
+
+    await screen.findByRole('heading', { name: 'Entra para ver tu hato' })
+    await usuario.type(screen.getByLabelText(/^Usuario/), 'david')
+    await usuario.type(screen.getByLabelText(/^Contraseña/), 'otra')
+    await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByText('Hubo varios intentos fallidos seguidos.')).toBeDefined()
+    // Dos minutos: no se inventa un plazo ni se promete un momento imposible.
+    expect(screen.getByText('Espera 2 minutos y vuelve a intentar.')).toBeDefined()
+  })
 })

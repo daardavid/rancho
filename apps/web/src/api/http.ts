@@ -16,14 +16,21 @@ import { avisarSesionVencida } from './aviso'
 export class ErrorDeApi extends Error {
   readonly estado: number
   readonly codigo: string
+  /**
+   * Lo que la API dice que falta para reintentar, cuando lo dice (hoy solo la
+   * espera de entrada). La pantalla lo usa para no inventar un plazo.
+   */
+  readonly segundos: number | null
 
-  constructor(estado: number, codigo: string) {
+  constructor(estado: number, codigo: string, segundos: number | null = null) {
     super(`La API contestó ${estado} ${codigo}`)
     this.name = 'ErrorDeApi'
     this.estado = estado
     this.codigo = codigo
+    this.segundos = segundos
   }
 }
+
 
 type Opciones = {
   readonly metodo?: 'GET' | 'POST' | 'DELETE'
@@ -44,7 +51,8 @@ export async function pedir<T>(
   }
 
   if (!respuesta.ok) {
-    throw new ErrorDeApi(respuesta.status, await codigoDeError(respuesta))
+    const { codigo, segundos } = await errorDelCuerpo(respuesta)
+    throw new ErrorDeApi(respuesta.status, codigo, segundos)
   }
 
   let cuerpo: unknown
@@ -68,7 +76,8 @@ export async function pedirSinContenido(ruta: string, opciones: Opciones = {}): 
     avisarSesionVencida()
   }
   if (!respuesta.ok) {
-    throw new ErrorDeApi(respuesta.status, await codigoDeError(respuesta))
+    const { codigo, segundos } = await errorDelCuerpo(respuesta)
+    throw new ErrorDeApi(respuesta.status, codigo, segundos)
   }
 }
 
@@ -92,17 +101,22 @@ async function enviar(ruta: string, opciones: Opciones): Promise<Response> {
   }
 }
 
-async function codigoDeError(respuesta: Response): Promise<string> {
+/** El código y, si la API lo mandó, cuántos segundos faltan para reintentar. */
+async function errorDelCuerpo(respuesta: Response): Promise<{ codigo: string; segundos: number | null }> {
   try {
     const cuerpo: unknown = await respuesta.json()
-    if (typeof cuerpo === 'object' && cuerpo !== null && 'codigo' in cuerpo) {
+    if (typeof cuerpo === 'object' && cuerpo !== null) {
       const codigo = (cuerpo as { codigo?: unknown }).codigo
       if (typeof codigo === 'string') {
-        return codigo
+        const segundos = (cuerpo as { segundos?: unknown }).segundos
+        return {
+          codigo,
+          segundos: typeof segundos === 'number' && Number.isFinite(segundos) ? segundos : null,
+        }
       }
     }
   } catch {
-    return 'error_desconocido'
+    return { codigo: 'error_desconocido', segundos: null }
   }
-  return 'error_desconocido'
+  return { codigo: 'error_desconocido', segundos: null }
 }

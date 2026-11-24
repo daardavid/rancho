@@ -66,8 +66,10 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
     logController: new LogController({ requestIdLogLabel: 'requestId' }),
     // El id sale de aquí y se repite en cada línea de log de la petición.
     genReqId: (peticion) => idDePeticion(peticion.headers['x-request-id']),
-    // Nunca se confía en un proxy por omisión. El límite de intentos cuenta por
-    // usuario escrito, no por una IP que un proxy podría inventar.
+    // Nunca se confía en un proxy por omisión: así `peticion.ip` es la del
+    // socket y no una cabecera que el cliente pueda inventar. El límite de
+    // entrada cuenta con esa IP; con `trustProxy` encendido, cualquiera podría
+    // mandar una cabecera distinta en cada intento y esquivarlo.
     trustProxy: false,
   })
 
