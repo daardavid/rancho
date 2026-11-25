@@ -2,6 +2,7 @@ import {
   animalGrowthViewSchema,
   crecimientoDelHatoSchema,
   errorDeCrecimientoSchema,
+  pesosConocidosSchema,
 } from '@rancho/api-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
@@ -57,6 +58,20 @@ export function registrarRutasDeCrecimiento(app: FastifyInstance, modelos: Model
         .header('cache-control', 'no-store')
         .code(200)
         .send(crecimientoDelHatoSchema.parse(resumen))
+    },
+  )
+
+  app.get(
+    '/api/read-models/known-weights',
+    { preHandler: exigirRol(ROLES) },
+    async (peticion, respuesta) => {
+      const sesion = exigirSesion(peticion.sesionActiva)
+      const pesos = await modelos.pesosConocidos(sesion.ranchId)
+
+      return respuesta
+        .header('cache-control', 'no-store')
+        .code(200)
+        .send(pesosConocidosSchema.parse({ pesos }))
     },
   )
 }

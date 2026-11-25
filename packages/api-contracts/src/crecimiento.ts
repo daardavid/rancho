@@ -88,6 +88,22 @@ export const filaDeCrecimientoSchema = z.strictObject({
 })
 
 /**
+ * Un peso ya guardado, lo mínimo para comparar una captura contra la fecha.
+ *
+ * No trae la ganancia: eso se calcula al vuelo en la pantalla y no es un hecho.
+ * Un hueco no entra: no es un peso.
+ */
+export const pesoConocidoSchema = z.strictObject({
+  animalId: z.uuid(),
+  fecha: diaSchema,
+  kilos: kilosConTresDecimalesSchema,
+})
+
+export const pesosConocidosSchema = z.strictObject({
+  pesos: z.array(pesoConocidoSchema),
+})
+
+/**
  * El resumen del hato para la pantalla de crecimiento.
  *
  * `gananciaMediaKilosPorDia` es la media de los kilos por día del último
@@ -117,5 +133,7 @@ export type PuntoDeCrecimiento = z.infer<typeof puntoDeCrecimientoSchema>
 export type HuecoDePesaje = z.infer<typeof huecoDePesajeSchema>
 export type AnimalGrowthView = z.infer<typeof animalGrowthViewSchema>
 export type FilaDeCrecimiento = z.infer<typeof filaDeCrecimientoSchema>
+export type PesoConocido = z.infer<typeof pesoConocidoSchema>
+export type PesosConocidos = z.infer<typeof pesosConocidosSchema>
 export type CrecimientoDelHato = z.infer<typeof crecimientoDelHatoSchema>
 export type ErrorDeCrecimiento = z.infer<typeof errorDeCrecimientoSchema>

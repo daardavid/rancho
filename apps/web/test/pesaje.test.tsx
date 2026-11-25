@@ -212,6 +212,12 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
           ],
         },
       }),
+      'GET /api/read-models/known-weights': () => ({
+        estado: 200,
+        cuerpo: {
+          pesos: [{ animalId: ANIMAL, fecha: '2026-11-01', kilos: '8.020' }],
+        },
+      }),
     })
 
     pintarApp('#/pesaje')
@@ -228,6 +234,66 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
     expect(await screen.findByText('+0.18 kg · 0.01 kg/día')).toBeDefined()
     expect(screen.getByText('Antes: 8.02 kg · hace 15 días')).toBeDefined()
     expect(screen.queryByText(/0\.17999/)).toBeNull()
+  })
+
+  it('una fecha anterior a la última vuelta no se resta contra un peso posterior', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/weighing-sessions/latest': () => ({
+        estado: 200,
+        cuerpo: {
+          id: SESION_ANTERIOR,
+          fecha: '2026-11-25',
+          nota: null,
+          reportedBy: null,
+          commandId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          recordedBy: CUENTA,
+          recordedAt: CUANDO,
+          filas: [
+            {
+              id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              animalId: ANIMAL,
+              resultado: 'pesado',
+              kilos: '152.500',
+              calidad: 'measured',
+              version: 1,
+            },
+          ],
+        },
+      }),
+      'GET /api/read-models/known-weights': () => ({
+        estado: 200,
+        cuerpo: {
+          pesos: [{ animalId: ANIMAL, fecha: '2026-11-25', kilos: '152.500' }],
+        },
+      }),
+    })
+
+    pintarApp('#/pesaje')
+    const fecha = (await screen.findByLabelText('¿Cuándo se pesó?')) as HTMLInputElement
+
+    // Con una fecha posterior, el 25 nov sí es el peso anterior.
+    await usuario.clear(fecha)
+    await usuario.type(fecha, '2026-12-25')
+    await usuario.type(screen.getByRole('textbox', { name: 'Kilos de Canelo' }), '160')
+    expect(await screen.findByText('Antes: 152.5 kg · hace 30 días')).toBeDefined()
+    expect(screen.getByText('+7.5 kg · 0.25 kg/día')).toBeDefined()
+    expect(screen.queryByText(/Después:/)).toBeNull()
+
+    // Al cambiar al 25 oct y anotar 128, ese peso queda después. No hay −24.5 kg.
+    await usuario.clear(fecha)
+    await usuario.type(fecha, '2026-10-25')
+    const kilos = screen.getByRole('textbox', { name: 'Kilos de Canelo' })
+    await usuario.clear(kilos)
+    await usuario.type(kilos, '128')
+    expect(screen.queryByText(/Antes: 152\.5/)).toBeNull()
+    expect(screen.queryByText(/-24\.5/)).toBeNull()
+    expect(screen.queryByText(/−24\.5/)).toBeNull()
+    expect(screen.getByText('Después: 152.5 kg el 25 nov')).toBeDefined()
+    // La propuesta sigue siendo la de la vuelta anterior.
+    expect(screen.getByRole('textbox', { name: 'Kilos de Canelo' })).toBeDefined()
   })
 
   it('reabrir una fila capturada vuelve a mostrar sus kilos', async () => {
