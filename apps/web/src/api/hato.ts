@@ -22,6 +22,7 @@ import {
 } from '@rancho/api-contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { LLAVE_DE_INICIO } from './inicio'
 import { pedir } from './http'
 
 export const LLAVE_DEL_HATO = ['hato'] as const
@@ -87,6 +88,7 @@ function invalidarHato(cache: ReturnType<typeof useQueryClient>, animalId: strin
   void cache.invalidateQueries({ queryKey: ['ficha', animalId] })
   void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
   void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
+  void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
 }
 
 /** La ficha con sus marcas y la historia de correcciones. */

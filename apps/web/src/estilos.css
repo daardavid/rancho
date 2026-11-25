@@ -433,6 +433,54 @@ h2.seccion__titulo {
   margin: 10px 0 16px;
 }
 
+.ficha__visto {
+  margin: 0 0 16px;
+}
+
+.inicio__vacio {
+  margin: 0 0 10px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.inicio__grupo {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.inicio__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inicio__lista a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: inherit;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+}
+
+.inicio__meta {
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-align: right;
+}
+
 .ficha__seccion {
   margin-bottom: var(--espacio-secciones);
 }

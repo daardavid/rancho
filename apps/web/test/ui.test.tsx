@@ -192,6 +192,7 @@ describe('BarraInferior', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Pantallas del rancho' })
     expect(nav.classList.contains('ui-barra-inferior--ventana')).toBe(true)
+    expect(screen.getByRole('link', { name: 'Inicio' }).getAttribute('href')).toBe('#/inicio')
     expect(screen.getByRole('link', { name: 'Hato' }).getAttribute('aria-current')).toBe('page')
     expect(screen.getByRole('link', { name: 'Pesaje' }).getAttribute('aria-current')).toBeNull()
     expect(screen.getByRole('link', { name: 'Crecimiento' }).getAttribute('href')).toBe('#/crecimiento')

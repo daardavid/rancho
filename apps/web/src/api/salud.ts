@@ -10,6 +10,7 @@ import {
 } from '@rancho/api-contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { LLAVE_DE_INICIO } from './inicio'
 import { pedir } from './http'
 
 export const LLAVE_DE_SANIDAD = ['sanidad'] as const
@@ -50,6 +51,8 @@ export function useAnotarSalud() {
         void cache.invalidateQueries({ queryKey: [...LLAVE_DE_SANIDAD, fila.animalId] })
       }
       void cache.invalidateQueries({ queryKey: [...LLAVE_DE_SANIDAD, 'varios'] })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
+      void cache.invalidateQueries({ queryKey: ['observacion'] })
     },
   })
 }
@@ -70,6 +73,8 @@ export function useCorregirNotaDeSalud(notaId: string, animalId: string) {
     onSuccess: () => {
       void cache.invalidateQueries({ queryKey: [...LLAVE_DE_SANIDAD, animalId] })
       void cache.invalidateQueries({ queryKey: [...LLAVE_DE_SANIDAD, 'varios'] })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
+      void cache.invalidateQueries({ queryKey: ['observacion'] })
     },
   })
 }

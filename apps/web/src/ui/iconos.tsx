@@ -76,6 +76,15 @@ export function IconoBascula({ tamano = 22 }: Tamano) {
   )
 }
 
+export function IconoInicio({ tamano = 22 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M7 10.5V20h10v-9.5" />
+    </Icono>
+  )
+}
+
 export function IconoHato({ tamano = 22 }: Tamano) {
   return (
     <Icono tamano={tamano}>

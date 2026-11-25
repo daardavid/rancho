@@ -8,6 +8,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { LLAVE_DEL_HATO, LLAVE_DEL_RESUMEN } from './hato'
+import { LLAVE_DE_INICIO } from './inicio'
 import { pedir } from './http'
 
 export function useFamilia(animalId: string) {
@@ -27,6 +28,7 @@ export function useRegistrarNacimiento() {
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
       void cache.invalidateQueries({ queryKey: ['familia'] })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
     },
   })
 }
@@ -42,6 +44,7 @@ export function useCorregirFiliacion(animalId: string) {
       }),
     onSuccess: () => {
       void cache.invalidateQueries({ queryKey: ['familia'] })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
     },
   })
 }

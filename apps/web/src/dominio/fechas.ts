@@ -165,6 +165,19 @@ export function fechaDelPesaje(dia: string): string {
  * Negativo si `hasta` es anterior. `null` si alguna no es un día. La cuenta es
  * de fechas civiles (medianoche UTC), no de un peso.
  */
+/** Otro día civil, a `dias` de distancia. Negativo cuenta hacia atrás. */
+export function diaMas(dia: string, dias: number): string {
+  const partes = partesDeDia(dia)
+  if (partes === null) {
+    return dia
+  }
+  const fecha = new Date(Date.UTC(partes.anio, partes.mes - 1, partes.dia))
+  fecha.setUTCDate(fecha.getUTCDate() + dias)
+  const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0')
+  const numero = String(fecha.getUTCDate()).padStart(2, '0')
+  return `${fecha.getUTCFullYear()}-${mes}-${numero}`
+}
+
 export function diasEntre(desde: string, hasta: string): number | null {
   const inicio = partesDeDia(desde)
   const fin = partesDeDia(hasta)

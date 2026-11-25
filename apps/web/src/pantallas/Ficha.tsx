@@ -2,10 +2,12 @@ import { AUSENCIA_DE_FOTO, type Peso } from '@rancho/api-contracts'
 import { useState } from 'react'
 
 import { useFicha, usePesos } from '../api/hato'
+import { useUltimaObservacion } from '../api/inicio'
 import { usePotreros } from '../api/lugar'
 import { usePesosConHistoria } from '../api/pesajes'
 import { areteVigente, nombreVisible } from '../dominio/animal'
 import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
+import { textoDeUltimaObservacion } from '../dominio/observacion'
 import {
   campoDeFicha,
   categoria,
@@ -54,6 +56,7 @@ import { GraficaDePesos } from './GraficaDePesos'
 export function Ficha({ animalId }: { readonly animalId: string }) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
+  const observacion = useUltimaObservacion(animalId)
   const historia = usePesosConHistoria(animalId)
   const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
@@ -125,6 +128,14 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
         {animal.activo ? null : <Etiqueta tono="revisar">Dado de baja</Etiqueta>}
       </div>
 
+      {observacion.isSuccess ? (
+        <p className={observacion.data.observacion === null ? 'inicio__vacio' : 'ficha__visto'}>
+          {observacion.data.observacion === null
+            ? 'Sin observación'
+            : textoDeUltimaObservacion(observacion.data.observacion)}
+        </p>
+      ) : null}
+
       {animal.salida === null ? null : (
         <section className="ficha__seccion">
           <Aviso
@@ -167,6 +178,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
           alGuardar={() => {
             setAnotandoSanidad(false)
             setSanidadGuardada(true)
+            void observacion.refetch()
           }}
           alCancelar={() => {
             setAnotandoSanidad(false)
