@@ -255,7 +255,7 @@ function Correccion({
   )
   const [fecha, setFecha] = useState(filiacion?.fechaNacimiento ?? '')
   const [madreId, setMadreId] = useState(filiacion?.madre.animalId ?? '')
-  const [certezaMadre, setCertezaMadre] = useState<'observed' | 'inferred' | 'unknown'>(
+  const [certezaMadre, setCertezaMadre] = useState<'observed' | 'inferred' | 'unknown' | ''>(
     filiacion?.madre.certeza ?? 'unknown',
   )
   const [motivoMadre, setMotivoMadre] = useState<MotivoMadre | ''>(motivoMadreDe(filiacion?.madre.motivo))
@@ -280,6 +280,10 @@ function Correccion({
     }
     if (precision !== 'unknown' && fecha === '') {
       setAviso('Elige el día o marca la fecha en «No sé».')
+      return
+    }
+    if (madreId !== '' && certezaMadre === '') {
+      setAviso('Di si viste a la madre, si la inferiste o si no sabes.')
       return
     }
     const madre = ladoMadre(madreId, certezaMadre, motivoMadre)
@@ -335,11 +339,13 @@ function Correccion({
         <span className="campo__etiqueta">Madre</span>
         <select
           className="campo__entrada"
-          value={certezaMadre === 'unknown' ? '' : madreId}
+          value={madreId}
           onChange={(evento) => {
             const id = evento.target.value
             setMadreId(id)
-            setCertezaMadre(id === '' ? 'unknown' : certezaMadre === 'unknown' ? 'observed' : certezaMadre)
+            // Elegir madre no es decir que se la vio. La certeza queda en blanco
+            // hasta que alguien la marque; «No sé» en el desplegable es no saber quién es.
+            setCertezaMadre(id === '' ? 'unknown' : certezaMadre === 'unknown' ? '' : certezaMadre)
           }}
         >
           <option value="">No sé</option>
@@ -350,7 +356,7 @@ function Correccion({
           ))}
         </select>
       </label>
-      {certezaMadre === 'unknown' ? null : (
+      {madreId === '' ? null : (
         <Segmentado
           etiqueta="Certeza de la madre"
           opciones={[

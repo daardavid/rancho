@@ -114,9 +114,11 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
       />
 
       <div className="ficha__etiquetas">
-        <Etiqueta tono={tonoDeCategoria(animal.categoria)}>{categoria(animal.categoria)}</Etiqueta>
+        <Etiqueta tono={tonoDeCategoria(animal.categoria)}>
+          {animal.categoria === 'unknown' ? 'Categoría: no sé' : categoria(animal.categoria)}
+        </Etiqueta>
         <Etiqueta tono={animal.tenencia === 'unknown' ? 'sinDatos' : 'bien'}>
-          {tenencia(animal.tenencia)}
+          {animal.tenencia === 'unknown' ? 'Dueño: no sé' : tenencia(animal.tenencia)}
         </Etiqueta>
         {arete === null ? (
           <Etiqueta tono="sinDatos">Sin arete</Etiqueta>
@@ -296,6 +298,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             <h2 className="ficha__titulo">Dónde se le espera</h2>
             <LugarDelAnimalEnLaFicha
               animalId={animal.id}
+              puedeMover={animal.activo}
               potreros={potreros.data?.potreros ?? []}
               estadoDePotreros={
                 potreros.isError ? 'error' : potreros.isPending ? 'cargando' : 'listo'
@@ -304,19 +307,21 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             />
           </section>
 
-          <SanidadDelAnimal animalId={animal.id} />
+          <SanidadDelAnimal animalId={animal.id} puedeAnotar={animal.activo} />
 
-          <section className="ficha__seccion">
-            <BotonSecundario
-              tono="tinta"
-              alTocar={() => {
-                setSanidadGuardada(false)
-                setAnotandoSanidad(true)
-              }}
-            >
-              Anotar sanidad
-            </BotonSecundario>
-          </section>
+          {animal.activo ? (
+            <section className="ficha__seccion">
+              <BotonSecundario
+                tono="tinta"
+                alTocar={() => {
+                  setSanidadGuardada(false)
+                  setAnotandoSanidad(true)
+                }}
+              >
+                Anotar sanidad
+              </BotonSecundario>
+            </section>
+          ) : null}
 
           <section className="ficha__seccion">
             <h2 className="ficha__titulo">Qué se sabe</h2>

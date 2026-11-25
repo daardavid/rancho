@@ -19,10 +19,10 @@ import { LARGO_MAXIMO_NOMBRE, LARGO_MAXIMO_NOTA } from './valores'
  * no hay un tipo «grupo» en Herd. Cada animal tiene su renglón y se corrige
  * por separado, igual que una asignación de lugar a varios animales.
  *
- * `vioAlAnimal` es explícito y por omisión es falso: una nota de sanidad no es
- * una observación salvo que diga que el animal se vio. Así la proyección de la
- * última observación no convierte cualquier nota en un avistamiento
- * (`TGT-SEC-001`).
+ * `vioAlAnimal` lo elige quien anota. No hay valor por omisión: si no dice si
+ * vio al animal, la nota no se abre. Así no se guarda «no se vio» porque nadie
+ * lo tocó. Una nota solo cuenta como observación cuando dice que sí se vio
+ * (`TGT-SEC-001`). El modelo guarda sí o no; «No sé» todavía no cabe.
  */
 
 export const TIPOS_DE_NOTA_DE_SALUD = ['vacuna', 'medicamento', 'bano', 'problema', 'otro'] as const
@@ -45,7 +45,7 @@ export type NotaDeSalud = {
   readonly producto: string | null
   /** Foto del frasco, del animal o de lo que se vio. `null` es sin foto. */
   readonly evidenciaId: string | null
-  /** La nota dice que el animal se vio. Por omisión, no lo dice. */
+  /** La nota dice que el animal se vio. Alguien lo eligió: no hay omisión. */
   readonly vioAlAnimal: boolean
   readonly version: number
   readonly recordedBy: RecordedBy
@@ -61,6 +61,7 @@ export type RegistroDeNotaDeSalud = {
   readonly fecha: string
   readonly producto?: string | null
   readonly evidenciaId?: string | null
+  /** Obligatorio. Omitirlo no se guarda como «no se vio». */
   readonly vioAlAnimal?: boolean
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
@@ -115,7 +116,7 @@ export function abrirNotaDeSalud(entrada: RegistroDeNotaDeSalud): NotaDeSalud {
     fecha: diaDeCalendario(entrada.fecha),
     producto: textoOpcional(entrada.producto, LARGO_MAXIMO_NOMBRE),
     evidenciaId: fotoDe(entrada.evidenciaId),
-    vioAlAnimal: entrada.vioAlAnimal === true,
+    vioAlAnimal: vistoElegido(entrada.vioAlAnimal),
     version: VERSION_INICIAL,
     recordedBy: entrada.recordedBy,
     recordedAt: entrada.recordedAt,
@@ -206,6 +207,14 @@ export function corregirNotaDeSalud(
 function tipoDe(valor: string): TipoDeNotaDeSalud {
   if (!esTipoDeNotaDeSalud(valor)) {
     throw new RechazoDeHerd('tipo_invalido')
+  }
+  return valor
+}
+
+/** Sí o no, elegido. `undefined` no se convierte en «no se vio». */
+export function vistoElegido(valor: boolean | undefined): boolean {
+  if (valor !== true && valor !== false) {
+    throw new RechazoDeHerd('visto_sin_elegir')
   }
   return valor
 }

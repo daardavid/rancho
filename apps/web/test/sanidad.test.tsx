@@ -143,7 +143,7 @@ describe('Sanidad en la ficha', () => {
     expect(await screen.findByText(/Todavía no se le anotó nada de sanidad/)).toBeDefined()
   })
 
-  it('anota sanidad desde la ficha con «se vio» apagado por omisión', async () => {
+  it('sin elegir tipo ni si se vio, no manda la nota', async () => {
     const usuario = userEvent.setup()
     const api = montarApi({
       'GET /api/session': sesionAbierta(),
@@ -167,10 +167,17 @@ describe('Sanidad en la ficha', () => {
     pintarApp(`#/animal/${ANIMAL_A}`)
 
     await usuario.click(await screen.findByRole('button', { name: 'Anotar sanidad' }))
+    expect(screen.getByRole('radio', { name: 'Vacuna' })).toHaveProperty('checked', false)
+    expect(screen.getByRole('radio', { name: 'No se vio' })).toHaveProperty('checked', false)
     await usuario.type(
       await screen.findByLabelText('¿Qué se hizo o se vio?'),
       'Vacuna contra el ántrax',
     )
+    await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad' }))
+    expect(api.peticiones.filter((peticion) => peticion.metodo === 'POST')).toEqual([])
+
+    await usuario.click(screen.getByRole('radio', { name: 'Vacuna' }))
+    await usuario.click(screen.getByRole('radio', { name: 'No se vio' }))
     await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad' }))
 
     await waitFor(() => {
@@ -182,7 +189,6 @@ describe('Sanidad en la ficha', () => {
     expect(envio?.cuerpo).toMatchObject({
       tipo: 'vacuna',
       detalle: 'Vacuna contra el ántrax',
-      // Por omisión la nota no dice que se vio al animal.
       vioAlAnimal: false,
       animales: [{ animalId: ANIMAL_A }],
     })
@@ -213,6 +219,7 @@ describe('Sanidad en la ficha', () => {
 
     await usuario.click(await screen.findByRole('button', { name: 'Anotar sanidad' }))
     await usuario.type(await screen.findByLabelText('¿Qué se hizo o se vio?'), 'Baño de garrapata')
+    await usuario.click(screen.getByRole('radio', { name: 'Baño' }))
     await usuario.click(screen.getByRole('radio', { name: 'Sí se vio' }))
     await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad' }))
 
@@ -269,6 +276,7 @@ describe('Sanidad desde el hato', () => {
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Lucero' }))
     await usuario.click(screen.getByRole('radio', { name: 'Baño' }))
+    await usuario.click(screen.getByRole('radio', { name: 'No se vio' }))
     await usuario.type(
       await screen.findByLabelText('¿Qué se hizo o se vio?'),
       'Baño contra la mosca',
@@ -312,6 +320,8 @@ describe('Sanidad desde el hato', () => {
       await screen.findByRole('button', { name: 'Anotar sanidad a varios animales' }),
     )
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
+    await usuario.click(screen.getByRole('radio', { name: 'Problema visto' }))
+    await usuario.click(screen.getByRole('radio', { name: 'No se vio' }))
     await usuario.type(await screen.findByLabelText('¿Qué se hizo o se vio?'), 'Se le curó una pata')
     await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad' }))
 

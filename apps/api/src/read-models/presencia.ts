@@ -13,6 +13,8 @@ import type { RanchId } from '../shared-kernel/ids'
  *
  * - un pesaje (`weighed`); un hueco no cuenta
  * - una nota de sanidad con `saw_animal`
+ * - un nacimiento con fecha cuya madre está en «La vi» (`observed`); la
+ *   observación es de la cría ese día. Inferida o «No sé» no cuentan.
  *
  * No cuentan una asignación de lugar, un hueco, ni una nota que no dice que se
  * vio. Si el mismo día hay dos, gana la que se registró después.
@@ -23,7 +25,7 @@ import type { RanchId } from '../shared-kernel/ids'
  */
 
 export type Categoria = 'calf' | 'cow' | 'bull' | 'other' | 'unknown'
-export type OrigenDeObservacion = 'pesaje' | 'sanidad'
+export type OrigenDeObservacion = 'pesaje' | 'sanidad' | 'nacimiento'
 
 export type Observacion = {
   readonly fecha: string
@@ -91,7 +93,7 @@ export type ModelosDePresencia = {
 }
 
 const CATEGORIAS: readonly Categoria[] = ['calf', 'cow', 'bull', 'other', 'unknown']
-const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad']
+const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad', 'nacimiento']
 const ZONA_DEL_RANCHO = 'America/Mexico_City'
 
 type FilaDeAnimal = {
@@ -420,6 +422,17 @@ function observacionesDe(ranchId: RanchId): SQL {
       FROM herd.health_event nota
       WHERE nota.ranch_id = ${ranchId}
         AND nota.saw_animal
+      UNION ALL
+      SELECT
+        filiacion.offspring_id AS animal_id,
+        filiacion.birth_date AS fecha,
+        'nacimiento' AS origen,
+        filiacion.id AS origen_id,
+        filiacion.recorded_at AS registrado_en
+      FROM herd.parentage_record filiacion
+      WHERE filiacion.ranch_id = ${ranchId}
+        AND filiacion.birth_date IS NOT NULL
+        AND filiacion.dam_certainty = 'observed'
     ) fuentes
     ORDER BY animal_id, fecha DESC, registrado_en DESC, origen_id DESC
   `

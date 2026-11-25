@@ -7,15 +7,16 @@ import { LARGO_MAXIMO_NOMBRE, categoriaSchema, diaSchema } from './animales'
  *
  * Son consultas. La última observación no es una columna de `Animal` y no se
  * corrige aquí: si el dato está mal, se corrige el pesaje o la nota que la
- * produjo. Un hueco, una asignación de lugar y una nota que no dice que el
- * animal se vio no son una observación.
+ * produjo, o el nacimiento si la madre quedó en «La vi» y hay fecha. Un hueco,
+ * una asignación de lugar, una nota que no dice que el animal se vio y un
+ * parto inferido o en «No sé» no son una observación.
  *
  * `dias` lo calcula PostgreSQL contra el día del rancho. No hay un umbral de
  * «lleva mucho sin verse»: la lista trae a todos los que tienen observación,
  * ordenados por esos días.
  */
 
-export const origenDeObservacionSchema = z.enum(['pesaje', 'sanidad'])
+export const origenDeObservacionSchema = z.enum(['pesaje', 'sanidad', 'nacimiento'])
 
 export const observacionSchema = z.strictObject({
   fecha: diaSchema,
@@ -27,7 +28,7 @@ export const observacionSchema = z.strictObject({
 
 export const ultimaObservacionSchema = z.strictObject({
   animalId: z.uuid(),
-  /** `null` cuando no hay pesaje ni nota vista. No es un cero. */
+  /** `null` cuando no hay pesaje, nota vista ni parto visto. No es un cero. */
   observacion: observacionSchema.nullable(),
 })
 

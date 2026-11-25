@@ -455,7 +455,7 @@ describe('potreros y lugar esperado', () => {
     expect(lugar?.historia).toEqual([])
   })
 
-  it('las asignaciones de un animal dado de baja no lo devuelven al hato', async () => {
+  it('rechaza el lugar de un animal dado de baja y no lo devuelve al hato', async () => {
     const potrero = await potreroConNombre('Potrero de la salida')
     const animalId = await animalConNombre('Se va y se le asigna lugar')
 
@@ -469,18 +469,21 @@ describe('potreros y lugar esperado', () => {
       fecha: '2026-11-15',
     })
 
-    await herd.asignarLugar({
-      commandId: nuevoId(),
-      ranchId,
-      recordedBy,
-      potreroId: potrero,
-      desde: '2026-11-16',
-      animales: [{ animalId, asignacionId: nuevoId() }],
-    })
+    await expect(
+      herd.asignarLugar({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        potreroId: potrero,
+        desde: '2026-11-16',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      }),
+    ).rejects.toMatchObject({ codigo: 'fuera_del_hato' })
 
     const ficha = await herd.obtener(ranchId, animalId)
     expect(ficha?.activo).toBe(false)
     expect(ficha?.nombre).toBe('Se va y se le asigna lugar')
+    expect((await herd.lugarDe(ranchId, animalId))?.historia).toEqual([])
 
     const lugares = await herd.lugaresDelHato(ranchId)
     expect(lugares.animales.map((fila) => fila.animalId)).not.toContain(animalId)

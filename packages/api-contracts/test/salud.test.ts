@@ -17,11 +17,12 @@ const notaBase = {
   tipo: 'vacuna',
   detalle: 'Vacuna contra el ántrax en la manga',
   fecha: '2026-11-20',
+  vioAlAnimal: false,
   animales: [{ animalId: ANIMAL, notaId: NOTA }],
 }
 
 describe('contrato de la nota de sanidad', () => {
-  it('acepta una nota con lo mínimo: tipo, qué se hizo y el día', () => {
+  it('acepta una nota con lo mínimo elegido: tipo, qué se hizo, el día y si se vio', () => {
     expect(anotarSaludSchema.safeParse(notaBase).success).toBe(true)
   })
 
@@ -39,7 +40,8 @@ describe('contrato de la nota de sanidad', () => {
     expect(anotarSaludSchema.safeParse({ ...notaBase, tipo: 'inyeccion' }).success).toBe(false)
   })
 
-  it('«vioAlAnimal» es opcional y un booleano de verdad', () => {
+  it('sin decir si se vio, o con un texto, la nota no se acepta', () => {
+    expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: undefined }).success).toBe(false)
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: true }).success).toBe(true)
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: 'si' }).success).toBe(false)
   })

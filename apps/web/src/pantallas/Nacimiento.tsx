@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 
+import type { LugaresDelHato, PotrerosDelRancho } from '@rancho/api-contracts'
+
 import { useFicha, useHato } from '../api/hato'
+import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
 import { useRegistrarNacimiento } from '../api/nacimientos'
 import { nombreVisible, puedeSerMadre } from '../dominio/animal'
 import {
@@ -9,12 +12,14 @@ import {
   SEXOS,
   TENENCIAS,
   opcionesElegibles,
+  tenencia as textoDeTenencia,
 } from '../dominio/etiquetas'
+import { hoyEnElRancho } from '../dominio/fechas'
 import type { Animal, FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BarraDeAccion } from '../ui/BarraDeAccion'
-import { BotonPrincipal } from '../ui/Botones'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
@@ -26,9 +31,10 @@ import { IconoCerrar } from '../ui/iconos'
  * Registrar un nacimiento.
  *
  * Un solo envío crea la cría y la filiación. Si se abrió desde la ficha de
- * una vaca, ella viene elegida y «La vi» es el punto de partida: «No sé» está
- * al lado y no se ve como error. Si hay un solo toro activo se ofrece
- * «Inferido: único toro» sin marcarlo.
+ * una vaca, ella viene elegida, pero la certeza no: hay que decir si se la
+ * vio, si queda inferida o si no se sabe. El padre tampoco viene marcado.
+ * La tenencia y el potrero de la madre se proponen; no se escriben hasta
+ * aceptar. Una madre a la parte propone «Dueño: no sé».
  */
 
 const OPCIONES_DE_SEXO = opcionesElegibles(SEXOS)
@@ -42,8 +48,9 @@ const CERTEZA_DE_MADRE = [
 ]
 
 type CertezaMadre = 'observed' | 'inferred' | 'unknown'
+type CertezaEnBorrador = CertezaMadre | ''
 type MotivoMadre = 'parto_visto' | 'dicho_de_trabajador' | 'otro'
-type ModoPadre = 'unknown' | 'unico_toro' | 'observed' | 'inferred'
+type ModoPadre = '' | 'unknown' | 'unico_toro' | 'observed' | 'inferred'
 type Precision = 'exact' | 'approximate' | 'unknown'
 type Tenencia = 'ranch' | 'a_la_parte' | 'third_party' | 'unknown'
 type Lado = {
@@ -57,7 +64,7 @@ type Borrador = {
   readonly precision: Precision
   readonly sexo: 'female' | 'male' | 'unknown'
   readonly madreId: string | null
-  readonly certezaMadre: CertezaMadre
+  readonly certezaMadre: CertezaEnBorrador
   readonly motivoMadre: MotivoMadre | ''
   readonly modoPadre: ModoPadre
   readonly motivoPadre: MotivoMadre | ''
@@ -65,6 +72,10 @@ type Borrador = {
   readonly arete: string
   readonly tenencia: Tenencia
   readonly nota: string
+  /** La propuesta de la madre no se escribe hasta este sí. */
+  readonly propuestaAceptada: boolean
+  readonly escribirLugar: boolean
+  readonly potreroAceptado: string | null
 }
 
 type Envio = {
@@ -106,24 +117,41 @@ function NacimientoDesdeLaFicha({ madreId }: { readonly madreId: string }) {
 
 function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | null }) {
   const hato = useHato()
+  const lugares = useLugares()
+  const potreros = usePotreros()
   const registrar = useRegistrarNacimiento()
+  const asignar = useAsignarLugar()
   const preseleccion = madre !== null && puedeSerMadre(madre) ? madre.id : null
   const [borrador, setBorrador] = useState<Borrador>({
     fecha: '',
     precision: 'unknown',
     sexo: 'unknown',
     madreId: preseleccion,
-    certezaMadre: preseleccion === null ? 'unknown' : 'observed',
+    certezaMadre: '',
     motivoMadre: '',
-    modoPadre: 'unknown',
+    modoPadre: '',
     motivoPadre: '',
     nombre: '',
     arete: '',
     tenencia: 'unknown',
     nota: '',
+    propuestaAceptada: false,
+    escribirLugar: false,
+    potreroAceptado: null,
   })
   const [aviso, setAviso] = useState<string | null>(null)
   const envio = useRef<Envio | null>(null)
+  const lugarEnvio = useRef<{ contenido: string; commandId: string; asignacionId: string } | null>(null)
+  /**
+   * Si el parto ya se guardó y el potrero falló, el reintento no crea otra cría
+   * ni usa lo que el formulario cambió después.
+   */
+  const criaRegistrada = useRef<{
+    animalId: string
+    aceptoLugar: boolean
+    potreroAceptado: string | null
+    desde: string
+  } | null>(null)
 
   if (hato.isPending) {
     return (
@@ -149,14 +177,54 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     madres.find((animal) => animal.id === borrador.madreId) ??
     (madre !== null && madre.id === borrador.madreId ? madre : null)
   const aLaParte = madreElegida?.tenencia === 'a_la_parte'
+  const lugarDeMadre =
+    madreElegida === null
+      ? null
+      : lugarDeLaMadre(
+          madreElegida.id,
+          lugares.data,
+          potreros.data,
+          potreros.isPending,
+          potreros.isError,
+        )
 
   const cambiar = (cambios: Partial<Borrador>): void => {
     setAviso(null)
     setBorrador((actual) => ({ ...actual, ...cambios }))
   }
 
+  const asignarLugarDeLaCria = (guardada: NonNullable<typeof criaRegistrada.current>): void => {
+    if (!guardada.aceptoLugar) {
+      irA({ nombre: 'ficha', animalId: guardada.animalId })
+      return
+    }
+    const { animalId, potreroAceptado, desde } = guardada
+    const clave = JSON.stringify({ animalId, potreroAceptado, desde })
+    if (lugarEnvio.current === null || lugarEnvio.current.contenido !== clave) {
+      lugarEnvio.current = {
+        contenido: clave,
+        commandId: crypto.randomUUID(),
+        asignacionId: crypto.randomUUID(),
+      }
+    }
+    const pendiente = lugarEnvio.current
+    asignar.mutate(
+      {
+        commandId: pendiente.commandId,
+        potreroId: potreroAceptado,
+        desde,
+        animales: [{ animalId, asignacionId: pendiente.asignacionId }],
+      },
+      {
+        onSuccess: () => {
+          irA({ nombre: 'ficha', animalId })
+        },
+      },
+    )
+  }
+
   const guardar = (): void => {
-    if (registrar.isPending) {
+    if (registrar.isPending || asignar.isPending) {
       return
     }
     const armado = armar(borrador, toroUnico, aLaParte === true)
@@ -164,6 +232,14 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
       setAviso(armado.aviso)
       return
     }
+    if (criaRegistrada.current !== null) {
+      asignarLugarDeLaCria(criaRegistrada.current)
+      return
+    }
+    const aceptoLugar = borrador.propuestaAceptada && borrador.escribirLugar
+    const potreroAceptado = borrador.potreroAceptado
+    const desde =
+      borrador.precision === 'unknown' || borrador.fecha === '' ? hoyEnElRancho() : borrador.fecha
 
     // El arete no viaja en el cuerpo: se añade como marca. Si solo cambia el
     // arete antes de reintentar, es otro comando; si no, se reutiliza el mismo.
@@ -190,7 +266,14 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
       },
       {
         onSuccess: (nacimiento) => {
-          irA({ nombre: 'ficha', animalId: nacimiento.animal.id })
+          const guardada = {
+            animalId: nacimiento.animal.id,
+            aceptoLugar,
+            potreroAceptado,
+            desde,
+          }
+          criaRegistrada.current = guardada
+          asignarLugarDeLaCria(guardada)
         },
       },
     )
@@ -255,17 +338,31 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
           motivo={borrador.motivoMadre}
           alElegirMadre={(id) => {
             if (id === '') {
-              cambiar({ madreId: null, certezaMadre: 'unknown', motivoMadre: '' })
+              cambiar({
+                madreId: null,
+                certezaMadre: 'unknown',
+                motivoMadre: '',
+                ...sinPropuesta(),
+              })
               return
             }
             cambiar({
               madreId: id,
-              certezaMadre: borrador.certezaMadre === 'unknown' ? 'observed' : borrador.certezaMadre,
+              certezaMadre:
+                borrador.certezaMadre === 'unknown' || borrador.certezaMadre === ''
+                  ? ''
+                  : borrador.certezaMadre,
+              ...sinPropuesta(),
             })
           }}
           alElegirCerteza={(certeza) => {
             if (certeza === 'unknown') {
-              cambiar({ certezaMadre: 'unknown', madreId: null, motivoMadre: '' })
+              cambiar({
+                certezaMadre: 'unknown',
+                madreId: null,
+                motivoMadre: '',
+                ...sinPropuesta(),
+              })
               return
             }
             cambiar({ certezaMadre: certeza })
@@ -274,6 +371,26 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
             cambiar({ motivoMadre: motivo })
           }}
         />
+
+        {madreElegida === null || lugarDeMadre === null ? null : (
+          <PropuestaDeLaMadre
+            tenencia={madreElegida.tenencia}
+            lugar={lugarDeMadre}
+            lugaresPendientes={lugares.isPending}
+            lugaresConError={lugares.isError}
+            potrerosPendientes={potreros.isPending}
+            potrerosConError={potreros.isError}
+            aceptada={borrador.propuestaAceptada}
+            alAceptar={() => {
+              cambiar({
+                propuestaAceptada: true,
+                tenencia: tenenciaPropuesta(madreElegida.tenencia),
+                escribirLugar: lugarDeMadre.hayAsignacion,
+                potreroAceptado: lugarDeMadre.potreroId,
+              })
+            }}
+          />
+        )}
 
         <Padre
           toro={toroUnico}
@@ -312,8 +429,8 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
         <Desplegable titulo="Más datos" resumen="tenencia y nota">
           {aLaParte ? (
             <p className="campo__ayuda">
-              La madre está a la parte. La cría queda en «No sé»: todavía no se sabe cómo se
-              reparte.
+              La madre está a la parte. El reparto de la cría no está definido, así que el dueño
+              se queda en «no sé» y no se copia «a la parte».
             </p>
           ) : (
             <Pildoras
@@ -342,11 +459,12 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
           </p>
         )}
         {registrar.isError ? <AvisoDeError error={registrar.error} /> : null}
+        {asignar.isError ? <AvisoDeError error={asignar.error} /> : null}
       </form>
 
       <BarraDeAccion anclaje="ventana" sobreLaNavegacion>
-        <BotonPrincipal deshabilitado={registrar.isPending} alTocar={guardar}>
-          {registrar.isPending ? 'Guardando…' : 'Registrar nacimiento'}
+        <BotonPrincipal deshabilitado={registrar.isPending || asignar.isPending} alTocar={guardar}>
+          {registrar.isPending || asignar.isPending ? 'Guardando…' : 'Registrar nacimiento'}
         </BotonPrincipal>
       </BarraDeAccion>
     </main>
@@ -364,7 +482,7 @@ function Madre({
 }: {
   readonly madres: readonly Animal[]
   readonly madreId: string
-  readonly certeza: CertezaMadre
+  readonly certeza: CertezaEnBorrador
   readonly motivo: MotivoMadre | ''
   readonly alElegirMadre: (id: string) => void
   readonly alElegirCerteza: (certeza: CertezaMadre) => void
@@ -502,6 +620,12 @@ function armar(
   if (borrador.precision !== 'unknown' && borrador.fecha === '') {
     return { aviso: 'Elige el día o marca la fecha en «No sé».' }
   }
+  if (borrador.madreId !== null && borrador.certezaMadre === '') {
+    return { aviso: 'Di si viste a la madre, si la inferiste o si no sabes.' }
+  }
+  if (toro !== undefined && borrador.modoPadre === '') {
+    return { aviso: 'Di si viste al padre, si es el único toro o si no sabes.' }
+  }
 
   const madre = ladoDeMadre(borrador)
   if (typeof madre === 'string') {
@@ -533,7 +657,7 @@ function armar(
 }
 
 function ladoDeMadre(borrador: Borrador): Lado | string {
-  if (borrador.madreId === null || borrador.certezaMadre === 'unknown') {
+  if (borrador.madreId === null || borrador.certezaMadre === '' || borrador.certezaMadre === 'unknown') {
     return { certeza: 'unknown', animalId: null, motivo: null }
   }
   if (borrador.certezaMadre === 'observed') {
@@ -546,7 +670,7 @@ function ladoDeMadre(borrador: Borrador): Lado | string {
 }
 
 function ladoDePadre(borrador: Borrador, toro: Animal | undefined): Lado | string {
-  if (borrador.modoPadre === 'unknown' || toro === undefined) {
+  if (borrador.modoPadre === '' || borrador.modoPadre === 'unknown' || toro === undefined) {
     return { certeza: 'unknown', animalId: null, motivo: null }
   }
   if (borrador.modoPadre === 'unico_toro') {
@@ -564,4 +688,102 @@ function ladoDePadre(borrador: Borrador, toro: Animal | undefined): Lado | strin
 function limpiar(texto: string): string | undefined {
   const recortado = texto.trim()
   return recortado === '' ? undefined : recortado
+}
+
+function sinPropuesta(): Pick<Borrador, 'propuestaAceptada' | 'escribirLugar' | 'potreroAceptado' | 'tenencia'> {
+  return {
+    propuestaAceptada: false,
+    escribirLugar: false,
+    potreroAceptado: null,
+    tenencia: 'unknown',
+  }
+}
+
+type LugarDeLaMadre = {
+  readonly hayAsignacion: boolean
+  readonly potreroId: string | null
+  readonly texto: string | null
+}
+
+function lugarDeLaMadre(
+  madreId: string,
+  lugares: LugaresDelHato | undefined,
+  potreros: PotrerosDelRancho | undefined,
+  potrerosPendientes: boolean,
+  potrerosConError: boolean,
+): LugarDeLaMadre {
+  const fila = lugares?.animales.find((animal) => animal.animalId === madreId)
+  if (fila === undefined) {
+    return { hayAsignacion: false, potreroId: null, texto: null }
+  }
+  if (fila.potreroId === null) {
+    return { hayAsignacion: true, potreroId: null, texto: 'Lugar: no sé' }
+  }
+  // El id ya se sabe. El nombre solo se afirma cuando la lista de potreros llegó.
+  if (potrerosPendientes || potrerosConError) {
+    return { hayAsignacion: true, potreroId: fila.potreroId, texto: null }
+  }
+  const nombre = potreros?.potreros.find((potrero) => potrero.id === fila.potreroId)?.nombre
+  return {
+    hayAsignacion: true,
+    potreroId: fila.potreroId,
+    texto: nombre ?? 'Potrero sin nombre',
+  }
+}
+
+function tenenciaPropuesta(valor: string): Tenencia {
+  if (valor === 'ranch' || valor === 'third_party') {
+    return valor
+  }
+  return 'unknown'
+}
+
+function textoDelDueno(valor: string): string {
+  if (valor === 'a_la_parte' || valor === 'unknown') {
+    return 'Dueño: no sé'
+  }
+  return textoDeTenencia(valor)
+}
+
+function PropuestaDeLaMadre({
+  tenencia,
+  lugar,
+  lugaresPendientes,
+  lugaresConError,
+  potrerosPendientes,
+  potrerosConError,
+  aceptada,
+  alAceptar,
+}: {
+  readonly tenencia: string
+  readonly lugar: LugarDeLaMadre
+  readonly lugaresPendientes: boolean
+  readonly lugaresConError: boolean
+  readonly potrerosPendientes: boolean
+  readonly potrerosConError: boolean
+  readonly aceptada: boolean
+  readonly alAceptar: () => void
+}) {
+  const dueno = textoDelDueno(tenencia)
+  const texto =
+    lugar.texto === null ? `¿Va con su madre? ${dueno}` : `¿Va con su madre? ${dueno} · ${lugar.texto}`
+
+  return (
+    <div className="aviso">
+      <p>{aceptada ? `Va con su madre. Al registrar se anota: ${texto.replace('¿Va con su madre? ', '')}` : texto}</p>
+      {lugaresConError ? (
+        <p className="campo__ayuda">
+          No se pudo traer el potrero de la madre. Si aceptas, se anota el dueño y no el lugar.
+        </p>
+      ) : null}
+      {potrerosConError && lugar.potreroId !== null ? (
+        <p className="campo__ayuda">No se pudo traer el nombre del potrero.</p>
+      ) : null}
+      {aceptada ? null : (
+        <BotonSecundario alTocar={alAceptar} deshabilitado={lugaresPendientes || potrerosPendientes}>
+          Va con su madre
+        </BotonSecundario>
+      )}
+    </div>
+  )
 }

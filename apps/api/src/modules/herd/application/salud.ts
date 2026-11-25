@@ -13,6 +13,7 @@ import { RechazoDeHerd } from '../domain/errores'
 import {
   abrirNotaDeSalud,
   corregirNotaDeSalud,
+  vistoElegido,
   type CambiosDeNota,
   type TipoDeNotaDeSalud,
 } from '../domain/salud'
@@ -43,7 +44,7 @@ export type EntradaAnotarSalud = {
   readonly fecha: string
   readonly producto?: string | null
   readonly evidenciaId?: string | null
-  /** Explícito. Si no viene, la nota no dice que el animal se vio. */
+  /** Obligatorio. Si no viene, no se guarda «no se vio». */
   readonly vioAlAnimal?: boolean
   readonly animales: readonly AnimalDeLaNota[]
 }
@@ -94,8 +95,9 @@ export async function anotarSalud(
   alcance: AlcanceDeSalud,
   entrada: EntradaAnotarSalud,
 ): Promise<NotasAnotadasPublicas> {
+  const vioAlAnimal = vistoElegido(entrada.vioAlAnimal)
   const animales = ordenarSinRepetir(entrada.animales)
-  const contenido = contenidoDeAnotar(entrada, animales)
+  const contenido = contenidoDeAnotar({ ...entrada, vioAlAnimal }, animales)
 
   const previo = await alcance.leerRecibo(entrada.commandId)
   if (previo !== null) {
@@ -128,7 +130,7 @@ export async function anotarSalud(
           fecha: entrada.fecha,
           producto: entrada.producto ?? null,
           evidenciaId,
-          vioAlAnimal: entrada.vioAlAnimal === true,
+          vioAlAnimal,
           recordedBy: entrada.recordedBy,
           recordedAt: cuando,
         })
@@ -278,8 +280,8 @@ function ordenarSinRepetir(animales: readonly AnimalDeLaNota[]): AnimalDeLaNota[
 }
 
 /**
- * Cada animal tiene que existir en este rancho. Se permite anotar sanidad a un
- * animal que ya salió: la nota es historia y no lo devuelve al hato.
+ * Cada animal tiene que existir en este rancho y seguir en el hato. Quien ya
+ * salió no recibe sanidad nueva: la ficha y las notas viejas se quedan.
  */
 async function exigirAnimalesDelRancho(
   deps: DepsDeSalud,
@@ -298,6 +300,9 @@ async function exigirAnimalesDelRancho(
   )
   if (estados.length !== animales.length) {
     throw new RechazoDeHerd('no_encontrado')
+  }
+  if (estados.some((estado) => !estado.activo)) {
+    throw new RechazoDeHerd('fuera_del_hato')
   }
 }
 
@@ -331,7 +336,7 @@ function contenidoDeAnotar(
     fecha: entrada.fecha,
     producto: entrada.producto ?? null,
     evidenciaId: entrada.evidenciaId ?? null,
-    vioAlAnimal: entrada.vioAlAnimal === true,
+    vioAlAnimal: entrada.vioAlAnimal,
     animales,
   }
 }
