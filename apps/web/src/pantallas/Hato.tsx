@@ -277,6 +277,16 @@ function MenuYEncabezado({
           <button
             type="button"
             className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'nacimiento', madreId: null })
+            }}
+          >
+            Registrar nacimiento
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
             disabled={salir.isPending}
             onClick={() => {
               setAbierto(false)

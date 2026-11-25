@@ -23,18 +23,39 @@ import {
   type FichaConHistoria,
   type MarcaPublica,
 } from './application/servicio'
+import {
+  corregirFiliacionDeCria,
+  familiaDe,
+  registrarNacimiento,
+  type CriaPublica,
+  type EntradaCorregirFiliacion,
+  type EntradaRegistrarNacimiento,
+  type FamiliaPublica,
+  type NacimientoPublico,
+  type ResumenDeAnimal,
+} from './application/nacimiento'
+import type { FiliacionConHistoria, FiliacionPublica } from './application/publicar'
 import { crearRepositorioDeAnimales } from './persistence/repositorio'
+import { crearRepositorioDeFiliacion } from './persistence/repositorio-filiacion'
 
 export type {
+  CriaPublica,
   EntradaAgregarMarca,
   EntradaCorregir,
+  EntradaCorregirFiliacion,
   EntradaMarcarPerdida,
   EntradaReemplazarMarca,
   EntradaRegistrar,
+  EntradaRegistrarNacimiento,
   EstadoEnRancho,
+  FamiliaPublica,
   FichaAnimal,
   FichaConHistoria,
+  FiliacionConHistoria,
+  FiliacionPublica,
   MarcaPublica,
+  NacimientoPublico,
+  ResumenDeAnimal,
 }
 export { RechazoDeHerd } from './domain/errores'
 
@@ -55,6 +76,9 @@ export type Herd = {
   obtener(ranchId: RanchId, animalId: string): Promise<FichaConHistoria | null>
   buscarPorMarca(ranchId: RanchId, marca: string): Promise<FichaAnimal[]>
   existenEnElRancho(ranchId: RanchId, ids: readonly string[]): Promise<EstadoEnRancho[]>
+  registrarNacimiento(entrada: EntradaRegistrarNacimiento): Promise<NacimientoPublico>
+  corregirFiliacion(entrada: EntradaCorregirFiliacion): Promise<FiliacionConHistoria>
+  familia(ranchId: RanchId, animalId: string): Promise<FamiliaPublica | null>
 }
 
 /**
@@ -81,12 +105,16 @@ export function crearHerd(db: ClienteDeHerd): Herd {
     obtener: (ranchId, animalId) => correr((repos) => obtenerFicha(repos.animales, ranchId, animalId)),
     buscarPorMarca: (ranchId, marca) => correr((repos) => buscarPorMarca(repos.animales, ranchId, marca)),
     existenEnElRancho: (ranchId, ids) => correr((repos) => existenEnElRancho(repos.animales, ranchId, ids)),
+    registrarNacimiento: (entrada) => correr((repos) => registrarNacimiento(repos, entrada)),
+    corregirFiliacion: (entrada) => correr((repos) => corregirFiliacionDeCria(repos, entrada)),
+    familia: (ranchId, animalId) => correr((repos) => familiaDe(repos, ranchId, animalId)),
   }
 }
 
 function reposDe(tx: EjecutorSql): DepsDeHerd {
   return {
     animales: crearRepositorioDeAnimales(tx),
+    filiacion: crearRepositorioDeFiliacion(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
   }
 }

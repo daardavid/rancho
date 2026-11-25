@@ -137,3 +137,134 @@ export const marcaDeAnimal = esquemaHerd.table(
     ),
   ],
 )
+
+/**
+ * Filiación vigente de una cría. Hermana de `animal`: no hay madre ni padre en
+ * la ficha. La fecha de nacimiento, exacta o aproximada, es del parto.
+ */
+export const filiacion = esquemaHerd.table(
+  'parentage_record',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    criaId: uuid('offspring_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    certezaMadre: text('dam_certainty').notNull(),
+    madreId: uuid('dam_id').references(() => animal.id, { onDelete: 'restrict' }),
+    motivoMadre: text('dam_reason'),
+    certezaPadre: text('sire_certainty').notNull(),
+    padreId: uuid('sire_id').references(() => animal.id, { onDelete: 'restrict' }),
+    motivoPadre: text('sire_reason'),
+    nota: text('note'),
+    fechaNacimiento: date('birth_date', { mode: 'string' }),
+    precisionFecha: text('birth_date_precision'),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    uniqueIndex('parentage_offspring').on(tabla.criaId),
+    index('parentage_ranch_dam').on(tabla.ranchId, tabla.madreId),
+    index('parentage_ranch_sire').on(tabla.ranchId, tabla.padreId),
+    check(
+      'parentage_dam_certainty',
+      sql`${tabla.certezaMadre} in ('observed', 'inferred', 'unknown')`,
+    ),
+    check(
+      'parentage_sire_certainty',
+      sql`${tabla.certezaPadre} in ('observed', 'inferred', 'unknown')`,
+    ),
+    check(
+      'parentage_dam_unknown_id',
+      sql`(${tabla.certezaMadre} = 'unknown') = (${tabla.madreId} is null)`,
+    ),
+    check(
+      'parentage_sire_unknown_id',
+      sql`(${tabla.certezaPadre} = 'unknown') = (${tabla.padreId} is null)`,
+    ),
+    check(
+      'parentage_dam_inferred_reason',
+      sql`(${tabla.certezaMadre} = 'inferred') = (${tabla.motivoMadre} is not null)`,
+    ),
+    check(
+      'parentage_sire_inferred_reason',
+      sql`(${tabla.certezaPadre} = 'inferred') = (${tabla.motivoPadre} is not null)`,
+    ),
+    check(
+      'parentage_dam_reason_valida',
+      sql`${tabla.motivoMadre} is null or ${tabla.motivoMadre} in ('parto_visto', 'dicho_de_trabajador', 'otro')`,
+    ),
+    check(
+      'parentage_sire_reason_valida',
+      sql`${tabla.motivoPadre} is null or ${tabla.motivoPadre} in ('parto_visto', 'dicho_de_trabajador', 'unico_toro', 'otro')`,
+    ),
+    check(
+      'parentage_birth_date_pair',
+      sql`(${tabla.fechaNacimiento} is null) = (${tabla.precisionFecha} is null)`,
+    ),
+    check(
+      'parentage_birth_precision',
+      sql`${tabla.precisionFecha} is null or ${tabla.precisionFecha} in ('exact', 'approximate')`,
+    ),
+    check('parentage_version_positiva', sql`${tabla.version} >= 1`),
+    check(
+      'parentage_note_presente',
+      sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`,
+    ),
+    check(
+      'parentage_not_self_dam',
+      sql`${tabla.madreId} is null or ${tabla.madreId} <> ${tabla.criaId}`,
+    ),
+    check(
+      'parentage_not_self_sire',
+      sql`${tabla.padreId} is null or ${tabla.padreId} <> ${tabla.criaId}`,
+    ),
+    check(
+      'parentage_parents_differ',
+      sql`${tabla.madreId} is null or ${tabla.padreId} is null or ${tabla.madreId} <> ${tabla.padreId}`,
+    ),
+  ],
+)
+
+/**
+ * Certeza anterior de una corrección de filiación. Una fila por corrección,
+ * con quién, cuándo y por qué. La ficha del animal no se toca.
+ */
+export const correccionDeFiliacion = esquemaHerd.table(
+  'parentage_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    filiacionId: uuid('parentage_id')
+      .notNull()
+      .references(() => filiacion.id, { onDelete: 'restrict' }),
+    criaId: uuid('offspring_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    certezaMadre: text('previous_dam_certainty').notNull(),
+    madreId: uuid('previous_dam_id'),
+    motivoMadre: text('previous_dam_reason'),
+    certezaPadre: text('previous_sire_certainty').notNull(),
+    padreId: uuid('previous_sire_id'),
+    motivoPadre: text('previous_sire_reason'),
+    nota: text('previous_note'),
+    fechaNacimiento: date('previous_birth_date', { mode: 'string' }),
+    precisionFecha: text('previous_birth_date_precision'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('parentage_correction_record').on(tabla.filiacionId, tabla.correctedAt),
+    check('parentage_correction_motivo', sql`length(btrim(${tabla.motivo})) > 0`),
+    check(
+      'parentage_correction_dam_certainty',
+      sql`${tabla.certezaMadre} in ('observed', 'inferred', 'unknown')`,
+    ),
+    check(
+      'parentage_correction_sire_certainty',
+      sql`${tabla.certezaPadre} in ('observed', 'inferred', 'unknown')`,
+    ),
+  ],
+)

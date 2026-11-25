@@ -29,6 +29,36 @@ export function coincide(animal: Animal, busqueda: string): boolean {
 }
 
 /** «Sin nombre o seña» en vez de un hueco en blanco. */
-export function nombreVisible(animal: Animal): string {
+export function nombreVisible(animal: { readonly nombre: string | null }): string {
   return animal.nombre ?? 'Sin nombre o seña'
+}
+
+/**
+ * Una vaca, o una hembra que no es becerro ni toro, puede abrir el nacimiento.
+ * Un becerro hembra no: el botón vive en la ficha de una vaca.
+ */
+export function puedeRegistrarNacimiento(animal: {
+  readonly categoria: string
+  readonly sexo: string
+}): boolean {
+  if (animal.categoria === 'cow') {
+    return true
+  }
+  return animal.sexo === 'female' && animal.categoria !== 'calf' && animal.categoria !== 'bull'
+}
+
+/** Madre posible en el formulario: no es toro ni becerro, y no es macho. */
+export function puedeSerMadre(animal: {
+  readonly categoria: string
+  readonly sexo: string
+}): boolean {
+  if (animal.categoria === 'bull' || animal.sexo === 'male' || animal.categoria === 'calf') {
+    return false
+  }
+  return (
+    animal.categoria === 'cow' ||
+    animal.sexo === 'female' ||
+    animal.categoria === 'unknown' ||
+    animal.categoria === 'other'
+  )
 }

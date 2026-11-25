@@ -1,5 +1,6 @@
 import {
   agregarMarcaSchema,
+  codigoDeErrorDeAnimalSchema,
   consultaDeAnimalesSchema,
   corregirAnimalSchema,
   errorDeAnimalSchema,
@@ -250,7 +251,11 @@ function traducir(error: unknown): { codigo: ErrorDeAnimal['codigo']; estado: nu
     return { codigo: 'idempotency_mismatch', estado: 409 }
   }
   if (error instanceof RechazoDeHerd) {
-    return { codigo: error.codigo, estado: estadoDe(error.codigo) }
+    const codigo = codigoDeErrorDeAnimalSchema.safeParse(error.codigo)
+    if (!codigo.success) {
+      return null
+    }
+    return { codigo: codigo.data, estado: estadoDe(error.codigo) }
   }
   return null
 }
