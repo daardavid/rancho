@@ -33,6 +33,9 @@ function pestanaDe(ruta: Ruta): Pestana | null {
       return 'pesaje'
     case 'crecimiento':
       return 'crecimiento'
+    case 'salida':
+      // «Salida» es una captura que se abre desde Inicio y no deja de serlo.
+      return 'inicio'
     case 'muestra':
       return null
   }
