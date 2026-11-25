@@ -847,7 +847,6 @@ label.ui-fila {
 
 .grafica__etiqueta {
   fill: var(--texto-suave);
-  font-size: 11px;
 }
 
 .grafica__pie {
