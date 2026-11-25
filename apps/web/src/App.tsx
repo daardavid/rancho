@@ -79,7 +79,12 @@ export function App() {
   return (
     <div className="con-navegacion">
       {ruta.nombre === 'inicio' ? <Inicio /> : null}
-      {ruta.nombre === 'hato' ? <Hato modoInicial={ruta.modo ?? null} /> : null}
+      {ruta.nombre === 'hato' ? (
+        // La clave remonta el hato cuando cambia el modo: entrar desde el
+        // acceso de Inicio con la selección encendida y después tocar la
+        // pestaña tiene que dejar la pantalla normal, no a media selección.
+        <Hato key={ruta.modo ?? 'hato'} modoInicial={ruta.modo ?? null} />
+      ) : null}
       {ruta.nombre === 'salidas' ? <Salidas /> : null}
       {ruta.nombre === 'potreros' ? <Potreros /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}

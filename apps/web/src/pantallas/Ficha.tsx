@@ -108,6 +108,21 @@ export function Ficha({
   const arete = areteVigente(animal)
   const correccionesDePeso = new Map((historia.data?.pesos ?? []).map((peso) => [peso.id, peso]))
 
+  /**
+   * Abrir o cerrar la baja deja la URL diciendo la verdad: si el formulario se
+   * ve, la URL lo dice, y al cerrarlo vuelve a la ficha. Así un recargado a
+   * media captura no regresa a un formulario que ya se cerró, y el acceso
+   * «Salida» de Inicio sigue funcionando con `#/animal/<id>/salida`.
+   */
+  const abrirLaBaja = (abrir: boolean): void => {
+    setDandoDeBaja(abrir)
+    if (abrir) {
+      irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true })
+    } else if (window.location.hash.endsWith('/salida')) {
+      irA({ nombre: 'ficha', animalId: animal.id })
+    }
+  }
+
   return (
     <main className="pantalla pantalla--ficha">
       <Encabezado
@@ -169,17 +184,17 @@ export function Ficha({
           <FormularioDeSalida
             ficha={animal}
             alRecargar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
               void ficha.refetch()
             }}
             alGuardar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
               setSalidaGuardada(true)
               void ficha.refetch()
               void pesos.refetch()
             }}
             alCancelar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
             }}
           />
         </section>
@@ -350,7 +365,7 @@ export function Ficha({
               alTocar={() => {
                 setGuardado(false)
                 setSalidaGuardada(false)
-                setDandoDeBaja(true)
+                abrirLaBaja(true)
               }}
             >
               {animal.activo ? 'Dar de baja' : 'Corregir la salida'}

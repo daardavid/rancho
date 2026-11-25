@@ -51,8 +51,7 @@ test('abrir la app, capturar un nacimiento desde Inicio y verlo ahí', async ({ 
   await expect(periodo.getByRole('region', { name: 'Nacimientos' }).getByRole('link', { name: nombre })).toBeVisible()
 })
 
-/** Las cuatro pestañas llevan el mismo encabezado y el mismo menú ☰. */
-test('las cuatro pestañas comparten encabezado y menú, y el pesaje ya no trae flecha', async ({
+/** Las cuatro pestañas llevan el mismo encabezado y el mismo menú ☰. */test('las cuatro pestañas comparten encabezado y menú, y el pesaje ya no trae flecha', async ({
   page,
 }) => {
   await entrar(page)
