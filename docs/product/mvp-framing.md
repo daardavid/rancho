@@ -78,20 +78,24 @@ Two existing sources may become loadable history and are asked about in the ques
 
 No feed, inventory, expenses, sales, purchases, profitability view, births, exits, paddock assignments, herd verification, health notes, photos and evidence storage, offline sync, worker accounts, notifications, scale integration, RFID, cameras, or milk. Each one either has its own later increment or stays in the [Opportunity Backlog](opportunity-backlog.md).
 
-The occasional gravel sale ([ranch-context.md](../domain/ranch-context.md), "Finanzas") is not cattle income. When Finance arrives (INC-004), it must not be mixed into the cattle margin.
+The occasional gravel sale ([ranch-context.md](../domain/ranch-context.md), "Finanzas") is not cattle income. When Finance arrives, it must not be mixed into the cattle margin.
 
 ## Proposed MVP path
 
+INC-001 through INC-004 are implemented by the factory. They become accepted when David merges them. Ranch validation is still open. Feed, money, and herd verification were not those increments: their numbers below are the ones the factory actually built.
+
 | Increment | Outcome | Depends on |
 | --- | --- | --- |
-| [INC-001](increments/INC-001-ficha-y-pesaje.md) | Animal ficha and calf weighing with growth view, usable by the owner | Nothing blocking |
-| [INC-002](increments/INC-002-todo-en-local.md) | Todo en local: one command on the laptop, the phone on the same Wi-Fi, backup and restore, photo of the scale | INC-001 |
-| Later migration increment | Publication: the app leaves the laptop (hosting). Its id is assigned when it is framed | INC-002 |
-| INC-003 | Feed: purchase, preparation, delivery, each with its quality, and warehouse count | `OQ-FEED-001`, `OQ-FEED-002` answered |
-| INC-004 | Expenses, purchases, sales, and provisional profitability view | `OQ-OWN-001`, `OQ-OWN-002`, `OQ-TRADE-001` answered |
-| INC-005 | Births, exits, location, herd verification, health notes, missing-animal risk | `OQ-ID-001`, `OQ-COUNT-001` answered |
+| [INC-001](increments/INC-001-ficha-y-pesaje.md) | Animal ficha and calf weighing with growth view, usable by the owner | Nothing blocking. Implemented by the factory. |
+| [INC-002](increments/INC-002-todo-en-local.md) | Todo en local: one command on the laptop, the phone on the same Wi-Fi, backup and restore, photo of the scale | INC-001. Implemented by the factory. |
+| [INC-003](increments/INC-003-rediseno.md) | Experience redesign: the working screens follow the visual guide | INC-002. Implemented by the factory. |
+| [INC-004](increments/INC-004-vida-del-hato.md) | Births, exits, expected place, health notes, last observation and the Inicio screen | Nothing P0 blocking those facts. Implemented by the factory. Herd verification is not included. |
+| Later migration increment | Publication: the app leaves the laptop (hosting). Its id is assigned when it is framed | Local use |
+| Later | Feed: purchase, preparation, delivery, each with its quality, and warehouse count | `OQ-FEED-001`, `OQ-FEED-002` answered |
+| Later | Expenses, purchases, sales, and provisional profitability view | `OQ-OWN-001`, `OQ-OWN-002`, `OQ-TRADE-001` answered |
+| Later | Herd verification and missing-animal risk | `OQ-COUNT-001` answered |
 
-MVP v1 is INC-001 through INC-005 in real use. INC-002 is Todo en local (draft). Publication is a later migration increment, after local use. Feed, money, and herd control stay direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
+MVP v1 is INC-001 through INC-004 in real use, plus the later feed, money, and verification work as the interview answers allow. Publication is a later migration increment, after local use. Feed, money, and herd verification stay direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
 
 ## How the Master Plan's six questions are answered
 

@@ -1,22 +1,31 @@
 import {
   agregarMarcaSchema,
+  codigoDeErrorDeAnimalSchema,
   consultaDeAnimalesSchema,
   corregirAnimalSchema,
+  corregirSalidaSchema,
   errorDeAnimalSchema,
   fichaConHistoriaSchema,
   listaDeAnimalesSchema,
   marcarPerdidaSchema,
   marcaSchema,
   registrarAnimalSchema,
+  registrarSalidaSchema,
   reemplazarMarcaSchema,
   reemplazoDeMarcaSchema,
   type CorregirAnimal,
+  type CorregirSalida,
   type ErrorDeAnimal,
 } from '@rancho/api-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
-import { RechazoDeHerd, type EntradaCorregir, type Herd } from '../../modules/herd'
+import {
+  RechazoDeHerd,
+  type EntradaCorregir,
+  type EntradaCorregirSalida,
+  type Herd,
+} from '../../modules/herd'
 import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../shared-kernel/conflictos'
 import { exigirRol } from '../guardia'
 
@@ -156,6 +165,54 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
     },
   )
 
+  app.post('/api/animals/:id/exit', { preHandler: exigirRol(ROLES) }, async (peticion, respuesta) => {
+    const sesion = exigirSesion(peticion.sesionActiva)
+    const params = paramsDeAnimal.safeParse(peticion.params)
+    const cuerpo = registrarSalidaSchema.safeParse(peticion.body)
+    if (!params.success || !cuerpo.success) {
+      return cuerpoInvalido(respuesta)
+    }
+
+    return enviar(respuesta, 200, fichaConHistoriaSchema, () =>
+      herd.registrarSalida({
+        commandId: cuerpo.data.commandId,
+        ranchId: sesion.ranchId,
+        recordedBy: sesion.recordedBy,
+        animalId: params.data.id,
+        version: cuerpo.data.version,
+        motivo: cuerpo.data.motivo,
+        fecha: cuerpo.data.fecha,
+        ...(cuerpo.data.nota !== undefined ? { nota: cuerpo.data.nota } : {}),
+        ...(cuerpo.data.evidenciaId !== undefined ? { evidenciaId: cuerpo.data.evidenciaId } : {}),
+      }),
+    )
+  })
+
+  app.post(
+    '/api/animals/:id/exit/corrections',
+    { preHandler: exigirRol(ROLES) },
+    async (peticion, respuesta) => {
+      const sesion = exigirSesion(peticion.sesionActiva)
+      const params = paramsDeAnimal.safeParse(peticion.params)
+      const cuerpo = corregirSalidaSchema.safeParse(peticion.body)
+      if (!params.success || !cuerpo.success) {
+        return cuerpoInvalido(respuesta)
+      }
+
+      return enviar(respuesta, 200, fichaConHistoriaSchema, () =>
+        herd.corregirSalida({
+          commandId: cuerpo.data.commandId,
+          ranchId: sesion.ranchId,
+          recordedBy: sesion.recordedBy,
+          animalId: params.data.id,
+          version: cuerpo.data.version,
+          motivo: cuerpo.data.motivo,
+          cambios: cambiosDeSalida(cuerpo.data),
+        }),
+      )
+    },
+  )
+
   app.get('/api/animals', { preHandler: exigirRol(ROLES) }, async (peticion, respuesta) => {
     const sesion = exigirSesion(peticion.sesionActiva)
     const consulta = consultaDeAnimalesSchema.safeParse(peticion.query)
@@ -165,8 +222,15 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
 
     const marca = consulta.data.mark
     if (marca !== undefined) {
+      return enviar(respuesta, 200, listaDeAnimalesSchema, async () => {
+        const encontrados = await herd.buscarPorMarca(sesion.ranchId, marca)
+        return { animales: filtrarPorEstado(encontrados, consulta.data.estado) }
+      })
+    }
+
+    if (consulta.data.estado === 'salidas') {
       return enviar(respuesta, 200, listaDeAnimalesSchema, async () => ({
-        animales: await herd.buscarPorMarca(sesion.ranchId, marca),
+        animales: await herd.listarSalidas(sesion.ranchId),
       }))
     }
 
@@ -190,6 +254,29 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
       return ficha
     })
   })
+}
+
+function cambiosDeSalida(cuerpo: CorregirSalida): EntradaCorregirSalida['cambios'] {
+  return {
+    ...(cuerpo.motivoDeSalida !== undefined ? { motivo: cuerpo.motivoDeSalida } : {}),
+    ...(cuerpo.fecha !== undefined ? { fecha: cuerpo.fecha } : {}),
+    ...(cuerpo.nota !== undefined ? { nota: cuerpo.nota } : {}),
+    ...(cuerpo.evidenciaId !== undefined ? { evidenciaId: cuerpo.evidenciaId } : {}),
+    ...(cuerpo.activo === true ? { activo: true as const } : {}),
+  }
+}
+
+function filtrarPorEstado<T extends { activo: boolean }>(
+  animales: readonly T[],
+  estado: 'activos' | 'salidas' | undefined,
+): T[] {
+  if (estado === 'salidas') {
+    return animales.filter((animal) => !animal.activo)
+  }
+  if (estado === 'activos') {
+    return animales.filter((animal) => animal.activo)
+  }
+  return [...animales]
 }
 
 function cambiosDe(cuerpo: CorregirAnimal): EntradaCorregir['cambios'] {
@@ -250,7 +337,11 @@ function traducir(error: unknown): { codigo: ErrorDeAnimal['codigo']; estado: nu
     return { codigo: 'idempotency_mismatch', estado: 409 }
   }
   if (error instanceof RechazoDeHerd) {
-    return { codigo: error.codigo, estado: estadoDe(error.codigo) }
+    const codigo = codigoDeErrorDeAnimalSchema.safeParse(error.codigo)
+    if (!codigo.success) {
+      return null
+    }
+    return { codigo: codigo.data, estado: estadoDe(error.codigo) }
   }
   return null
 }

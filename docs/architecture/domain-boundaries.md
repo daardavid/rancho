@@ -50,7 +50,7 @@ Conceptual records, not tables:
 | `Animal` | Internal identity, marks, sex and category when known, tenure, economic-participation descriptor and optional verbal note, active flag, exit reason and when the exit was known | Lifecycle and identity corrections. A replaced mark stays findable. Exit keeps the file |
 | `ParentageRecord` | Offspring `AnimalId`, dam and sire each observed, inferred, or unknown, inference reason, correction history | Append a correction. The latest certainty is current. Earlier certainties remain |
 | `HealthEvent` | Animal or group, what happened or what treatment was noted, when, product if known, evidence or source if available, whether the note says the animal was seen | Append or correct the note. It does not edit identity or tenure |
-| `LocationAssignment` | Animal or group reference, expected paddock reference or unknown, effective time | Append. The current expected place is the latest assignment |
+| `LocationAssignment` | Animal or group reference, expected paddock reference or unknown, effective time, who reported it when known | Append. The current expected place is the latest assignment |
 | `HerdVerification` | The attempt: place used or unknown, who was confirmed, who was not, when, method note if one exists | Append. The method stays open (`OQ-COUNT-001`) |
 | `ConfirmedMissingAssertion` | Who asserted it, when, and the context | Append. The animal stays active until a separate exit |
 | `PaddockReference` | Stable id, display label or reference. May be incomplete | Reference data. Not a grazing model |
@@ -94,6 +94,8 @@ Reconsider a Reproduction module only if independent rules appear, for example m
 
 A health note may say the animal was seen. Only then may the observation projection treat it as a sighting. A problem reported without a sighting does not become one.
 
+A health note about a group is one `HealthEvent` per animal, written in one capture. The group is the capture, not a record: each animal's note is corrected on its own, and no `Group` type is introduced.
+
 Medicine stock, if the ranch later tracks it, stays in Inventory. While the first inventory scope is ingredients, the health note stands without a movement id (`TGT-HEALTH-001`). A later capture that both writes a health note and issues medicine would be an orchestrator over Herd and Inventory. It is not built now.
 
 Reconsider a Health module if independent rules appear, for example a vaccination calendar, withdrawal periods, significant treatment protocols, or a veterinarian workflow of its own. A longer list of notes does not, by itself, extract the module.
@@ -104,7 +106,7 @@ Reconsider a Health module if independent rules appear, for example a vaccinatio
 
 That is not enough language for a Land context. It is also not enough to make the paddock an aggregate root. Reference data does not protect a grazing invariant, because no grazing invariant was given.
 
-`LocationAssignment` is the historical fact: an animal or a group reference, an expected paddock reference or unknown, and the time it becomes effective. A move appends a new assignment. It does not erase the previous one. The current expected place is the latest assignment. It is not an observation.
+`LocationAssignment` is the historical fact: an animal or a group reference, an expected paddock reference or unknown, the time it becomes effective, and who reported it when the ranch knows (`TGT-MOVE-001`, "Evidence it produces: who said it"). A move appends a new assignment. It does not erase the previous one. The current expected place is the latest assignment. It is not an observation.
 
 A group reference on an assignment is not a new aggregate. Until a feeding group needs an identity that is not a paddock, that reference may be a paddock, a set of animals, an approximate description, or unknown ([AQ-P1-009](architecture-open-questions.md)).
 

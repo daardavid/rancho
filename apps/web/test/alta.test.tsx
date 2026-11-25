@@ -281,7 +281,11 @@ describe('Alta de un animal', () => {
 
     // El animal sí se guardó; se dice, y la ficha no se da por buena.
     expect(await screen.findByText('El animal sí se guardó. El arete no.')).toBeDefined()
-    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+    expect(
+      api.peticiones.filter(
+        (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/animals',
+      ),
+    ).toHaveLength(1)
 
     // Se corrige el número y se reintenta: solo viaja el arete, con un comando
     // nuevo porque el contenido cambió.
@@ -293,8 +297,13 @@ describe('Alta de un animal', () => {
       expect(api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))).toHaveLength(2)
     })
 
-    // El alta no se repitió: un solo comando de animal.
-    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+    // El alta no se repitió: un solo comando de animal. La ficha, ya abierta,
+    // sí puede leer el hato para la familia; eso no es otro alta.
+    expect(
+      api.peticiones.filter(
+        (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/animals',
+      ),
+    ).toHaveLength(1)
     const intentos = api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))
     const primero = intentos[0]?.cuerpo as Record<string, unknown>
     const segundo = intentos[1]?.cuerpo as Record<string, unknown>
@@ -361,13 +370,14 @@ describe('Alta de un animal', () => {
 
     await usuario.clear(screen.getByLabelText('Buscar'))
     await usuario.type(screen.getByLabelText('Buscar'), 'no existe')
-    expect(screen.getByText('Ningún animal coincide')).toBeDefined()
+    expect(await screen.findByText('Ningún animal coincide')).toBeDefined()
   })
 
   it('sin animales invita a dar de alta el primero', async () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
       'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({ estado: 200, cuerpo: { animales: [] } }),
       'GET /api/read-models/growth-overview': () => ({
         estado: 200,
         cuerpo: {

@@ -18,3 +18,13 @@ export {
   type ResumenDelHato,
   type VistaDeAnimal,
 } from './crecimiento'
+export {
+  crearModelosDePresencia,
+  type AnimalDelInicio,
+  type AnimalSinVerse,
+  type ModelosDePresencia,
+  type Observacion,
+  type OrigenDeObservacion,
+  type UltimaObservacion,
+  type VistaDeInicio,
+} from './presencia'

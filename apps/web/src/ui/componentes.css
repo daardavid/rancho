@@ -239,7 +239,7 @@
   background: var(--superficie);
   border-top: 1px solid var(--borde);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   z-index: 20;
 }
 
@@ -269,8 +269,10 @@
   min-height: 44px;
   text-decoration: none;
   color: var(--texto-suave);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  text-align: center;
+  line-height: 1.15;
 }
 
 .ui-barra-inferior__enlace--activa {

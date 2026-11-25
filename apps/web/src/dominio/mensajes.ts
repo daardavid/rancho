@@ -70,6 +70,26 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'La fecha no existe.',
     queHacer: 'Escoge otra fecha.',
   },
+  filiacion_incoherente: {
+    quePaso: 'La madre o el padre no cuadran con lo que se dijo.',
+    queHacer: 'Revisa la certeza. Si es «No sé», no elijas un animal. Único toro no se marca como seguro.',
+  },
+  progenitor_ausente: {
+    quePaso: 'Esa madre o ese padre no está en el hato.',
+    queHacer: 'Elige un animal de la lista, o déjalo en «No sé».',
+  },
+  tenencia_de_cria: {
+    quePaso: 'La madre está a la parte y el reparto de la cría no está definido.',
+    queHacer: 'La cría se guarda con tenencia «No sé». No elijas otra.',
+  },
+  unico_toro_no_aplica: {
+    quePaso: 'No hay un solo toro activo para inferir al padre.',
+    queHacer: 'Deja al padre en «No sé». Único toro no se anota como seguro.',
+  },
+  filiacion_ya_existe: {
+    quePaso: 'Ese nacimiento ya estaba anotado.',
+    queHacer: 'Abre la ficha de la cría. La filiación se corrige ahí, sin dar de alta otro animal.',
+  },
   categoria_incoherente: {
     quePaso: 'El texto libre solo acompaña a «Otra» categoría.',
     queHacer: 'Escoge «Otra» o borra el detalle.',
@@ -98,9 +118,33 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Algo falló y no sabemos exactamente qué.',
     queHacer: 'Vuelve a intentar. Si se repite, avísale a quien te da soporte.',
   },
+  potrero_ya_existe: {
+    quePaso: 'Ese potrero ya se había anotado.',
+    queHacer: 'Vuelve a la lista de potreros y ábrelo desde ahí, en vez de anotarlo otra vez.',
+  },
+  asignacion_ya_existe: {
+    quePaso: 'Alguno de estos movimientos ya se había guardado.',
+    queHacer: 'Vuelve a abrir el hato y mira dónde se espera a cada animal antes de moverlo otra vez.',
+  },
+  asignacion_vacia: {
+    quePaso: 'No hay ningún animal en el movimiento.',
+    queHacer: 'Elige al menos un animal y vuelve a mover.',
+  },
   animal_repetido: {
     quePaso: 'Un animal aparece dos veces en esta vuelta.',
     queHacer: 'Deja una sola vez a cada animal y vuelve a guardar.',
+  },
+  nota_ya_existe: {
+    quePaso: 'Alguna de estas notas ya se había guardado.',
+    queHacer: 'Vuelve a abrir la ficha del animal para ver sus notas antes de anotar otra vez.',
+  },
+  nota_vacia: {
+    quePaso: 'No hay ningún animal en la nota.',
+    queHacer: 'Elige al menos un animal y vuelve a anotar.',
+  },
+  tipo_invalido: {
+    quePaso: 'El tipo de nota no es uno de los del rancho.',
+    queHacer: 'Elige vacuna, medicamento, baño, problema visto u otro.',
   },
   fila_repetida: {
     quePaso: 'Un renglón de la vuelta se repitió.',
@@ -135,8 +179,20 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     queHacer: 'Abre la sesión guardada para revisarla.',
   },
   evidencia_ajena: {
-    quePaso: 'Esa foto no se puede usar en este peso.',
+    quePaso: 'Esa foto no se puede usar aquí.',
     queHacer: 'Tómala otra vez desde esta pantalla.',
+  },
+  ya_inactivo: {
+    quePaso: 'Este animal ya está dado de baja.',
+    queHacer: 'Si la salida está mal, corrígela. No se anota otra encima.',
+  },
+  sin_salida: {
+    quePaso: 'Este animal sigue en el hato.',
+    queHacer: 'La salida se corrige cuando ya se dio de baja.',
+  },
+  salida_incoherente: {
+    quePaso: 'Volver al hato no cambia a la vez el motivo de la salida.',
+    queHacer: 'Elige una sola cosa: corregir la salida, o dejarlo activo otra vez.',
   },
   foto_no_es_imagen: {
     quePaso: 'Eso no es una foto JPEG, PNG o WebP.',

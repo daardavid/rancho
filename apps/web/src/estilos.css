@@ -433,6 +433,54 @@ h2.seccion__titulo {
   margin: 10px 0 16px;
 }
 
+.ficha__visto {
+  margin: 0 0 16px;
+}
+
+.inicio__vacio {
+  margin: 0 0 10px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.inicio__grupo {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.inicio__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inicio__lista a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: inherit;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+}
+
+.inicio__meta {
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-align: right;
+}
+
 .ficha__seccion {
   margin-bottom: var(--espacio-secciones);
 }
@@ -536,6 +584,125 @@ h2.seccion__titulo {
   display: flex;
   gap: 1.25rem;
   margin-top: 0.35rem;
+}
+
+/* Potreros y lugar esperado -------------------------------------------- */
+
+/* El modo de mover varios: las filas dejan de navegar y se tocan enteras. */
+.hato__modo {
+  margin: 12px 0;
+}
+
+.ui-fila--marcada {
+  border-color: var(--verde);
+  background: var(--verde-fondo);
+}
+
+/*
+ * La casilla se ve, no se esconde: en modo de selección el toque es la fila
+ * entera y la casilla dice qué quedó marcado. Tiene el tamaño del pulgar.
+ */
+.ui-fila__casilla {
+  width: 22px;
+  height: 22px;
+  align-self: flex-start;
+  accent-color: var(--verde);
+}
+
+.ui-fila label.ui-fila,
+label.ui-fila {
+  cursor: pointer;
+}
+
+.potrero__fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.potrero__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.potrero__nombre {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.potrero__detalle {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.potrero__nota {
+  margin: 4px 0 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.potrero__acciones {
+  margin-top: 8px;
+}
+
+.potrero__hueco {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.7rem 0.85rem;
+  border: 1px dashed var(--borde);
+  border-radius: 0.6rem;
+  background: var(--superficie);
+}
+
+.mover {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+}
+
+.tarjeta-seccion {
+  margin: 12px 0 16px;
+}
+
+/* Sanidad -------------------------------------------------------------- */
+
+.nota-sanidad {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nota-sanidad__tipo {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.nota-sanidad__detalle {
+  margin: 0;
+}
+
+.nota-sanidad__cuando {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+/* Una tarjeta con su propia sección de formulario adentro: el aire de arriba
+   separa el título del contenido. */
+.tarjeta-seccion .formulario {
+  margin-top: 8px;
 }
 
 /* Columna con navegación ------------------------------------------------ */

@@ -73,7 +73,10 @@ export async function darDeAltaConNombre(page: Page, nombre: string): Promise<vo
 }
 
 /** Va a una pantalla de la barra de abajo. */
-export async function irA(page: Page, pantalla: 'Hato' | 'Pesaje' | 'Crecimiento'): Promise<void> {
+export async function irA(
+  page: Page,
+  pantalla: 'Inicio' | 'Hato' | 'Pesaje' | 'Crecimiento',
+): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Pantallas del rancho' })
     .getByRole('link', { name: pantalla, exact: true })

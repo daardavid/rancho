@@ -6,11 +6,15 @@ import { LLAVE_DE_SESION, useSalir, useSesion } from './api/sesion'
 import { AvisoDeError, BotonGrande, Cargando } from './ui/Avisos'
 import { BarraInferior } from './ui/BarraInferior'
 import { Alta } from './pantallas/Alta'
+import { Inicio } from './pantallas/Inicio'
 import { Crecimiento } from './pantallas/Crecimiento'
 import { Ficha } from './pantallas/Ficha'
 import { Hato } from './pantallas/Hato'
+import { Potreros } from './pantallas/Potreros'
+import { Salidas } from './pantallas/Salidas'
 import { IniciarSesion } from './pantallas/IniciarSesion'
 import { Muestra } from './pantallas/Muestra'
+import { Nacimiento } from './pantallas/Nacimiento'
 import { Pesaje } from './pantallas/Pesaje'
 import { Sesion } from './pantallas/Sesion'
 import { useRuta } from './ruta'
@@ -22,9 +26,9 @@ import { useRuta } from './ruta'
  * volver a entrar, la ruta sigue siendo la de antes, así que el dueño regresa a
  * la pantalla de destino en vez de empezar otra vez en el hato.
  *
- * Las pantallas de trabajo —hato, pesaje y crecimiento— se alcanzan desde la
- * barra de abajo, con el pulgar y sin menús. No es un enrutador: son enlaces
- * al `hash` de la URL.
+ * Las pantallas de trabajo —inicio, hato, pesaje y crecimiento— se alcanzan
+ * desde la barra de abajo, con el pulgar y sin menús. No es un enrutador: son
+ * enlaces al `hash` de la URL.
  */
 export function App() {
   const sesion = useSesion()
@@ -74,14 +78,22 @@ export function App() {
         no repiten arriba una barra de sesión: una acción por pantalla y una
         sola salida, que es la de volver al hato.
       */}
-      {ruta.nombre === 'hato' ||
+      {ruta.nombre === 'inicio' ||
+      ruta.nombre === 'hato' ||
+      ruta.nombre === 'salidas' ||
+      ruta.nombre === 'potreros' ||
       ruta.nombre === 'alta' ||
+      ruta.nombre === 'nacimiento' ||
       ruta.nombre === 'ficha' ||
       ruta.nombre === 'crecimiento' ? null : (
         <BarraDeSesion />
       )}
+      {ruta.nombre === 'inicio' ? <Inicio /> : null}
       {ruta.nombre === 'hato' ? <Hato /> : null}
+      {ruta.nombre === 'salidas' ? <Salidas /> : null}
+      {ruta.nombre === 'potreros' ? <Potreros /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
+      {ruta.nombre === 'nacimiento' ? <Nacimiento madreId={ruta.madreId} /> : null}
       {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}
       {ruta.nombre === 'pesaje' ? <Pesaje /> : null}
       {ruta.nombre === 'sesion' ? <Sesion sesionId={ruta.sesionId} /> : null}

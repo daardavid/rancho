@@ -12,7 +12,13 @@ import { AvisoDeError } from './Avisos'
  * en «¿Cómo se obtuvo?». Quitar la foto del peso no borra el archivo.
  */
 
-export function FotoVisible({ evidenciaId }: { readonly evidenciaId: string | null | undefined }) {
+export function FotoVisible({
+  evidenciaId,
+  alt = 'Foto de la báscula',
+}: {
+  readonly evidenciaId: string | null | undefined
+  readonly alt?: string
+}) {
   const [idFallido, setIdFallido] = useState<string | null>(null)
   if (evidenciaId === null || evidenciaId === undefined || evidenciaId === AUSENCIA_DE_FOTO) {
     return null
@@ -24,7 +30,7 @@ export function FotoVisible({ evidenciaId }: { readonly evidenciaId: string | nu
   return (
     <img
       className="foto-bascula__imagen"
-      alt="Foto de la báscula"
+      alt={alt}
       src={`/api/evidencia/${evidenciaId}`}
       onError={() => {
         setIdFallido(evidenciaId)
@@ -39,11 +45,19 @@ export function FotoDeLaBascula({
   alOcuparse,
   idDelCampo,
   ancla,
+  etiqueta = 'Foto de la báscula',
+  ayuda = 'Opcional. No cambia si el peso se midió, se vio o te lo dijeron.',
+  alt = 'Foto de la báscula',
+  ayudaAlQuitar = 'Si la quitas, deja de verse en este peso. La foto no se borra.',
 }: {
   readonly evidenciaId: string | null
   readonly alCambiar: (evidenciaId: string | null) => void
   /** Avisa mientras los bytes van al rancho, para no guardar el peso antes. */
   readonly alOcuparse?: (ocupada: boolean) => void
+  readonly etiqueta?: string
+  readonly ayuda?: string
+  readonly alt?: string
+  readonly ayudaAlQuitar?: string
   /**
    * Id estable del input. El botón de la cámara lo busca para abrirlo aunque
    * la tarjeta activa haya cambiado: la subida sigue viva en este componente.
@@ -139,7 +153,7 @@ export function FotoDeLaBascula({
         </button>
       )}
       {evidenciaId === null ? null : (
-        <p className="campo__ayuda">Si la quitas, deja de verse en este peso. La foto no se borra.</p>
+        <p className="campo__ayuda">{ayudaAlQuitar}</p>
       )}
     </>
   )
@@ -149,12 +163,12 @@ export function FotoDeLaBascula({
     return (
       <div className="foto-bascula">
         <label className="campo__etiqueta" htmlFor={id}>
-          Foto de la báscula
+          {etiqueta}
         </label>
         <p className="campo__ayuda" id={`${id}-ayuda`}>
-          Opcional. No cambia si el peso se midió, se vio o te lo dijeron.
+          {ayuda}
         </p>
-        <FotoVisible evidenciaId={evidenciaId} />
+        <FotoVisible evidenciaId={evidenciaId} alt={alt} />
         <input
           id={id}
           className="campo__entrada"
@@ -177,7 +191,7 @@ export function FotoDeLaBascula({
       type="file"
       accept="image/jpeg,image/png,image/webp"
       capture="environment"
-      aria-label="Foto de la báscula"
+      aria-label={etiqueta}
       disabled={ocupada}
       tabIndex={-1}
       onChange={alElegirArchivo}

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { recordedBySchema } from '../../../shared-kernel/actores'
+import { ConflictoDeVersion } from '../../../shared-kernel/conflictos'
 import { animalIdSchema, nuevoId, ranchIdSchema, type AnimalId, type RanchId } from '../../../shared-kernel/ids'
 import { actualizarConVersion } from '../../../infrastructure/db/version'
 import { filasDe, type EjecutorSql } from '../../../infrastructure/db/filas'
@@ -9,20 +10,22 @@ import type { Animal, ValorAnterior } from '../domain/animal'
 import type { Correccion } from '../domain/correccion'
 import { RechazoDeHerd } from '../domain/errores'
 import type { Marca } from '../domain/marca'
+import type { CorreccionDeSalida, Salida } from '../domain/salida'
 import {
   esCampoDeFicha,
   esCategoria,
   esEstadoDeMarca,
+  esMotivoDeSalida,
   esParticipacion,
   esSexo,
   esTenencia,
   esTipoDeMarca,
   type CampoDeFicha,
 } from '../domain/valores'
-import type { GuardarCorreccion, RepositorioDeAnimales } from '../application/repositorio'
+import type { GuardarCorreccion, GuardarSalida, RepositorioDeAnimales } from '../application/repositorio'
 
 const COLUMNAS_ANIMAL = sql.raw(
-  'id, ranch_id, name, sex, category, category_detail, tenure, economic_participation, arrangement_note, note, active, version, recorded_by, recorded_at',
+  'id, ranch_id, name, sex, category, category_detail, tenure, economic_participation, arrangement_note, note, active, exit_reason, exit_known_on::text as exit_known_on, exit_note, exit_evidence_id, version, recorded_by, recorded_at',
 )
 
 const COLUMNAS_MARCA = sql.raw(
@@ -52,6 +55,10 @@ type FilaAnimal = {
   arrangement_note: string | null
   note: string | null
   active: unknown
+  exit_reason: string | null
+  exit_known_on: unknown
+  exit_note: string | null
+  exit_evidence_id: string | null
   version: unknown
   recorded_by: string
   recorded_at: unknown
@@ -78,6 +85,16 @@ type FilaCorreccion = {
   corrected_at: unknown
 }
 
+type FilaCorreccionDeSalida = {
+  previous_reason: string
+  previous_known_on: unknown
+  previous_note: string | null
+  previous_evidence_id: string | null
+  reason: string
+  corrected_by: string
+  corrected_at: unknown
+}
+
 export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimales {
   return {
     async insertar(animal) {
@@ -85,13 +102,17 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
         await db.execute(sql`
           INSERT INTO herd.animal (
             id, ranch_id, name, sex, category, category_detail, tenure,
-            economic_participation, arrangement_note, note, active, version,
-            recorded_by, recorded_at
+            economic_participation, arrangement_note, note, active,
+            exit_reason, exit_known_on, exit_note, exit_evidence_id,
+            version, recorded_by, recorded_at
           ) VALUES (
             ${animal.id}, ${animal.ranchId}, ${animal.nombre}, ${animal.sexo},
             ${animal.categoria}, ${animal.detalleCategoria}, ${animal.tenencia},
             ${animal.participacionEconomica}, ${animal.notaDelArreglo}, ${animal.nota},
-            ${animal.activo}, ${animal.version}, ${animal.recordedBy}, ${animal.recordedAt}
+            ${animal.activo},
+            ${animal.salida?.motivo ?? null}, ${animal.salida?.fecha ?? null}::date,
+            ${animal.salida?.nota ?? null}, ${animal.salida?.evidenciaId ?? null}::uuid,
+            ${animal.version}, ${animal.recordedBy}, ${animal.recordedAt}
           )
         `)
       } catch (error) {
@@ -119,6 +140,30 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
 
       for (const anterior of entrada.anteriores) {
         await insertarCorreccion(db, entrada, anterior)
+      }
+    },
+
+    async guardarSalida(entrada) {
+      const salida = entrada.animal.salida
+      const filas = filasDe(
+        await db.execute(sql`
+          UPDATE herd.animal
+          SET active = ${entrada.animal.activo},
+              exit_reason = ${salida?.motivo ?? null},
+              exit_known_on = ${salida?.fecha ?? null}::date,
+              exit_note = ${salida?.nota ?? null},
+              exit_evidence_id = ${salida?.evidenciaId ?? null}::uuid,
+              version = version + 1
+          WHERE id = ${entrada.animal.id}
+            AND version = ${entrada.versionLeida}
+          RETURNING id
+        `),
+      )
+      if (filas.length === 0) {
+        throw new ConflictoDeVersion()
+      }
+      if (entrada.anterior !== null) {
+        await insertarCorreccionDeSalida(db, entrada, entrada.anterior)
       }
     },
 
@@ -192,6 +237,18 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
       return filas.map(animalDesde)
     },
 
+    async listarInactivos(ranchId) {
+      const filas = filasDe<FilaAnimal>(
+        await db.execute(sql`
+          SELECT ${COLUMNAS_ANIMAL}
+          FROM herd.animal
+          WHERE ranch_id = ${ranchId} AND active = false
+          ORDER BY exit_known_on DESC, id
+        `),
+      )
+      return filas.map(animalDesde)
+    },
+
     async obtenerVarios(ranchId, ids) {
       if (ids.length === 0) {
         return []
@@ -234,6 +291,25 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
         `),
       )
       return filas.map(correccionDesde)
+    },
+
+    async correccionesDeSalida(ranchId, animalId) {
+      const filas = filasDe<FilaCorreccionDeSalida>(
+        await db.execute(sql`
+          SELECT
+            previous_reason,
+            previous_known_on::text AS previous_known_on,
+            previous_note,
+            previous_evidence_id,
+            reason,
+            corrected_by,
+            corrected_at
+          FROM herd.animal_exit_correction
+          WHERE ranch_id = ${ranchId} AND animal_id = ${animalId}
+          ORDER BY corrected_at, id
+        `),
+      )
+      return filas.map(correccionDeSalidaDesde)
     },
 
     async idsPorMarca(ranchId, valor) {
@@ -303,6 +379,27 @@ async function leerMarca(
   return fila === undefined ? null : marcaDesde(fila)
 }
 
+async function insertarCorreccionDeSalida(
+  db: EjecutorSql,
+  entrada: GuardarSalida,
+  anterior: Salida,
+): Promise<void> {
+  if (entrada.motivo === null) {
+    throw new Error('Una corrección de salida no trae motivo.')
+  }
+  await db.execute(sql`
+    INSERT INTO herd.animal_exit_correction (
+      id, ranch_id, animal_id, previous_reason, previous_known_on, previous_note,
+      previous_evidence_id, reason, corrected_by, corrected_at
+    ) VALUES (
+      ${nuevoId()}, ${entrada.animal.ranchId}, ${entrada.animal.id},
+      ${anterior.motivo}, ${anterior.fecha}::date, ${anterior.nota},
+      ${anterior.evidenciaId}::uuid, ${entrada.motivo},
+      ${entrada.correctedBy}, ${entrada.correctedAt}
+    )
+  `)
+}
+
 async function insertarCorreccion(
   db: EjecutorSql,
   entrada: GuardarCorreccion,
@@ -356,6 +453,7 @@ function animalDesde(fila: FilaAnimal): Animal {
     notaDelArreglo: fila.arrangement_note,
     nota: fila.note,
     activo: bandera(fila.active),
+    salida: salidaDesde(fila),
     version: entero(fila.version),
     recordedBy: recordedBySchema.parse(fila.recorded_by),
     recordedAt: instante(fila.recorded_at),
@@ -378,6 +476,47 @@ function marcaDesde(fila: FilaMarca): Marca {
     cambiadaEl: dia(fila.changed_on),
     recordedBy: recordedBySchema.parse(fila.recorded_by),
     recordedAt: instante(fila.recorded_at),
+  }
+}
+
+function salidaDesde(fila: FilaAnimal): Salida | null {
+  const activo = bandera(fila.active)
+  const fecha = dia(fila.exit_known_on)
+  const nota = fila.exit_note
+  const evidenciaId = fila.exit_evidence_id
+  const motivo = fila.exit_reason
+
+  if (activo) {
+    if (motivo !== null || fecha !== null || nota !== null || evidenciaId !== null) {
+      throw new Error('La ficha activa trae una salida.')
+    }
+    return null
+  }
+
+  if (motivo === null || !esMotivoDeSalida(motivo) || fecha === null) {
+    throw new Error('La salida guardada no se puede leer.')
+  }
+
+  return { motivo, fecha, nota, evidenciaId }
+}
+
+function correccionDeSalidaDesde(fila: FilaCorreccionDeSalida): CorreccionDeSalida {
+  if (!esMotivoDeSalida(fila.previous_reason)) {
+    throw new Error('La historia de la salida tiene un motivo que no se puede leer.')
+  }
+  const fecha = dia(fila.previous_known_on)
+  if (fecha === null) {
+    throw new Error('La historia de la salida no trae el día en que se supo.')
+  }
+
+  return {
+    motivoAnterior: fila.previous_reason,
+    fechaAnterior: fecha,
+    notaAnterior: fila.previous_note,
+    evidenciaIdAnterior: fila.previous_evidence_id,
+    motivo: fila.reason,
+    correctedBy: recordedBySchema.parse(fila.corrected_by),
+    correctedAt: instante(fila.corrected_at),
   }
 }
 

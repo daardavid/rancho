@@ -1,23 +1,48 @@
-import type { FilaDeCrecimiento } from '@rancho/api-contracts'
+import type { AsignarLugar, FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { useHato, useResumenDelHato } from '../api/hato'
+import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
+import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
 import { useUltimaSesion } from '../api/pesajes'
 import { useSalir } from '../api/sesion'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
-import { diaLegible, diasLegibles, kilosLegibles } from '../dominio/fechas'
-import { CATEGORIAS, categoria as nombreDeCategoria, tipoDeMarca } from '../dominio/etiquetas'
+import { diaLegible, diasLegibles, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
+import {
+  CATEGORIAS,
+  categoria as nombreDeCategoria,
+  motivoDeSalida,
+  tipoDeMarca,
+} from '../dominio/etiquetas'
 import { etiquetaDeGanancia, type TonoDeGanancia } from '../dominio/revision'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { Aviso } from '../ui/Aviso'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
-import { BotonFlotante, BotonPrincipal } from '../ui/Botones'
+import { BotonFlotante, BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
+import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
 import { FilaDeAnimal, type CategoriaVisual } from '../ui/FilaDeAnimal'
 import { Filtros } from '../ui/Filtros'
 import { IconoBascula, IconoBuscar, IconoMas, IconoMenu } from '../ui/iconos'
+import { Mosaicos } from '../ui/Mosaicos'
 import { Tarjeta } from '../ui/Tarjeta'
+import { FormularioDeSanidad } from './Sanidad'
+
+/**
+ * Valores del filtro de lugar que no son ids de potrero. Van con un texto fijo
+ * para que no puedan chocar con un id de verdad.
+ */
+const SIN_FILTRO_DE_POTRERO = 'cualquiera'
+const SIN_LUGAR = 'sin-lugar'
+/**
+ * «No sé» en los dos sentidos que usa el rancho: el destino de un movimiento y
+ * el filtro del hato. Es el mismo valor y quiere decir lo mismo.
+ */
+const DESCONOCIDO = 'no-se'
+
+/** El mismo tope que el del contrato: quién lo dijo es un origen, no un cuaderno. */
+const LARGO_DE_QUIEN_LO_DIJO = 200
 
 /**
  * El hato: cuántos animales hay, quién va bien, a quién revisar y quién no se
@@ -43,8 +68,24 @@ import { Tarjeta } from '../ui/Tarjeta'
 export function Hato() {
   const hato = useHato()
   const resumen = useResumenDelHato()
+  const todosLosPotreros = usePotreros()
+  const lugares = useLugares()
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState('todos')
+  const [filtroDePotrero, setFiltroDePotrero] = useState(SIN_FILTRO_DE_POTRERO)
+  /**
+   * El modo de selección del hato. Tocar varias filas sirve para dos capturas
+   * distintas —mover a un potrero o anotar sanidad—, pero solo hay un modo a la
+   * vez: una acción por pantalla.
+   */
+  const [modo, setModo] = useState<'mover' | 'sanidad' | null>(null)
+  const [sanidadGuardada, setSanidadGuardada] = useState(false)
+  const [elegidos, setElegidos] = useState<readonly string[]>([])
+  const buscando = normalizar(busqueda) !== ''
+  // Sin activos hay que saber si alguien ya salió: «no hay animales» sería
+  // mentira, y la búsqueda es la forma de encontrarlo desde esta pantalla.
+  const sinActivos = hato.isSuccess && (hato.data?.animales.length ?? 0) === 0
+  const salidas = useSalidas(buscando || sinActivos)
 
   const porAnimal = useMemo(() => {
     const mapa = new Map<string, FilaDeCrecimiento>()
@@ -65,15 +106,43 @@ export function Hato() {
   const conteos = useMemo(() => contarPorCategoria(animales), [animales])
   const filtros = useMemo(() => opcionesDeFiltro(conteos), [conteos])
 
+  /**
+   * El potrero vigente de cada animal. Los que no tienen asignación no aparecen
+   * en el mapa: su filtro es «Sin lugar», no un potrero inventado.
+   */
+  const porAnimalPotrero = useMemo(() => {
+    const mapa = new Map<string, string | null>()
+    for (const fila of lugares.data?.animales ?? []) {
+      mapa.set(fila.animalId, fila.potreroId)
+    }
+    return mapa
+  }, [lugares.data])
+
+  const opcionesDePotrero = useMemo(
+    () => opcionesDeFiltroPorPotrero(todosLosPotreros.data?.potreros ?? [], animales.length),
+    [todosLosPotreros.data, animales.length],
+  )
+
   const visibles = useMemo(() => {
     const limpio = normalizar(busqueda)
     return animales.filter((animal) => {
       if (!pasaElFiltro(animal, filtro)) {
         return false
       }
+      if (!pasaElFiltroDePotrero(animal.id, filtroDePotrero, porAnimalPotrero)) {
+        return false
+      }
       return limpio === '' || coincide(animal, limpio)
     })
-  }, [animales, busqueda, filtro])
+  }, [animales, busqueda, filtro, filtroDePotrero, porAnimalPotrero])
+
+  const salidasVisibles = useMemo(() => {
+    const limpio = normalizar(busqueda)
+    if (limpio === '') {
+      return []
+    }
+    return (salidas.data?.animales ?? []).filter((animal) => coincide(animal, limpio))
+  }, [salidas.data, busqueda])
 
   if (hato.isPending) {
     return (
@@ -94,21 +163,42 @@ export function Hato() {
 
   const total = animales.length
   const vacio = total === 0
+  const haySalidas = (salidas.data?.animales.length ?? 0) > 0
+  const mirandoSalidas = sinActivos && salidas.isLoading
+  const salidasSinVer = sinActivos && salidas.isError
+  const buscandoSalidas = buscando && salidas.isLoading
+  const subtituloVacio = mirandoSalidas
+    ? 'Viendo el hato…'
+    : salidasSinVer
+      ? 'No se pudo ver si hay salidas'
+      : haySalidas
+        ? 'En el hato activo no queda nadie'
+        : 'Todavía no hay animales'
 
   return (
     <main className="pantalla pantalla--hato">
       <MenuYEncabezado
         total={total}
+        subtituloVacio={subtituloVacio}
         // Mientras el resumen no llegó (cargando o error) no se afirma nada del
         // último pesaje: una consulta que falló no es «no hay pesajes».
         ultimoPesaje={
           resumen.data === undefined ? null : textoDelUltimoPesaje(resumen.data.animales)
         }
-        // En el hato vacío el alta se ofrece una sola vez, en la tarjeta.
-        conAlta={!vacio}
+        // En el hato vacío de verdad el alta se ofrece una sola vez, en la tarjeta.
+        // Si ya hubo salidas, el «+» sigue siendo el alta y la búsqueda encuentra
+        // a quien salió.
+        conAlta={!vacio || haySalidas}
       />
 
-      {vacio ? (
+      {mirandoSalidas ? (
+        <Cargando que="Viendo el hato…" />
+      ) : salidasSinVer ? (
+        <>
+          <AvisoDeError error={salidas.error} />
+          <BotonPrincipal alTocar={() => void salidas.refetch()}>Volver a intentar</BotonPrincipal>
+        </>
+      ) : vacio && !haySalidas ? (
         <Tarjeta>
           <h2 className="hato__vacio-titulo">Empieza con el primer animal</h2>
           <p className="hato__vacio-texto">
@@ -141,16 +231,36 @@ export function Hato() {
             />
           </div>
 
-          <div className="hato__filtros">
-            <Filtros
-              etiqueta="Filtrar el hato"
-              opciones={filtros}
-              valor={filtro}
-              alElegir={setFiltro}
-            />
-          </div>
+          {vacio ? (
+            <p className="campo__ayuda">
+              En el hato activo no queda nadie. Escribe un nombre para encontrarlo entre las
+              salidas.
+            </p>
+          ) : (
+            <>
+              <div className="hato__filtros">
+                <Filtros
+                  etiqueta="Filtrar el hato"
+                  opciones={filtros}
+                  valor={filtro}
+                  alElegir={setFiltro}
+                />
+              </div>
 
-          {huecos.length === 0 ? null : (
+              {opcionesDePotrero.length <= 1 ? null : (
+                <div className="hato__filtros">
+                  <Filtros
+                    etiqueta="Filtrar por potrero"
+                    opciones={opcionesDePotrero}
+                    valor={filtroDePotrero}
+                    alElegir={setFiltroDePotrero}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {vacio || huecos.length === 0 ? null : (
             <div className="hato__aviso">
               <Aviso
                 titulo={
@@ -173,27 +283,298 @@ export function Hato() {
             </p>
           ) : null}
 
-          {visibles.length === 0 ? (
+          {buscando && salidas.isError ? (
+            <p className="campo__ayuda" role="status">
+              No se pudieron ver las salidas. Esta búsqueda no las incluye.
+            </p>
+          ) : null}
+
+          {(buscando || filtro !== 'todos' || filtroDePotrero !== SIN_FILTRO_DE_POTRERO) &&
+          visibles.length === 0 &&
+          salidasVisibles.length === 0 &&
+          !buscandoSalidas ? (
             <section className="vacio">
               <h2 className="vacio__titulo">Ningún animal coincide</h2>
               <p>Revisa cómo se escribe o cambia el filtro.</p>
             </section>
-          ) : (
+          ) : null}
+
+          {vacio ? null : (
+            <div className="hato__modo">
+              {modo === 'mover' ? (
+                <p className="campo__ayuda" role="status">
+                  Elige los animales y toca «Mover a…». La lista deja de abrir fichas mientras
+                  eliges.
+                </p>
+              ) : modo === 'sanidad' ? (
+                <p className="campo__ayuda" role="status">
+                  Elige los animales y toca «Anotar sanidad». La nota se escribe una vez por cada
+                  uno.
+                </p>
+              ) : (
+                <>
+                  <BotonSecundario
+                    tono="tinta"
+                    alTocar={() => {
+                      setSanidadGuardada(false)
+                      setElegidos([])
+                      setModo('mover')
+                    }}
+                  >
+                    Mover animales a un potrero
+                  </BotonSecundario>
+                  <BotonSecundario
+                    tono="tinta"
+                    alTocar={() => {
+                      setSanidadGuardada(false)
+                      setElegidos([])
+                      setModo('sanidad')
+                    }}
+                  >
+                    Anotar sanidad a varios animales
+                  </BotonSecundario>
+                </>
+              )}
+            </div>
+          )}
+
+          {sanidadGuardada ? (
+            <p className="aviso aviso--bien" role="status">
+              Notas de sanidad guardadas. Cada animal tiene la suya.
+            </p>
+          ) : null}
+
+          {visibles.length === 0 ? null : (
             <ul className="hato__lista">
               {visibles.map((animal) => (
                 <li key={animal.id}>
-                  <FilaDeHato animal={animal} fila={porAnimal.get(animal.id)} />
+                  <FilaDeHato
+                    animal={animal}
+                    fila={porAnimal.get(animal.id)}
+                    {...(modo === null
+                      ? {}
+                      : {
+                          seleccion: {
+                            marcado: elegidos.includes(animal.id),
+                            nombreAccesible: `Elegir a ${nombreVisible(animal)}`,
+                            alCambiar: (marcado: boolean) => {
+                              setElegidos((actuales) =>
+                                marcado
+                                  ? [...actuales, animal.id]
+                                  : actuales.filter((id) => id !== animal.id),
+                              )
+                            },
+                          },
+                        })}
+                  />
                 </li>
               ))}
             </ul>
           )}
 
-          <BotonFlotante icono={<IconoBascula />} href="#/pesaje">
-            Registrar pesaje
-          </BotonFlotante>
+          {modo === 'mover' && !vacio ? (
+            <MoverA
+              potreros={todosLosPotreros.data?.potreros ?? []}
+              elegidos={elegidos}
+              alCerrar={() => {
+                setModo(null)
+                setElegidos([])
+              }}
+              alGuardar={() => {
+                setModo(null)
+                setElegidos([])
+                void hato.refetch()
+                void lugares.refetch()
+                void todosLosPotreros.refetch()
+              }}
+            />
+          ) : null}
+
+          {modo === 'sanidad' && !vacio ? (
+            <FormularioDeSanidad
+              animales={elegidos}
+              nombreDelGrupo={
+                elegidos.length === 0
+                  ? 'elige los animales'
+                  : elegidos.length === 1
+                    ? '1 animal'
+                    : `${String(elegidos.length)} animales`
+              }
+              alGuardar={() => {
+                setModo(null)
+                setElegidos([])
+                setSanidadGuardada(true)
+              }}
+              alCancelar={() => {
+                setModo(null)
+                setElegidos([])
+                setSanidadGuardada(false)
+              }}
+            />
+          ) : null}
+
+          {salidasVisibles.length === 0 ? null : (
+            <section className="ficha__seccion">
+              <h2 className="ficha__titulo">Salidas</h2>
+              <ul className="hato__lista">
+                {salidasVisibles.map((animal) => (
+                  <li key={animal.id}>
+                    <FilaDeSalidaEnElHato animal={animal} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {vacio ? null : (
+            <BotonFlotante icono={<IconoBascula />} href="#/pesaje">
+              Registrar pesaje
+            </BotonFlotante>
+          )}
         </>
       )}
+
+      {/* «Mover a…» desde el hato, con varios animales elegidos a la vez. */}
     </main>
+  )
+}
+
+/**
+ * «Mover a…»: el potrero de destino y el día desde el que vale.
+ *
+ * Es una captura que escribe una asignación por animal, no una observación.
+ * «No sé» es un destino válido y viene como opción, no escondido. El día se
+ * propone con el de hoy en el rancho y se puede cambiar: un movimiento anotado
+ * tarde no es un movimiento de hoy.
+ *
+ * «¿Quién lo dijo?» es aparte de la nota: es el trabajador o el canal por el que
+ * llegó el aviso, no la cuenta que lo registra ni un comentario suelto.
+ *
+ * El `commandId` y los `asignacionId` se conservan entre intentos mientras el
+ * contenido no cambie: si se cae la red después de que la API guardó, el
+ * reintento es el mismo comando y el servidor devuelve lo guardado en vez de
+ * mover dos veces. Si el dueño cambia algo, es otro comando y hacen falta ids
+ * nuevos.
+ */
+function MoverA({
+  potreros,
+  elegidos,
+  alGuardar,
+  alCerrar,
+}: {
+  readonly potreros: readonly { readonly id: string; readonly nombre: string | null }[]
+  readonly elegidos: readonly string[]
+  readonly alGuardar: () => void
+  readonly alCerrar: () => void
+}) {
+  const [destino, setDestino] = useState<string>(DESCONOCIDO)
+  const [desde, setDesde] = useState(hoyEnElRancho())
+  const [nota, setNota] = useState('')
+  const [quienLoDijo, setQuienLoDijo] = useState('')
+  const mover = useAsignarLugar()
+  const faltanAnimales = elegidos.length === 0
+  const pendiente = useRef<{ contenido: string; cuerpo: AsignarLugar } | null>(null)
+
+  const guardar = (): void => {
+    if (faltanAnimales || mover.isPending) {
+      return
+    }
+    const limpio = nota.trim()
+    const quien = quienLoDijo.trim()
+    // Los ids de asignación no entran en la huella: se acuñan una vez y se
+    // reusan tal cual mientras el contenido sea el mismo.
+    const contenido = JSON.stringify({
+      potreroId: destino === DESCONOCIDO ? null : destino,
+      desde,
+      nota: limpio === '' ? null : limpio,
+      reportedBy: quien === '' ? null : quien,
+      animales: elegidos,
+    })
+    if (pendiente.current === null || pendiente.current.contenido !== contenido) {
+      pendiente.current = {
+        contenido,
+        cuerpo: {
+          commandId: crypto.randomUUID(),
+          potreroId: destino === DESCONOCIDO ? null : destino,
+          desde,
+          ...(limpio === '' ? {} : { nota: limpio }),
+          ...(quien === '' ? {} : { reportedBy: quien }),
+          animales: elegidos.map((animalId) => ({
+            animalId,
+            asignacionId: crypto.randomUUID(),
+          })),
+        },
+      }
+    }
+
+    mover.mutate(pendiente.current.cuerpo, {
+      onSuccess: () => {
+        pendiente.current = null
+        alGuardar()
+      },
+    })
+  }
+
+  return (
+    <section className="mover">
+      <h2 className="ficha__titulo">
+        {faltanAnimales
+          ? 'Mover a…'
+          : elegidos.length === 1
+            ? 'Mover 1 animal a…'
+            : `Mover ${String(elegidos.length)} animales a…`}
+      </h2>
+      <p className="campo__ayuda">
+        Se anota dónde se les espera desde ese día. No quiere decir que alguien los haya visto:
+        no cambia su último pesaje.
+      </p>
+
+      {potreros.length === 0 ? (
+        <p className="campo__ayuda" role="status">
+          Todavía no hay potreros anotados. Se puede dejar en «No sé» o agregarlos en Potreros.
+        </p>
+      ) : null}
+
+      <Mosaicos
+        etiqueta="¿A qué potrero?"
+        opciones={[
+          ...potreros.map((potrero) => ({
+            valor: potrero.id,
+            texto: potrero.nombre ?? 'Sin nombre',
+          })),
+          { valor: DESCONOCIDO, texto: 'No sé' },
+        ]}
+        valor={destino}
+        alElegir={setDestino}
+      />
+
+      <CampoDeFecha etiqueta="¿Desde cuándo?" valor={desde} alCambiar={setDesde} />
+
+      <Desplegable titulo="Más datos" resumen="nota y quién lo dijo">
+        <CampoDeArea
+          etiqueta="Nota"
+          valor={nota}
+          alCambiar={setNota}
+          ayuda="Opcional. Si no hay nada más que anotar, se deja vacía."
+        />
+        <CampoDeTexto
+          etiqueta="¿Quién lo dijo?"
+          valor={quienLoDijo}
+          alCambiar={setQuienLoDijo}
+          maxLength={LARGO_DE_QUIEN_LO_DIJO}
+          ayuda="Opcional. Por ejemplo el vaquero o el canal por el que se supo. No es tu cuenta."
+        />
+      </Desplegable>
+
+      {mover.isError ? <AvisoDeError error={mover.error} /> : null}
+
+      <BotonPrincipal alTocar={guardar} deshabilitado={faltanAnimales || mover.isPending}>
+        {mover.isPending ? 'Guardando…' : 'Mover a…'}
+      </BotonPrincipal>
+      <BotonSecundario alTocar={alCerrar} deshabilitado={mover.isPending}>
+        Cancelar
+      </BotonSecundario>
+    </section>
   )
 }
 
@@ -203,10 +584,12 @@ export function Hato() {
  */
 function MenuYEncabezado({
   total,
+  subtituloVacio,
   ultimoPesaje,
   conAlta,
 }: {
   readonly total: number
+  readonly subtituloVacio: string
   readonly ultimoPesaje: string | null
   readonly conAlta: boolean
 }) {
@@ -242,7 +625,7 @@ function MenuYEncabezado({
   const conUltimoPesaje = ultimoPesaje === null ? '' : ` · ${ultimoPesaje}`
   const subtitulo =
     total === 0
-      ? 'Todavía no hay animales'
+      ? subtituloVacio
       : `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'}${conUltimoPesaje}`
 
   return (
@@ -277,6 +660,36 @@ function MenuYEncabezado({
           <button
             type="button"
             className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'nacimiento', madreId: null })
+            }}
+          >
+            Registrar nacimiento
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'potreros' })
+            }}
+          >
+            Potreros
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'salidas' })
+            }}
+          >
+            Salidas
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
             disabled={salir.isPending}
             onClick={() => {
               setAbierto(false)
@@ -295,9 +708,16 @@ function MenuYEncabezado({
 function FilaDeHato({
   animal,
   fila,
+  seleccion,
 }: {
   readonly animal: Animal
   readonly fila: FilaDeCrecimiento | undefined
+  /** En modo de mover varios: la fila se toca entera y deja de abrir la ficha. */
+  readonly seleccion?: {
+    readonly marcado: boolean
+    readonly nombreAccesible: string
+    readonly alCambiar: (marcado: boolean) => void
+  }
 }) {
   const arete = areteVigente(animal)
   const ultimo = fila?.ultimoPeso ?? null
@@ -315,6 +735,32 @@ function FilaDeHato({
       peso={ultimo === null ? '—' : kilosLegibles(ultimo.kilos)}
       ganancia={ganancia.texto}
       tono={ganancia.tono}
+      categoria={categoriaVisual(animal.categoria)}
+      {...(seleccion === undefined ? {} : { seleccion })}
+      {...(seleccion === undefined
+        ? {
+            alTocar: () => {
+              irA({ nombre: 'ficha', animalId: animal.id })
+            },
+          }
+        : {})}
+    />
+  )
+}
+
+/** Un animal dado de baja que la búsqueda del hato sí puede encontrar. */
+function FilaDeSalidaEnElHato({ animal }: { readonly animal: Animal }) {
+  const salida = animal.salida
+  const motivo = salida === null ? 'Salió' : motivoDeSalida(salida.motivo)
+  const fecha = salida === null ? '' : ` · ${diaLegible(salida.fecha)}`
+
+  return (
+    <FilaDeAnimal
+      nombre={nombreVisible(animal)}
+      detalle={`${motivo}${fecha}`}
+      peso="—"
+      ganancia="Salió"
+      tono="revisar"
       categoria={categoriaVisual(animal.categoria)}
       alTocar={() => {
         irA({ nombre: 'ficha', animalId: animal.id })
@@ -373,6 +819,52 @@ function sumar(conteos: ReadonlyMap<string, number>): number {
 
 function pasaElFiltro(animal: Animal, filtro: string): boolean {
   return filtro === 'todos' || animal.categoria === filtro
+}
+
+/** «Todos», «Sin lugar» y un botón por potrero con cuántos animales se esperan. */
+function opcionesDeFiltroPorPotrero(
+  potreros: readonly {
+    readonly id: string
+    readonly nombre: string | null
+    readonly esperados: number
+  }[],
+  total: number,
+): readonly { readonly valor: string; readonly texto: string }[] {
+  if (potreros.length === 0) {
+    return []
+  }
+  return [
+    { valor: SIN_FILTRO_DE_POTRERO, texto: `Cualquier lugar ${String(total)}` },
+    ...potreros.map((potrero) => ({
+      valor: potrero.id,
+      texto: `${potrero.nombre ?? 'Sin nombre'} ${String(potrero.esperados)}`,
+    })),
+    { valor: SIN_LUGAR, texto: 'Sin lugar' },
+    { valor: DESCONOCIDO, texto: 'No sé' },
+  ]
+}
+
+/**
+ * El filtro por potrero usa la asignación vigente. Un animal sin asignación es
+ * «Sin lugar»: no se le inventa un potrero. Una asignación «No sé» es otra
+ * cosa y se filtra aparte.
+ */
+function pasaElFiltroDePotrero(
+  animalId: string,
+  filtro: string,
+  vigentes: ReadonlyMap<string, string | null>,
+): boolean {
+  if (filtro === SIN_FILTRO_DE_POTRERO) {
+    return true
+  }
+  const vigente = vigentes.get(animalId)
+  if (filtro === SIN_LUGAR) {
+    return vigente === undefined
+  }
+  if (filtro === DESCONOCIDO) {
+    return vigente === null
+  }
+  return vigente === filtro
 }
 
 function categoriaVisual(categoria: string): CategoriaVisual {

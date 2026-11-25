@@ -11,8 +11,12 @@ import { useEffect, useState } from 'react'
  */
 
 export type Ruta =
+  | { readonly nombre: 'inicio' }
   | { readonly nombre: 'hato' }
+  | { readonly nombre: 'salidas' }
+  | { readonly nombre: 'potreros' }
   | { readonly nombre: 'alta' }
+  | { readonly nombre: 'nacimiento'; readonly madreId: string | null }
   | { readonly nombre: 'ficha'; readonly animalId: string }
   | { readonly nombre: 'pesaje' }
   | { readonly nombre: 'crecimiento' }
@@ -23,8 +27,20 @@ export const RUTA_DEL_HATO: Ruta = { nombre: 'hato' }
 
 export function leerRuta(hash: string): Ruta {
   const limpio = hash.replace(/^#/, '')
+  if (limpio === '/inicio') {
+    return { nombre: 'inicio' }
+  }
+  if (limpio === '/salidas') {
+    return { nombre: 'salidas' }
+  }
+  if (limpio === '/potreros') {
+    return { nombre: 'potreros' }
+  }
   if (limpio === '/alta') {
     return { nombre: 'alta' }
+  }
+  if (limpio === '/nacimiento') {
+    return { nombre: 'nacimiento', madreId: null }
   }
   if (limpio === '/pesaje') {
     return { nombre: 'pesaje' }
@@ -35,6 +51,10 @@ export function leerRuta(hash: string): Ruta {
   // La muestra de componentes solo existe con el servidor de desarrollo.
   if (limpio === '/muestra' && import.meta.env.DEV) {
     return { nombre: 'muestra' }
+  }
+  const nacimiento = /^\/nacimiento\/([0-9a-fA-F-]{36})$/.exec(limpio)
+  if (nacimiento !== null && nacimiento[1] !== undefined) {
+    return { nombre: 'nacimiento', madreId: nacimiento[1] }
   }
   const sesion = /^\/sesion\/([0-9a-fA-F-]{36})$/.exec(limpio)
   if (sesion !== null && sesion[1] !== undefined) {
@@ -49,10 +69,18 @@ export function leerRuta(hash: string): Ruta {
 
 export function rutaAHash(ruta: Ruta): string {
   switch (ruta.nombre) {
+    case 'inicio':
+      return '#/inicio'
     case 'hato':
       return '#/'
+    case 'salidas':
+      return '#/salidas'
+    case 'potreros':
+      return '#/potreros'
     case 'alta':
       return '#/alta'
+    case 'nacimiento':
+      return ruta.madreId === null ? '#/nacimiento' : `#/nacimiento/${ruta.madreId}`
     case 'pesaje':
       return '#/pesaje'
     case 'crecimiento':

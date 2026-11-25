@@ -214,3 +214,103 @@ describe('Ficha: corregir', () => {
     expect(screen.getByText('Medido en la báscula')).toBeDefined()
   })
 })
+
+describe('Ficha: salida', () => {
+  it('al volver a dejarlo activo avisa que regresó al hato, no que salió', async () => {
+    const usuario = userEvent.setup()
+    let activo = false
+    const inactiva = fichaDeAnimal({
+      nombre: 'Canelo',
+      activo: false,
+      version: 2,
+      salida: {
+        motivo: 'death',
+        fecha: '2026-04-02',
+        nota: null,
+        evidenciaId: null,
+      },
+    })
+    const activa = fichaDeAnimal({
+      nombre: 'Canelo',
+      activo: true,
+      version: 3,
+      salida: null,
+      correccionesDeSalida: [
+        {
+          motivoAnterior: 'death',
+          fechaAnterior: '2026-04-02',
+          notaAnterior: null,
+          evidenciaIdAnterior: null,
+          motivo: 'se había equivocado',
+          correctedBy: CUENTA,
+          correctedAt: CUANDO,
+        },
+      ],
+    })
+
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: activo ? activa : inactiva }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo },
+      }),
+      [`POST /api/animals/${ANIMAL}/exit/corrections`]: () => {
+        activo = true
+        return { estado: 200, cuerpo: activa }
+      },
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    await usuario.click(await screen.findByRole('button', { name: 'Corregir la salida' }))
+    await usuario.click(screen.getByRole('button', { name: 'Volver a dejarlo activo' }))
+    await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'se había equivocado')
+    await usuario.click(screen.getByRole('button', { name: 'Volver al hato' }))
+
+    expect(await screen.findByText(/volvió al hato activo/)).toBeDefined()
+    expect(screen.getByText(/La salida anterior quedó en la historia/)).toBeDefined()
+    expect(screen.queryByText(/Salida guardada/)).toBeNull()
+  })
+})
+
+describe('Ficha: última observación', () => {
+  it('dice hace cuántos días se vio y en qué pesaje', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+      [`GET /api/read-models/ultima-observacion/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          animalId: ANIMAL,
+          observacion: {
+            fecha: '2026-11-20',
+            origen: 'pesaje',
+            origenId: '44444444-4444-4444-8444-444444444444',
+            dias: 4,
+          },
+        },
+      }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(
+      await screen.findByText('Visto por última vez: hace 4 días, en el pesaje del 20 nov 2026.'),
+    ).toBeDefined()
+  })
+
+  it('sin pesaje ni nota vista se queda vacío, no en cero días', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(await screen.findByText('Sin observación')).toBeDefined()
+    expect(screen.queryByText(/hace 0 días/)).toBeNull()
+  })
+})

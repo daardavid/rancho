@@ -50,6 +50,26 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
 
     const rutaFalsa = rutas[`${metodo} ${ruta}`]
     if (rutaFalsa === undefined) {
+      // La ficha siempre pide la familia. Un animal dado de alta sin nacimiento
+      // no tiene filiación: la API responde vacío, no 404. Quien quiera otra
+      // familia la registra en su prueba.
+      if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/family$/.test(ruta)) {
+        return Response.json(
+          { filiacion: null, madre: null, padre: null, crias: [], referidos: [] },
+          { status: 200 },
+        )
+      }
+      // La ficha también pide las notas de sanidad. Sin notas anotadas la API
+      // responde una lista vacía; una prueba que quiera notas las registra.
+      if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/health-notes$/.test(ruta)) {
+        return Response.json({ animalId: ruta.split('/')[3], notas: [] }, { status: 200 })
+      }
+      if (metodo === 'GET' && /^\/api\/read-models\/ultima-observacion\/[^/]+$/.test(ruta)) {
+        return Response.json(
+          { animalId: ruta.split('/').pop(), observacion: null },
+          { status: 200 },
+        )
+      }
       return Response.json({ codigo: 'no_encontrado' }, { status: 404 })
     }
 
@@ -70,7 +90,7 @@ export function sesionAbierta(): RutaFalsa {
 export function fichaDeAnimal(
   cambios: Record<string, unknown> = {},
 ): Record<string, unknown> {
-  return { ...animalBase(), correcciones: [], ...cambios }
+  return { ...animalBase(), correcciones: [], correccionesDeSalida: [], ...cambios }
 }
 
 /**
@@ -95,6 +115,7 @@ function animalBase(): Record<string, unknown> {
     notaDelArreglo: null,
     nota: null,
     activo: true,
+    salida: null,
     version: 1,
     recordedBy: CUENTA,
     recordedAt: CUANDO,

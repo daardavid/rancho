@@ -61,7 +61,15 @@ describe('migración inicial', () => {
     expect(tablasHerd.map((fila) => fila.table_name).sort()).toEqual([
       'animal',
       'animal_correction',
+      'animal_exit_correction',
       'animal_mark',
+      'health_event',
+      'health_event_correction',
+      'location_assignment',
+      'paddock',
+      'paddock_correction',
+      'parentage_correction',
+      'parentage_record',
     ])
     expect(tablasGrowth.map((fila) => fila.table_name).sort()).toEqual([
       'weighing_line',

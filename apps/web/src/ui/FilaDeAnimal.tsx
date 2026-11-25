@@ -61,6 +61,7 @@ export function FilaDeAnimal({
   categoria = 'unknown',
   href,
   alTocar,
+  seleccion,
 }: {
   readonly nombre: string
   readonly detalle: string
@@ -70,6 +71,16 @@ export function FilaDeAnimal({
   readonly categoria?: CategoriaVisual
   readonly href?: string
   readonly alTocar?: () => void
+  /**
+   * Modo de selección para mover varios animales a la vez. La fila deja de
+   * navegar y se convierte en una casilla grande: en el celular se toca la fila
+   * entera, no un cuadrito diminuto.
+   */
+  readonly seleccion?: {
+    readonly marcado: boolean
+    readonly alCambiar: (marcado: boolean) => void
+    readonly nombreAccesible: string
+  }
 }) {
   const cuerpo: ReactNode = (
     <Cuerpo
@@ -81,6 +92,24 @@ export function FilaDeAnimal({
       categoria={categoria}
     />
   )
+
+  if (seleccion !== undefined) {
+    return (
+      <label className={seleccion.marcado ? 'ui-fila ui-fila--marcada' : 'ui-fila'}>
+        <input
+          type="checkbox"
+          className="ui-fila__casilla"
+          checked={seleccion.marcado}
+          aria-label={seleccion.nombreAccesible}
+          onChange={(evento) => {
+            seleccion.alCambiar(evento.target.checked)
+          }}
+        />
+        {cuerpo}
+      </label>
+    )
+  }
+
   if (href !== undefined) {
     return (
       <a className="ui-fila" href={href}>

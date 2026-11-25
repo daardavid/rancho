@@ -364,7 +364,11 @@ describe('resumen del hato', () => {
       { fecha: '2026-10-01', kilos: '100.000' },
       { fecha: '2026-10-11', kilos: '110.000' },
     )
-    await db.execute(sql`UPDATE herd.animal SET active = false WHERE id = ${inactivo}`)
+    await db.execute(sql`
+      UPDATE herd.animal
+      SET active = false, exit_reason = 'unknown', exit_known_on = '2026-01-15'
+      WHERE id = ${inactivo}
+    `)
 
     const resumen = await modelos.resumenDelHato(ranchId, '2026-10-12')
     expect(resumen.animales.map((fila) => fila.animalId)).not.toContain(inactivo)

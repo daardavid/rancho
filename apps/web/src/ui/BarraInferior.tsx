@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 
 import { rutaAHash, type Ruta } from '../ruta'
-import { IconoBascula, IconoCrecimiento, IconoHato } from './iconos'
+import { IconoBascula, IconoCrecimiento, IconoHato, IconoInicio } from './iconos'
 
-type Pestana = 'hato' | 'pesaje' | 'crecimiento'
+type Pestana = 'inicio' | 'hato' | 'pesaje' | 'crecimiento'
 type Anclaje = 'ventana' | 'marco' | 'flujo'
 
 const PESTANAS: readonly {
@@ -11,6 +11,7 @@ const PESTANAS: readonly {
   readonly etiqueta: string
   readonly Icono: ComponentType
 }[] = [
+  { nombre: 'inicio', etiqueta: 'Inicio', Icono: IconoInicio },
   { nombre: 'hato', etiqueta: 'Hato', Icono: IconoHato },
   { nombre: 'pesaje', etiqueta: 'Pesaje', Icono: IconoBascula },
   { nombre: 'crecimiento', etiqueta: 'Crecimiento', Icono: IconoCrecimiento },
@@ -18,9 +19,14 @@ const PESTANAS: readonly {
 
 function pestanaDe(ruta: Ruta): Pestana | null {
   switch (ruta.nombre) {
+    case 'inicio':
+      return 'inicio'
     case 'hato':
     case 'alta':
+    case 'nacimiento':
     case 'ficha':
+    case 'salidas':
+    case 'potreros':
       return 'hato'
     case 'pesaje':
     case 'sesion':
@@ -34,6 +40,8 @@ function pestanaDe(ruta: Ruta): Pestana | null {
 
 function destinoDe(pestana: Pestana): Ruta {
   switch (pestana) {
+    case 'inicio':
+      return { nombre: 'inicio' }
     case 'hato':
       return { nombre: 'hato' }
     case 'pesaje':
@@ -44,7 +52,8 @@ function destinoDe(pestana: Pestana): Ruta {
 }
 
 /**
- * Las tres pantallas del trabajo. Enlaces de verdad, fijos al borde inferior
+ * Las cuatro pantallas del trabajo. Inicio es la primera. Enlaces de verdad,
+ * fijos al borde inferior
  * de la ventana y del ancho de la columna — también en computadora.
  */
 export function BarraInferior({

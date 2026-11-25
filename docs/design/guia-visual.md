@@ -61,7 +61,7 @@ Aprobada por David el 2026-11-24. Es la referencia de cómo se ve y se siente la
 | `BotonSecundario` | Blanco con borde, texto verde o tinta. |
 | `BotonFlotante` | El principal, flotando sobre la barra inferior (Hato). |
 | `BarraDeAccion` | Pie fijo blanco con borde superior que contiene el botón principal (Pesaje, Alta). |
-| `BarraInferior` | Navegación fija abajo, 72 px, tres pestañas con ícono y texto; la activa en verde. Fija al borde inferior de la ventana también en computadora. |
+| `BarraInferior` | Navegación fija abajo, 72 px, cuatro pestañas con ícono y texto (Inicio, Hato, Pesaje, Crecimiento); la activa en verde. Fija al borde inferior de la ventana también en computadora. |
 | `Tarjeta` | Blanca, radio 16, borde `#ECE9E2`. |
 | `FilaDeAnimal` | Avatar con iniciales (color por categoría), nombre, detalle (categoría · arete), último peso y etiqueta de ganancia. |
 | `Etiqueta` | Píldora pequeña: verde (va bien), ámbar (revisar), gris (sin datos). |

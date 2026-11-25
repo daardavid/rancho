@@ -15,6 +15,22 @@ export const CODIGOS_DE_RECHAZO = [
   'motivo_vacio',
   'dia_invalido',
   'texto_invalido',
+  'filiacion_incoherente',
+  'filiacion_ya_existe',
+  'progenitor_ausente',
+  'tenencia_de_cria',
+  'unico_toro_no_aplica',
+  'ya_inactivo',
+  'sin_salida',
+  'salida_incoherente',
+  'evidencia_ajena',
+  'potrero_ya_existe',
+  'asignacion_ya_existe',
+  'asignacion_vacia',
+  'animal_repetido',
+  'nota_ya_existe',
+  'nota_vacia',
+  'tipo_invalido',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]

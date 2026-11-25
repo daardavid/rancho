@@ -512,7 +512,11 @@ describe('frontera con Herd', () => {
 
   it('no pesa a un animal inactivo ni a uno de otro rancho', async () => {
     const inactivo = await animalActivo()
-    await db.execute(sql`UPDATE herd.animal SET active = false WHERE id = ${inactivo}`)
+    await db.execute(sql`
+      UPDATE herd.animal
+      SET active = false, exit_reason = 'unknown', exit_known_on = '2026-01-15'
+      WHERE id = ${inactivo}
+    `)
     const sesionInactiva = nuevoId()
     await expect(
       growth.registrar({

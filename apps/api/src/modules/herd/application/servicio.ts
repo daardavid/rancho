@@ -1,24 +1,30 @@
-import type { AlmacenDeIdempotencia } from '../../../shared-kernel/idempotencia'
-import { ejecutarComandoIdempotente } from '../../../shared-kernel/idempotencia'
-import { animalIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
+import type { AlmacenDeIdempotencia, ReciboGuardado } from '../../../shared-kernel/idempotencia'
+import { ejecutarComandoIdempotente, huellaDeContenido } from '../../../shared-kernel/idempotencia'
+import { animalIdSchema, ranchIdSchema, type AnimalId, type RanchId } from '../../../shared-kernel/ids'
 import type { RecordedBy } from '../../../shared-kernel/actores'
-import { ConflictoDeVersion } from '../../../shared-kernel/conflictos'
+import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../shared-kernel/conflictos'
 import { z } from 'zod'
 
 import { corregirFicha, registrarAnimal, type Animal, type CambiosDeFicha } from '../domain/animal'
 import { crearMarca, perderMarca, reemplazarMarca, type Marca } from '../domain/marca'
 import { RechazoDeHerd } from '../domain/errores'
+import { corregirSalida, registrarSalida, type CambiosDeSalida } from '../domain/salida'
 import type {
   Categoria,
+  MotivoDeSalida,
   ParticipacionEconomica,
   Sexo,
   Tenencia,
   TipoDeMarca,
 } from '../domain/valores'
+import type { RepositorioDeFiliacion } from './repositorio-filiacion'
+import type { RepositorioDeLugar } from './repositorio-lugar'
+import type { RepositorioDeSalud } from './repositorio-salud'
 import type { RepositorioDeAnimales } from './repositorio'
 import {
   publicarAnimal,
   publicarCorreccion,
+  publicarCorreccionDeSalida,
   publicarMarca,
   type CorreccionPublica,
   type FichaAnimal,
@@ -26,9 +32,35 @@ import {
   type MarcaPublica,
 } from './publicar'
 
+/**
+ * Herd no escribe la tabla de evidencia. Solo pregunta si el id es de este
+ * rancho antes de guardarlo en la salida.
+ */
+export type ConsultaDeEvidencia = {
+  perteneceAlRancho(ranchId: RanchId, evidenciaId: string): Promise<boolean>
+}
+
 export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
+  readonly filiacion: RepositorioDeFiliacion
+  readonly lugar: RepositorioDeLugar
+  readonly salud: RepositorioDeSalud
   readonly idempotencia: AlmacenDeIdempotencia
+  readonly evidencia: ConsultaDeEvidencia | null
+}
+
+/**
+ * La salida consulta el recibo y la foto antes de escribir.
+ *
+ * El puerto de evidencia usa el cliente de afuera. Si se le pregunta con la
+ * transacción de la ficha abierta, en la base embebida (y con un solo cliente
+ * en el pool) las dos se esperan y no vuelven.
+ */
+export type AlcanceDeSalida = {
+  readonly leerRecibo: (commandId: string) => Promise<ReciboGuardado | null>
+  readonly leerAnimal: (ranchId: RanchId, animalId: AnimalId) => Promise<Animal | null>
+  readonly escribir: <T>(trabajo: (deps: DepsDeHerd) => Promise<T>) => Promise<T>
+  readonly evidencia: ConsultaDeEvidencia | null
 }
 
 export type EntradaRegistrar = {
@@ -78,6 +110,28 @@ export type EntradaReemplazarMarca = {
   readonly valor: string
   readonly desde?: string | null
   readonly cambiadaEl?: string | null
+}
+
+export type EntradaRegistrarSalida = {
+  readonly commandId: string
+  readonly ranchId: RanchId
+  readonly recordedBy: RecordedBy
+  readonly animalId: string
+  readonly version: number
+  readonly motivo: MotivoDeSalida
+  readonly fecha: string
+  readonly nota?: string
+  readonly evidenciaId?: string | null
+}
+
+export type EntradaCorregirSalida = {
+  readonly commandId: string
+  readonly ranchId: RanchId
+  readonly recordedBy: RecordedBy
+  readonly animalId: string
+  readonly version: number
+  readonly motivo: string
+  readonly cambios: CambiosDeSalida
 }
 
 export type EntradaMarcarPerdida = {
@@ -142,7 +196,7 @@ export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Pr
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
       })
       await deps.animales.insertar(animal)
-      return { ...publicarAnimal(animal, []), correcciones: [] }
+      return { ...publicarAnimal(animal, []), correcciones: [], correccionesDeSalida: [] }
     },
   )
 }
@@ -187,11 +241,127 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
       })
       const marcas = await deps.animales.marcasDe(ranchId, [animalId])
       const correcciones = await deps.animales.correccionesDe(ranchId, animalId)
+      const correccionesDeSalida = await deps.animales.correccionesDeSalida(ranchId, animalId)
       return {
         ...publicarAnimal(corregida.animal, marcas),
         correcciones: correcciones.map(publicarCorreccion),
+        correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
       }
     },
+  )
+}
+
+/**
+ * Da de baja. El mismo comando con el mismo contenido devuelve la ficha ya
+ * guardada. Una versión vieja no cambia nada. La ficha, los aretes y las
+ * correcciones se quedan.
+ *
+ * El recibo se lee primero: un reintento no vuelve a preguntar por la foto.
+ * La foto se valida antes de abrir la transacción que bloquea la fila.
+ */
+export async function registrarSalidaDe(
+  alcance: AlcanceDeSalida,
+  entrada: EntradaRegistrarSalida,
+): Promise<FichaConHistoria> {
+  const contenido = contenidoDeRegistrarSalida(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as FichaConHistoria
+  }
+
+  const evidenciaId = idParaConsultar(entrada.evidenciaId)
+  if (evidenciaId !== null) {
+    await exigirEvidencia(alcance.evidencia, ranchIdSchema.parse(entrada.ranchId), evidenciaId)
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
+      const ranchId = ranchIdSchema.parse(entrada.ranchId)
+      const animalId = animalIdSchema.parse(entrada.animalId)
+      const actual = await deps.animales.obtener(ranchId, animalId, true)
+      if (actual === null) {
+        throw new RechazoDeHerd('no_encontrado')
+      }
+      if (actual.version !== entrada.version) {
+        throw new ConflictoDeVersion()
+      }
+
+      const siguiente = registrarSalida(actual, {
+        motivo: entrada.motivo,
+        fecha: entrada.fecha,
+        ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
+        ...(entrada.evidenciaId !== undefined ? { evidenciaId: entrada.evidenciaId } : {}),
+      })
+      await deps.animales.guardarSalida({
+        animal: siguiente,
+        versionLeida: entrada.version,
+        anterior: null,
+        motivo: null,
+        correctedBy: entrada.recordedBy,
+        correctedAt: new Date(),
+      })
+      return await fichaDe(deps, siguiente)
+    }),
+  )
+}
+
+/**
+ * Corrige la salida, o la deshace y el animal vuelve a activo. Lo que estaba
+ * queda en la historia. No se anota precio ni reposición.
+ *
+ * La foto nueva se consulta solo si es distinta a la vigente, y esa lectura
+ * de la ficha no bloquea la fila: ocurre antes de la transacción de escritura.
+ */
+export async function corregirSalidaDe(
+  alcance: AlcanceDeSalida,
+  entrada: EntradaCorregirSalida,
+): Promise<FichaConHistoria> {
+  const contenido = contenidoDeCorregirSalida(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as FichaConHistoria
+  }
+
+  const evidenciaId = idParaConsultar(entrada.cambios.evidenciaId)
+  if (entrada.cambios.activo !== true && evidenciaId !== null) {
+    const ranchId = ranchIdSchema.parse(entrada.ranchId)
+    const animalId = animalIdSchema.parse(entrada.animalId)
+    const actual = await alcance.leerAnimal(ranchId, animalId)
+    const vigente = actual?.salida?.evidenciaId ?? null
+    if (actual !== null && evidenciaId !== vigente) {
+      await exigirEvidencia(alcance.evidencia, ranchId, evidenciaId)
+    }
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
+      const ranchId = ranchIdSchema.parse(entrada.ranchId)
+      const animalId = animalIdSchema.parse(entrada.animalId)
+      const actual = await deps.animales.obtener(ranchId, animalId, true)
+      if (actual === null) {
+        throw new RechazoDeHerd('no_encontrado')
+      }
+      if (actual.version !== entrada.version) {
+        throw new ConflictoDeVersion()
+      }
+
+      const corregida = corregirSalida(actual, entrada.cambios, entrada.motivo)
+      await deps.animales.guardarSalida({
+        animal: corregida.animal,
+        versionLeida: entrada.version,
+        anterior: corregida.anterior,
+        motivo: corregida.motivo,
+        correctedBy: entrada.recordedBy,
+        correctedAt: new Date(),
+      })
+      return await fichaDe(deps, corregida.animal)
+    }),
   )
 }
 
@@ -340,6 +510,14 @@ export async function listarActivos(
   return conMarcas(animales, ranchId, lista)
 }
 
+export async function listarSalidas(
+  animales: RepositorioDeAnimales,
+  ranchId: RanchId,
+): Promise<FichaAnimal[]> {
+  const lista = await animales.listarInactivos(ranchIdSchema.parse(ranchId))
+  return conMarcas(animales, ranchId, lista)
+}
+
 export async function obtenerFicha(
   animales: RepositorioDeAnimales,
   ranchId: RanchId,
@@ -352,9 +530,80 @@ export async function obtenerFicha(
   }
   const marcas = await animales.marcasDe(animal.ranchId, [animal.id])
   const correcciones = await animales.correccionesDe(animal.ranchId, animal.id)
+  const correccionesDeSalida = await animales.correccionesDeSalida(animal.ranchId, animal.id)
   return {
     ...publicarAnimal(animal, marcas),
     correcciones: correcciones.map(publicarCorreccion),
+    correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
+  }
+}
+
+async function fichaDe(deps: DepsDeHerd, animal: Animal): Promise<FichaConHistoria> {
+  const marcas = await deps.animales.marcasDe(animal.ranchId, [animal.id])
+  const correcciones = await deps.animales.correccionesDe(animal.ranchId, animal.id)
+  const correccionesDeSalida = await deps.animales.correccionesDeSalida(animal.ranchId, animal.id)
+  return {
+    ...publicarAnimal(animal, marcas),
+    correcciones: correcciones.map(publicarCorreccion),
+    correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
+  }
+}
+
+function contenidoDeRegistrarSalida(entrada: EntradaRegistrarSalida) {
+  return {
+    comando: 'registrar_salida',
+    ranchId: entrada.ranchId,
+    recordedBy: entrada.recordedBy,
+    animalId: entrada.animalId,
+    version: entrada.version,
+    motivo: entrada.motivo,
+    fecha: entrada.fecha,
+    nota: entrada.nota ?? null,
+    evidenciaId: entrada.evidenciaId ?? null,
+  }
+}
+
+function contenidoDeCorregirSalida(entrada: EntradaCorregirSalida) {
+  return {
+    comando: 'corregir_salida',
+    ranchId: entrada.ranchId,
+    recordedBy: entrada.recordedBy,
+    animalId: entrada.animalId,
+    version: entrada.version,
+    motivo: entrada.motivo,
+    cambios: entrada.cambios,
+  }
+}
+
+/**
+ * Id con texto, para preguntar si la foto es del rancho.
+ * Vacío no es una foto ajena: lo rechaza el dominio al guardar.
+ */
+function idParaConsultar(valor: string | null | undefined): string | null {
+  if (valor === undefined || valor === null) {
+    return null
+  }
+  const limpio = valor.trim()
+  if (limpio === '') {
+    return null
+  }
+  return limpio
+}
+
+async function exigirEvidencia(
+  consulta: ConsultaDeEvidencia | null,
+  ranchId: RanchId,
+  evidenciaId: string | null,
+): Promise<void> {
+  if (evidenciaId === null) {
+    return
+  }
+  if (consulta === null) {
+    throw new RechazoDeHerd('evidencia_ajena')
+  }
+  const pertenece = await consulta.perteneceAlRancho(ranchId, evidenciaId)
+  if (!pertenece) {
+    throw new RechazoDeHerd('evidencia_ajena')
   }
 }
 

@@ -2,6 +2,7 @@ import type { RecordedBy } from '../../../shared-kernel/actores'
 import type { AnimalId, RanchId } from '../../../shared-kernel/ids'
 
 import { RechazoDeHerd } from './errores'
+import type { Salida } from './salida'
 import {
   LARGO_MAXIMO_MOTIVO,
   LARGO_MAXIMO_NOMBRE,
@@ -18,7 +19,8 @@ import {
  *
  * No hay porcentaje ni parte calculada. La tenencia y la participación se
  * guardan por separado; cualquiera de las dos puede ser desconocida. `activo`
- * nace en verdadero. Una salida es otro comando y no está en esta tarea.
+ * nace en verdadero y `salida` en vacío. La salida es otro comando: esta
+ * corrección de ficha no la toca.
  */
 export type Animal = {
   readonly id: AnimalId
@@ -32,6 +34,11 @@ export type Animal = {
   readonly notaDelArreglo: string | null
   readonly nota: string | null
   readonly activo: boolean
+  /**
+   * La salida vigente. Vacía si sigue activo. No guarda precio ni reposición.
+   * Una corrección anterior vive en la historia, no aquí.
+   */
+  readonly salida: Salida | null
   readonly version: number
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
@@ -100,6 +107,7 @@ export function registrarAnimal(entrada: RegistroDeAnimal): Animal {
     notaDelArreglo: textoOpcional(entrada.notaDelArreglo, LARGO_MAXIMO_NOTA),
     nota: textoOpcional(entrada.nota, LARGO_MAXIMO_NOTA),
     activo: true,
+    salida: null,
     version: VERSION_INICIAL,
     recordedBy: entrada.recordedBy,
     recordedAt: entrada.recordedAt,
@@ -173,6 +181,7 @@ export function corregirFicha(animal: Animal, cambios: CambiosDeFicha, motivo: s
       id: animal.id,
       ranchId: animal.ranchId,
       activo: animal.activo,
+      salida: animal.salida,
       recordedBy: animal.recordedBy,
       recordedAt: animal.recordedAt,
       version: animal.version + 1,
