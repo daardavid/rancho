@@ -114,10 +114,18 @@ describe('vista del animal', () => {
   })
 })
 
+const cifrasDeLaVuelta = {
+  gananciaMediaKilosPorDia: null,
+  pesadosEnLaUltimaVuelta: 0,
+  esperadosEnLaUltimaVuelta: 1,
+  fechaDeLaUltimaVuelta: '2026-11-24',
+} as const
+
 describe('resumen del hato', () => {
   it('acepta una fila de un animal que solo tiene huecos', () => {
     expect(
       crecimientoDelHatoSchema.parse({
+        ...cifrasDeLaVuelta,
         animales: [
           {
             animalId,
@@ -125,11 +133,45 @@ describe('resumen del hato', () => {
             categoria: 'unknown',
             ultimoPeso: null,
             ultimoIntervalo: null,
+            intervaloAnterior: null,
             diasDesdeElUltimoPesaje: null,
             fueHuecoEnLaUltimaSesion: true,
           },
         ],
       }).animales[0],
-    ).toMatchObject({ ultimoPeso: null, diasDesdeElUltimoPesaje: null })
+    ).toMatchObject({ ultimoPeso: null, diasDesdeElUltimoPesaje: null, intervaloAnterior: null })
+  })
+
+  it('la media viaja como texto de tres decimales y rechaza un número', () => {
+    const fila = {
+      animalId,
+      nombre: null,
+      categoria: 'calf' as const,
+      ultimoPeso: null,
+      ultimoIntervalo: intervalo,
+      intervaloAnterior: { ...intervalo, kilosPorDia: '1.001', kilosGanados: '10.010' },
+      diasDesdeElUltimoPesaje: 3,
+      fueHuecoEnLaUltimaSesion: false,
+    }
+
+    const aceptado = crecimientoDelHatoSchema.parse({
+      gananciaMediaKilosPorDia: '0.652',
+      pesadosEnLaUltimaVuelta: 7,
+      esperadosEnLaUltimaVuelta: 9,
+      fechaDeLaUltimaVuelta: '2026-11-24',
+      animales: [fila],
+    })
+    expect(aceptado.gananciaMediaKilosPorDia).toBe('0.652')
+    expect(aceptado.animales[0]?.intervaloAnterior?.kilosPorDia).toBe('1.001')
+
+    expect(
+      crecimientoDelHatoSchema.safeParse({
+        gananciaMediaKilosPorDia: 0.652,
+        pesadosEnLaUltimaVuelta: 7,
+        esperadosEnLaUltimaVuelta: 9,
+        fechaDeLaUltimaVuelta: '2026-11-24',
+        animales: [fila],
+      }).success,
+    ).toBe(false)
   })
 })

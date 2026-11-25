@@ -17,6 +17,7 @@ export type Ruta =
   | { readonly nombre: 'pesaje' }
   | { readonly nombre: 'crecimiento' }
   | { readonly nombre: 'sesion'; readonly sesionId: string }
+  | { readonly nombre: 'muestra' }
 
 export const RUTA_DEL_HATO: Ruta = { nombre: 'hato' }
 
@@ -30,6 +31,10 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/crecimiento') {
     return { nombre: 'crecimiento' }
+  }
+  // La muestra de componentes solo existe con el servidor de desarrollo.
+  if (limpio === '/muestra' && import.meta.env.DEV) {
+    return { nombre: 'muestra' }
   }
   const sesion = /^\/sesion\/([0-9a-fA-F-]{36})$/.exec(limpio)
   if (sesion !== null && sesion[1] !== undefined) {
@@ -52,6 +57,8 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/pesaje'
     case 'crecimiento':
       return '#/crecimiento'
+    case 'muestra':
+      return '#/muestra'
     case 'sesion':
       return `#/sesion/${ruta.sesionId}`
     case 'ficha':

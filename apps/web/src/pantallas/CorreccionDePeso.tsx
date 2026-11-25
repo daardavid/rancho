@@ -2,13 +2,15 @@ import type { Peso } from '@rancho/api-contracts'
 import { useRef, useState } from 'react'
 
 import { useCorregirPeso } from '../api/pesajes'
-import { CALIDADES, calidad } from '../dominio/etiquetas'
 import { kilosLegibles } from '../dominio/fechas'
+import { calidad } from '../dominio/etiquetas'
 import { kilosNormales, kilosParaEditar, revisarKilos } from '../dominio/kilos'
 import { esConflictoDeVersion } from '../dominio/mensajes'
-import { AvisoDeError, BotonGrande } from '../ui/Avisos'
-import { CampoDeArea, CampoDeSeleccion, CampoDeTexto } from '../ui/Campos'
+import { AvisoDeError } from '../ui/Avisos'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeArea, CampoDeTexto } from '../ui/Campos'
 import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
+import { Segmentado } from '../ui/Segmentado'
 
 /**
  * Lo que hace falta para corregir un peso: su id, lo que dice hoy y su versión.
@@ -18,6 +20,13 @@ import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
  * llega es el hecho guardado, nunca un valor derivado.
  */
 export type PesoCorregible = Pick<Peso, 'id' | 'kilos' | 'calidad' | 'version' | 'evidenciaId'>
+
+/** Las tres calidades, con el nombre que usa el pesaje: se elige con un toque. */
+const OPCIONES_DE_CALIDAD = [
+  { valor: 'measured', texto: 'Báscula' },
+  { valor: 'observed', texto: 'Visto' },
+  { valor: 'declared', texto: 'Me lo dijeron' },
+] as const
 
 /**
  * Corregir un peso ya asentado, con motivo.
@@ -106,7 +115,7 @@ export function CorreccionDePeso({
           No se guardó tu corrección y no se perdió nada de lo que había. Vuelve a abrir el peso
           para ver lo último y escribe el cambio otra vez si todavía hace falta.
         </p>
-        <BotonGrande alTocar={alCancelar}>Volver a ver el peso</BotonGrande>
+        <BotonPrincipal alTocar={alCancelar}>Volver a ver el peso</BotonPrincipal>
       </div>
     )
   }
@@ -128,11 +137,11 @@ export function CorreccionDePeso({
         ayuda="Con punto y hasta 3 decimales. Por ejemplo 351.5"
       />
 
-      <CampoDeSeleccion
+      <Segmentado
         etiqueta="¿Cómo se obtuvo?"
-        opciones={CALIDADES}
+        opciones={OPCIONES_DE_CALIDAD}
         valor={calidadDelPeso}
-        alCambiar={setCalidadDelPeso}
+        alElegir={setCalidadDelPeso}
       />
 
       <FotoDeLaBascula
@@ -157,16 +166,14 @@ export function CorreccionDePeso({
 
       {corregir.isError ? <AvisoDeError error={corregir.error} /> : null}
 
-      <BotonGrande
+      <BotonPrincipal
         tipo="submit"
         deshabilitado={faltaMotivo || sinCambios || !revision.ok || corregir.isPending || subiendoFoto}
       >
         {corregir.isPending ? 'Guardando…' : subiendoFoto ? 'Subiendo la foto…' : 'Guardar corrección'}
-      </BotonGrande>
+      </BotonPrincipal>
 
-      <BotonGrande secundario alTocar={alCancelar}>
-        Cancelar
-      </BotonGrande>
+      <BotonSecundario alTocar={alCancelar}>Cancelar</BotonSecundario>
     </form>
   )
 }

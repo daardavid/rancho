@@ -371,6 +371,109 @@ describe('resumen del hato', () => {
   })
 })
 
+describe('media de la última vuelta', () => {
+  it('coincide con un cálculo hecho a mano y trae el intervalo anterior', async () => {
+    const id = ranchIdSchema.parse(nuevoId())
+    await db.execute(sql`
+      INSERT INTO identity.ranch (id, nombre, created_at)
+      VALUES (${id}, 'Rancho de la media', ${new Date()})
+    `)
+    const herdLocal = crearHerd(db)
+    const growthLocal = crearGrowth(db, herdLocal)
+
+    async function alta(): Promise<string> {
+      const animalId = nuevoId()
+      await herdLocal.registrar({ commandId: nuevoId(), ranchId: id, recordedBy, id: animalId })
+      return animalId
+    }
+
+    const subio = await alta()
+    const parejo = await alta()
+    const mismoDia = await alta()
+    const unPeso = await alta()
+    const hueco = await alta()
+
+    await growthLocal.registrar({
+      commandId: nuevoId(),
+      ranchId: id,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-11-01',
+      filas: [
+        { id: nuevoId(), animalId: subio, resultado: 'pesado', kilos: '100.000', calidad: 'measured' },
+        { id: nuevoId(), animalId: parejo, resultado: 'pesado', kilos: '200.000', calidad: 'measured' },
+        { id: nuevoId(), animalId: unPeso, resultado: 'pesado', kilos: '80.000', calidad: 'measured' },
+      ],
+    })
+
+    await growthLocal.registrar({
+      commandId: nuevoId(),
+      ranchId: id,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-11-11',
+      filas: [
+        { id: nuevoId(), animalId: subio, resultado: 'pesado', kilos: '110.010', calidad: 'measured' },
+        { id: nuevoId(), animalId: parejo, resultado: 'pesado', kilos: '210.020', calidad: 'measured' },
+        { id: nuevoId(), animalId: mismoDia, resultado: 'pesado', kilos: '50.000', calidad: 'measured' },
+      ],
+    })
+
+    // Dos pesajes el mismo día: hay kilos ganados, pero no kilos por día.
+    await growthLocal.registrar({
+      commandId: nuevoId(),
+      ranchId: id,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-11-11',
+      filas: [
+        { id: nuevoId(), animalId: mismoDia, resultado: 'pesado', kilos: '54.500', calidad: 'measured' },
+      ],
+    })
+
+    await growthLocal.registrar({
+      commandId: nuevoId(),
+      ranchId: id,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-11-21',
+      filas: [
+        { id: nuevoId(), animalId: subio, resultado: 'pesado', kilos: '113.020', calidad: 'measured' },
+        { id: nuevoId(), animalId: hueco, resultado: 'hueco' },
+      ],
+    })
+
+    const resumen = await modelos.resumenDelHato(id, '2026-11-22')
+
+    // subio: (110.010 − 100.000) / 10 = 1.001; (113.020 − 110.010) / 10 = 0.301.
+    // parejo: (210.020 − 200.000) / 10 = 1.002.
+    // mismoDia no tiene kilos por día, unPeso no tiene intervalo, hueco no tiene peso.
+    // Media de 0.301 y 1.002 = 1.303 / 2 = 0.6515, que redondea a 0.652.
+    expect(resumen.gananciaMediaKilosPorDia).toBe('0.652')
+    expect(resumen.pesadosEnLaUltimaVuelta).toBe(1)
+    expect(resumen.esperadosEnLaUltimaVuelta).toBe(2)
+    expect(resumen.fechaDeLaUltimaVuelta).toBe('2026-11-21')
+
+    const filaQueBajo = resumen.animales.find((fila) => fila.animalId === subio)
+    expect(filaQueBajo?.ultimoIntervalo).toMatchObject({ kilosPorDia: '0.301', dias: 10 })
+    expect(filaQueBajo?.intervaloAnterior).toMatchObject({
+      fechaPrevia: '2026-11-01',
+      dias: 10,
+      kilosGanados: '10.010',
+      kilosPorDia: '1.001',
+      incluyeCalidadNoMedida: false,
+    })
+
+    expect(
+      resumen.animales.find((fila) => fila.animalId === mismoDia)?.ultimoIntervalo?.kilosPorDia,
+    ).toBeNull()
+    expect(resumen.animales.find((fila) => fila.animalId === unPeso)?.ultimoIntervalo).toBeNull()
+    expect(resumen.animales.find((fila) => fila.animalId === hueco)?.fueHuecoEnLaUltimaSesion).toBe(
+      true,
+    )
+  })
+})
+
 describe('lo derivado no se guarda', () => {
   it('ninguna tabla de la base guarda la ganancia de peso', async () => {
     const columnas = filasDe<{ table_schema: string; table_name: string; column_name: string }>(

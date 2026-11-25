@@ -2,28 +2,28 @@ import type { FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useMemo } from 'react'
 
 import { useResumenDelHato } from '../api/hato'
-import { ordenarCrecimiento } from '../dominio/crecimiento'
-import { diaLegible, diasLegibles, kilosLegibles } from '../dominio/fechas'
-import { categoria } from '../dominio/etiquetas'
+import { anchoDeBarra, mayorKilosPorDia, ordenarCrecimiento } from '../dominio/crecimiento'
+import { diaDeVuelta, numeroLegible } from '../dominio/fechas'
+import { lecturaDeCrecimiento, type LecturaDeCrecimiento } from '../dominio/revision'
 import { irA } from '../ruta'
-import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { AvisoDeError, Cargando } from '../ui/Avisos'
+import { BotonPrincipal } from '../ui/Botones'
+import { Encabezado } from '../ui/Encabezado'
+import { Resumen } from '../ui/Resumen'
 
 /**
- * El crecimiento del hato, en una tabla.
+ * Cómo va la última vuelta y a quién revisar
+ * ([Crecimiento](../../../../../docs/design/maqueta/Crecimiento.dc.html)).
  *
- * El orden no es alfabético ni por nombre: primero los que no se pesaron en la
- * última vuelta, después la menor ganancia por día
- * ([ordenarCrecimiento](../dominio/crecimiento.ts)). Es a quién hay que mirar,
- * no un listado. Un animal sin dos pesajes no tiene ganancia que comparar y va
- * al final: no es un mal resultado, es un dato que todavía falta.
- *
- * La ganancia la calcula la API sobre `numeric`; aquí no se resta ningún peso.
- * Los kilos se leen como texto, igual que se guardaron.
+ * La media, los pesados y la fecha los calcula el servidor. Aquí no se promedia
+ * ningún kilo: el número de la tarjeta es el texto que llegó. «Revisar primero»
+ * usa la regla de INC-003 sobre los datos de cada animal; no hay meta de
+ * ganancia. La barra solo compara contra el mayor kilos por día del hato.
  */
 export function Crecimiento() {
   const resumen = useResumenDelHato()
 
-  const filas = useMemo(
+  const ordenadas = useMemo(
     () => ordenarCrecimiento(resumen.data?.animales ?? []),
     [resumen.data],
   )
@@ -40,132 +40,125 @@ export function Crecimiento() {
     return (
       <main className="pantalla">
         <AvisoDeError error={resumen.error} />
-        <BotonGrande alTocar={() => void resumen.refetch()}>Volver a intentar</BotonGrande>
-        <BotonGrande secundario alTocar={() => irA({ nombre: 'hato' })}>
-          Regresar al hato
-        </BotonGrande>
+        <BotonPrincipal alTocar={() => void resumen.refetch()}>Volver a intentar</BotonPrincipal>
       </main>
     )
   }
 
-  const huecos = filas.filter((fila) => fila.fueHuecoEnLaUltimaSesion).length
-  const conGanancia = filas.filter((fila) => fila.ultimoIntervalo !== null).length
+  const datos = resumen.data
+  const mayor = mayorKilosPorDia(datos.animales)
+  const tarjetas = ordenadas.map((fila) => ({
+    fila,
+    lectura: lecturaDeCrecimiento(fila),
+  }))
+  const revisar = tarjetas.filter((tarjeta) => tarjeta.lectura.lugar === 'revisar')
+  const bien = tarjetas.filter((tarjeta) => tarjeta.lectura.lugar === 'bien')
+  const media = datos.gananciaMediaKilosPorDia
 
   return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">Crecimiento</p>
-        <h1>Quién va bien y quién va atrás</h1>
-        <p className="subtitulo">
-          {filas.length === 0
-            ? 'Todavía no hay pesajes que comparar'
-            : `${String(filas.length)} con historia · ${String(conGanancia)} con ganancia para comparar`}
-        </p>
-      </header>
+    <main className="pantalla pantalla--crecimiento">
+      <Encabezado
+        etiqueta={
+          datos.fechaDeLaUltimaVuelta === null
+            ? 'ÚLTIMA VUELTA'
+            : `ÚLTIMA VUELTA · ${diaDeVuelta(datos.fechaDeLaUltimaVuelta)}`
+        }
+        titulo="Crecimiento"
+      />
 
-      {filas.length === 0 ? (
+      {ordenadas.length === 0 ? (
         <section className="vacio">
-          <h2 className="vacio__titulo">Empieza con la primera vuelta por la báscula</h2>
-          <p>
-            Cuando haya dos pesajes del mismo animal, aquí aparece cuánto ganó en el intervalo. Los
-            que se esperaban y no se pesaron también se ven, para que no se pierdan.
-          </p>
-          <BotonGrande alTocar={() => irA({ nombre: 'pesaje' })}>Registrar un pesaje</BotonGrande>
+          <h2 className="vacio__titulo">Registra el primer pesaje</h2>
+          <p>Cuando haya una vuelta por la báscula, aquí se ve cómo va y a quién revisar.</p>
+          <BotonPrincipal alTocar={() => irA({ nombre: 'pesaje' })}>Registrar un pesaje</BotonPrincipal>
         </section>
       ) : (
         <>
-          <section className="seccion">
-            {huecos > 0 ? (
-              <p className="campo__ayuda">
-                {huecos === 1
-                  ? '1 animal se esperaba en la última vuelta y no se pesó. Va primero.'
-                  : `${String(huecos)} animales se esperaban en la última vuelta y no se pesaron. Van primero.`}
-              </p>
-            ) : null}
+          <Resumen
+            tarjetas={[
+              {
+                etiqueta: 'Ganancia media',
+                valor: media === null ? '—' : numeroLegible(media),
+                detalle: 'kg por día',
+                tono: 'principal',
+              },
+              {
+                etiqueta: 'Pesados',
+                valor: `${String(datos.pesadosEnLaUltimaVuelta)} / ${String(datos.esperadosEnLaUltimaVuelta)}`,
+                detalle: 'en la vuelta',
+                tono: 'neutro',
+              },
+              {
+                etiqueta: 'Van atrás',
+                valor: String(revisar.length),
+                detalle: 'revisar',
+                tono: 'aviso',
+              },
+            ]}
+          />
 
-            <table className="tabla">
-              <caption className="tabla__leyenda">
-                Primero los que no se pesaron, después la menor ganancia por día.
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Animal</th>
-                  <th scope="col">Último peso</th>
-                  <th scope="col">Ganancia</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((fila) => (
-                  <FilaDeLaTabla key={fila.animalId} fila={fila} />
+          {revisar.length === 0 ? null : (
+            <section className="crecimiento__seccion" aria-label="Revisar primero">
+              <h2>Revisar primero</h2>
+              <ul className="crecimiento__lista">
+                {revisar.map((tarjeta) => (
+                  <li key={tarjeta.fila.animalId}>
+                    <TarjetaDeAnimal fila={tarjeta.fila} lectura={tarjeta.lectura} mayor={mayor} />
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </section>
+              </ul>
+            </section>
+          )}
+
+          {bien.length === 0 ? null : (
+            <section className="crecimiento__seccion" aria-label="Van bien">
+              <h2>Van bien</h2>
+              <ul className="crecimiento__lista">
+                {bien.map((tarjeta) => (
+                  <li key={tarjeta.fila.animalId}>
+                    <TarjetaDeAnimal fila={tarjeta.fila} lectura={tarjeta.lectura} mayor={mayor} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
-
-      <BotonGrande alTocar={() => irA({ nombre: 'pesaje' })}>Registrar un pesaje</BotonGrande>
-      <BotonGrande secundario alTocar={() => irA({ nombre: 'hato' })}>
-        Regresar al hato
-      </BotonGrande>
     </main>
   )
 }
 
-function FilaDeLaTabla({ fila }: { readonly fila: FilaDeCrecimiento }) {
+function TarjetaDeAnimal({
+  fila,
+  lectura,
+  mayor,
+}: {
+  readonly fila: FilaDeCrecimiento
+  readonly lectura: LecturaDeCrecimiento
+  readonly mayor: string | null
+}) {
+  const ancho = anchoDeBarra(lectura.kilosPorDia, mayor)
   const nombre = fila.nombre ?? 'Sin nombre o seña'
-  const intervalo = fila.ultimoIntervalo
 
   return (
-    <tr
-      className={fila.fueHuecoEnLaUltimaSesion ? 'tabla__fila tabla__fila--hueco' : 'tabla__fila'}
-    >
-      <td>
+    <article className="crecimiento__tarjeta">
+      <div className="crecimiento__cabeza">
         <button
           type="button"
-          className="enlace"
+          className="crecimiento__nombre"
           onClick={() => irA({ nombre: 'ficha', animalId: fila.animalId })}
         >
           {nombre}
         </button>
-        <span className="tabla__detalle">{categoria(fila.categoria)}</span>
-        {fila.fueHuecoEnLaUltimaSesion ? (
-          <span className="tabla__hueco"> No se pesó en la última</span>
-        ) : null}
-      </td>
-      <td>
-        {fila.ultimoPeso === null ? (
-          <span className="tabla__detalle">Sin peso todavía</span>
-        ) : (
-          <>
-            <span>{kilosLegibles(fila.ultimoPeso.kilos)}</span>
-            <span className="tabla__detalle">
-              {diaLegible(fila.ultimoPeso.fecha)}
-              {fila.diasDesdeElUltimoPesaje === null
-                ? ''
-                : ` · ${diasLegibles(fila.diasDesdeElUltimoPesaje)}`}
-            </span>
-          </>
-        )}
-      </td>
-      <td>
-        {intervalo === null ? (
-          <span className="tabla__detalle">Falta otro pesaje</span>
-        ) : (
-          <>
-            <span>
-              {kilosLegibles(intervalo.kilosGanados)}
-              {intervalo.kilosPorDia === null
-                ? ''
-                : ` · ${kilosLegibles(intervalo.kilosPorDia)} por día`}
-            </span>
-            <span className="tabla__detalle">En {String(intervalo.dias)} días</span>
-            {intervalo.incluyeCalidadNoMedida ? (
-              <span className="tabla__ojo"> Incluye un peso que no se midió</span>
-            ) : null}
-          </>
-        )}
-      </td>
-    </tr>
+        <span className={`crecimiento__valor crecimiento__valor--${lectura.tono}`}>{lectura.valor}</span>
+      </div>
+      <div className="crecimiento__pista" aria-hidden="true">
+        <span
+          className={`crecimiento__tramo crecimiento__tramo--${lectura.tono === 'revisar' ? 'revisar' : 'bien'}`}
+          style={{ width: `${String(ancho)}%` }}
+        />
+      </div>
+      {lectura.nota === null ? null : <p className="crecimiento__nota">{lectura.nota}</p>}
+    </article>
   )
 }

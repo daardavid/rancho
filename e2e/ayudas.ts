@@ -25,18 +25,28 @@ export async function entrar(page: Page): Promise<void> {
 }
 
 /**
- * Abre el formulario de alta desde el encabezado del hato.
+ * Abre el formulario de alta desde el hato.
  *
- * `exact` porque el hato vacío ofrece además «Dar de alta el primer animal», y
- * los dos son botones con «Dar de alta» dentro.
+ * En un hato con animales la única entrada es el «+» del encabezado; en el hato
+ * vacío la única invitación es la tarjeta del primer animal. Nunca están las dos
+ * en pantalla: la acción no se repite.
  */
 export async function abrirAlta(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Dar de alta', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Dar de alta un animal' })).toBeVisible()
+  await page
+    .getByRole('link', { name: 'Dar de alta un animal' })
+    .or(page.getByRole('button', { name: 'Dar de alta el primer animal' }))
+    .click()
+  await expect(page.getByRole('heading', { name: 'Nuevo animal' })).toBeVisible()
 }
 
+/** Guarda el alta que está abierta, sin quedarse a capturar otro. */
 export async function guardarAlta(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Dar de alta', exact: true }).click()
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
+}
+
+/** Abre «Más datos», donde viven la otra categoría, la participación y las notas. */
+export async function abrirMasDatos(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /Más datos/ }).click()
 }
 
 /**
@@ -66,8 +76,20 @@ export async function darDeAltaConNombre(page: Page, nombre: string): Promise<vo
 export async function irA(page: Page, pantalla: 'Hato' | 'Pesaje' | 'Crecimiento'): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Pantallas del rancho' })
-    .getByRole('button', { name: pantalla, exact: true })
+    .getByRole('link', { name: pantalla, exact: true })
     .click()
+}
+
+/**
+ * Cierra la sesión desde el hato.
+ *
+ * «Salir» vive en el menú del encabezado, para no repetir acciones en la
+ * pantalla. En las demás pantallas sigue en su barra de sesión.
+ */
+export async function salirDesdeElHato(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Menú' }).click()
+  await page.getByRole('button', { name: 'Salir' }).click()
+  await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
 }
 
 /**

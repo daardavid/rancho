@@ -75,14 +75,33 @@ export const filaDeCrecimientoSchema = z.strictObject({
   ultimoPeso: pesoEnLaVistaSchema.nullable(),
   /** El último intervalo: entre el penúltimo y el último peso. */
   ultimoIntervalo: intervaloDeCrecimientoSchema.nullable(),
+  /**
+   * El intervalo anterior a ese: entre el antepenúltimo y el penúltimo peso.
+   * Sirve para ver si la ganancia por día bajó contra la vuelta anterior del
+   * mismo animal. `null` cuando no hay tres pesos.
+   */
+  intervaloAnterior: intervaloDeCrecimientoSchema.nullable(),
   /** Entero de días de calendario del rancho. `null` si no hay peso. */
   diasDesdeElUltimoPesaje: z.number().int().nullable(),
   /** El animal estaba en la sesión más reciente del rancho y no se pesó. */
   fueHuecoEnLaUltimaSesion: z.boolean(),
 })
 
+/**
+ * El resumen del hato para la pantalla de crecimiento.
+ *
+ * `gananciaMediaKilosPorDia` es la media de los kilos por día del último
+ * intervalo de los animales que lo tienen. La calcula PostgreSQL sobre
+ * `numeric` y viaja como texto de tres decimales. `null` cuando nadie tiene
+ * kilos por día. No es un hecho guardado.
+ */
 export const crecimientoDelHatoSchema = z.strictObject({
   animales: z.array(filaDeCrecimientoSchema),
+  gananciaMediaKilosPorDia: kilosConSignoSchema.nullable(),
+  pesadosEnLaUltimaVuelta: z.number().int().nonnegative(),
+  esperadosEnLaUltimaVuelta: z.number().int().nonnegative(),
+  /** Día de la sesión más reciente. `null` si el rancho no tiene vueltas. */
+  fechaDeLaUltimaVuelta: diaSchema.nullable(),
 })
 
 export const codigoDeErrorDeCrecimientoSchema = z.enum(['cuerpo_invalido', 'no_encontrado'])

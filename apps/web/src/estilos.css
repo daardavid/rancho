@@ -1,23 +1,53 @@
 /*
- * Estilo mínimo, pensado primero para celular ([UX-13](../../docs/product/ux-principles.md)).
- * Sin biblioteca de componentes: el incremento necesita una base legible, no un
- * sistema de diseño.
+ * Base visual de la guía aprobada (docs/design/guia-visual.md).
+ * Los componentes nuevos viven en src/ui/ y en ui/componentes.css.
+ * Las pantallas actuales siguen con sus clases hasta R-18…R-21; leen estos
+ * tokens, con los nombres viejos apuntando a la guía para no perder color.
  */
 
 :root {
-  --fondo: #f7f5f0;
-  --superficie: #fffdf9;
-  --texto: #23201b;
-  --texto-suave: #5a5348;
-  --borde: #ddd6c8;
-  --bien: #2f6b3a;
-  --bien-fondo: #eaf3e8;
-  --mal: #8a2f26;
-  --mal-fondo: #fbeae7;
-  --ojo: #6a4a12;
-  --ojo-fondo: #fbf3e0;
-  --espera: #6a5b2f;
-  --espera-fondo: #f7f1de;
+  --fondo: #f5f3ee;
+  --superficie: #ffffff;
+  --borde: #e3e0d8;
+  --borde-campo: #cfcbc1;
+  --borde-tarjeta: #ece9e2;
+  --texto: #1c1f1a;
+  --texto-suave: #5c6258;
+  --verde: #1f5c3f;
+  --verde-hover: #163f2b;
+  --verde-fondo: #e6efe9;
+  --ambar-texto: #8a4b00;
+  --ambar-fuerte: #6b3a00;
+  --ambar-fondo: #fdf1de;
+  --ambar-barra: #d9a55b;
+  --neutro-fondo: #efede8;
+  --superficie-campo: #fbfaf7;
+  --error: #8a2f26;
+  --error-fondo: #fbeae7;
+
+  --radio-control: 14px;
+  --radio-tarjeta: 16px;
+  --radio-activa: 18px;
+  --radio-pildora: 99px;
+  --margen: 20px;
+  --espacio-tarjetas: 8px;
+  --espacio-secciones: 16px;
+  --sombra-flotante: 0 8px 20px rgba(31, 92, 63, 0.28);
+  --columna: 30rem;
+  --alto-barra: 72px;
+
+  --fuente-texto: 'Inter', system-ui, sans-serif;
+  --fuente-titulo: 'Archivo', system-ui, sans-serif;
+
+  /* Nombres que ya usan las pantallas de INC-001 y INC-002. */
+  --bien: var(--verde);
+  --bien-fondo: var(--verde-fondo);
+  --mal: var(--error);
+  --mal-fondo: var(--error-fondo);
+  --ojo: var(--ambar-texto);
+  --ojo-fondo: var(--ambar-fondo);
+  --espera: var(--ambar-fuerte);
+  --espera-fondo: var(--ambar-fondo);
 
   color-scheme: light;
 }
@@ -35,12 +65,7 @@ body {
 body {
   background: var(--fondo);
   color: var(--texto);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--fuente-texto);
   /* 16px o más: iOS no hace zoom al enfocar un campo. */
   font-size: 17px;
   line-height: 1.45;
@@ -49,14 +74,14 @@ body {
 
 .pantalla {
   margin: 0 auto;
-  max-width: 34rem;
+  max-width: var(--columna);
   /* Respeta el área segura del celular y da aire arriba y abajo. */
-  padding: max(1.25rem, env(safe-area-inset-top)) 1rem
+  padding: max(1.25rem, env(safe-area-inset-top)) var(--margen)
     max(2.5rem, env(safe-area-inset-bottom));
 }
 
 .barra {
-  max-width: 34rem;
+  max-width: var(--columna);
   margin: 0 auto;
   padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0;
   display: flex;
@@ -92,6 +117,8 @@ body {
 
 h1 {
   margin: 0.35rem 0 0;
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
   font-size: 1.5rem;
   line-height: 1.25;
 }
@@ -125,7 +152,7 @@ h2.seccion__titulo {
 
 .campo__etiqueta {
   font-weight: 600;
-  font-size: 0.98rem;
+  font-size: 0.875rem;
   padding: 0;
 }
 
@@ -137,15 +164,16 @@ h2.seccion__titulo {
 .campo__ayuda {
   margin: 0;
   color: var(--texto-suave);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .campo__entrada {
   width: 100%;
-  min-height: 3rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.6rem;
+  min-height: 3.125rem;
+  padding: 0.6rem 0.875rem;
+  /* 14 px, el radio de campos de la guía. */
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-control);
   background: var(--superficie);
   color: var(--texto);
   /* 16px o más: iOS no hace zoom al enfocar. */
@@ -162,7 +190,7 @@ h2.seccion__titulo {
 .fila:focus-visible,
 .opcion:focus-within,
 .enlace:focus-visible {
-  outline: 3px solid var(--espera);
+  outline: 3px solid var(--texto);
   outline-offset: 2px;
 }
 
@@ -232,7 +260,7 @@ h2.seccion__titulo {
 .boton--principal {
   border-color: var(--bien);
   background: var(--bien);
-  color: #fffdf9;
+  color: #fff;
 }
 
 .boton--secundario {
@@ -250,7 +278,7 @@ h2.seccion__titulo {
 }
 
 .boton--principal:active {
-  background: #24552d;
+  background: var(--verde-hover);
 }
 
 .boton:disabled {
@@ -390,6 +418,52 @@ h2.seccion__titulo {
 
 /* Ficha ---------------------------------------------------------------- */
 
+/*
+ * Sin barra fija: la ficha se lee de arriba abajo. Solo deja aire sobre la
+ * navegación de abajo.
+ */
+.pantalla--ficha {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.ficha__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 16px;
+}
+
+.ficha__seccion {
+  margin-bottom: var(--espacio-secciones);
+}
+
+.ficha__titulo {
+  margin: 0 0 10px;
+  font-family: var(--fuente-titulo);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ficha__plegables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
+}
+
+/* El peso de la serie: kilos y fecha arriba, en un solo renglón. */
+.peso__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.peso__fila .peso__kilos {
+  font-family: var(--fuente-titulo);
+  font-size: 19px;
+  font-weight: 700;
+}
+
 .seccion {
   margin-bottom: 1.75rem;
 }
@@ -419,6 +493,12 @@ h2.seccion__titulo {
 .dato__valor {
   margin: 0;
   flex: 1;
+}
+
+.aretes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-tarjetas);
 }
 
 .arete,
@@ -458,42 +538,15 @@ h2.seccion__titulo {
   margin-top: 0.35rem;
 }
 
-/* Barra inferior ------------------------------------------------------- */
+/* Columna con navegación ------------------------------------------------ */
 
 /*
- * Las pantallas del trabajo, abajo y al alcance del pulgar. Se queda pegada al
- * fondo del celular, respetando el área segura del iPhone.
+ * La barra nueva es `position: fixed` (ui/componentes.css): en computadora
+ * una barra `sticky` se queda a media página si el contenido es corto.
+ * Este relleno deja el último contenido por encima de esa barra.
  */
-.barra-inferior {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  display: flex;
-  gap: 0.35rem;
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--borde);
-  background: var(--superficie);
-}
-
-.barra-inferior__enlace {
-  flex: 1;
-  min-height: 3rem;
-  padding: 0 0.5rem;
-  border: 1px solid transparent;
-  border-radius: 0.6rem;
-  background: transparent;
-  color: var(--texto-suave);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.barra-inferior__enlace--activa {
-  border-color: var(--bien);
-  background: var(--bien-fondo);
-  color: var(--texto);
+.con-navegacion {
+  padding-bottom: calc(var(--alto-barra) + env(safe-area-inset-bottom));
 }
 
 /* Captura del pesaje --------------------------------------------------- */
@@ -582,64 +635,6 @@ h2.seccion__titulo {
   color: var(--mal);
   font-size: 0.88rem;
   font-weight: 600;
-}
-
-/* Tabla de crecimiento ------------------------------------------------- */
-
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.tabla__leyenda {
-  caption-side: top;
-  text-align: left;
-  padding-bottom: 0.6rem;
-  color: var(--texto-suave);
-  font-size: 0.85rem;
-}
-
-.tabla th,
-.tabla td {
-  padding: 0.6rem 0.4rem;
-  border-bottom: 1px solid var(--borde);
-  text-align: left;
-  vertical-align: top;
-}
-
-.tabla th {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--texto-suave);
-}
-
-.tabla td {
-  display: table-cell;
-}
-
-.tabla__detalle {
-  display: block;
-  color: var(--texto-suave);
-  font-size: 0.84rem;
-}
-
-.tabla__hueco {
-  display: block;
-  color: var(--ojo);
-  font-weight: 600;
-  font-size: 0.84rem;
-}
-
-.tabla__ojo {
-  display: block;
-  color: var(--ojo);
-  font-size: 0.84rem;
-}
-
-.tabla__fila--hueco {
-  background: var(--espera-fondo);
 }
 
 /* Gráfica -------------------------------------------------------------- */

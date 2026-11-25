@@ -86,3 +86,97 @@ export function kilosNormales(texto: string): string {
   }
   return `${partes[1] ?? ''}.${(partes[2] ?? '').padEnd(3, '0')}`
 }
+
+const GRAMOS_POR_KILO = 1000n
+
+/**
+ * Lo que se le enseña al dueño mientras escribe, comparado con el peso anterior.
+ *
+ * `gramos` es la diferencia exacta. `diferencia` y `porDia` son texto para la
+ * tarjeta: no se guardan. Los kg/día se redondean a centésimas con aritmética
+ * entera (mitad se aleja de cero), y no se calculan si el intervalo no tiene
+ * días: no se divide entre cero.
+ */
+export type ComparacionDePeso = {
+  readonly gramos: bigint
+  readonly diferencia: string
+  readonly porDia: string | null
+}
+
+/**
+ * Diferencia contra el peso anterior, en gramos enteros.
+ *
+ * `"8.2" − "8.02"` son 180 gramos. Con `Number` esa resta da
+ * `0.17999999999999972`, que no es 0.18 kg. Aquí los dos textos se parten en
+ * enteros y decimales y se restan como `bigint`: el resultado no pasa por coma
+ * flotante. `null` si alguno de los dos no es un peso mayor que cero.
+ */
+export function compararConElAnterior(
+  actual: string,
+  anterior: string,
+  dias: number,
+): ComparacionDePeso | null {
+  const gramosActuales = gramosExactos(actual)
+  const gramosAnteriores = gramosExactos(anterior)
+  if (gramosActuales === null || gramosAnteriores === null) {
+    return null
+  }
+  const gramos = gramosActuales - gramosAnteriores
+  return {
+    gramos,
+    diferencia: textoDeDiferencia(gramos),
+    porDia: porDiaDe(gramos, dias),
+  }
+}
+
+/** Gramos enteros del texto, o `null` si no es un peso mayor que cero. */
+function gramosExactos(kilos: string): bigint | null {
+  const partes = PATRON_DE_KILOS.exec(kilos.trim())
+  if (partes === null) {
+    return null
+  }
+  const gramos = BigInt(partes[1] ?? '0') * GRAMOS_POR_KILO + BigInt((partes[2] ?? '').padEnd(3, '0'))
+  if (gramos <= 0n) {
+    return null
+  }
+  return gramos
+}
+
+function textoDeDiferencia(gramos: bigint): string {
+  if (gramos === 0n) {
+    return '0 kg'
+  }
+  const negativo = gramos < 0n
+  return `${negativo ? '-' : '+'}${kilosDeGramos(negativo ? -gramos : gramos, 3)} kg`
+}
+
+/**
+ * Kilos por día a centésimas, o `null` si no hay días que dividir.
+ *
+ * `round(gramos / (1000 × días) × 100)` = `round(gramos / (10 × días))`, hecho
+ * con división entera. La mitad se aleja de cero, como el `round` de un
+ * decimal.
+ */
+function porDiaDe(gramos: bigint, dias: number): string | null {
+  if (!Number.isInteger(dias) || dias <= 0) {
+    return null
+  }
+  const divisor = 10n * BigInt(dias)
+  const negativo = gramos < 0n
+  const absoluto = negativo ? -gramos : gramos
+  const cociente = absoluto / divisor
+  const resto = absoluto % divisor
+  const redondeado = resto * 2n >= divisor ? cociente + 1n : cociente
+  const centesimas = negativo ? -redondeado : redondeado
+  const signo = centesimas < 0n ? '-' : ''
+  const cuerpo = kilosDeGramos(centesimas < 0n ? -centesimas : centesimas, 2)
+  return `${signo}${cuerpo} kg/día`
+}
+
+/** `180` gramos con 3 decimales → `"0.18"`. `33` centésimas con 2 → `"0.33"`. */
+function kilosDeGramos(absoluto: bigint, decimales: 2 | 3): string {
+  const escala = decimales === 3 ? 1000n : 100n
+  const enteros = absoluto / escala
+  const fraccion = (absoluto % escala).toString().padStart(decimales, '0')
+  return `${enteros}.${fraccion}`.replace(/0+$/, '').replace(/\.$/, '')
+}

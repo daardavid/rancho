@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import {
   abrirAlta,
+  abrirMasDatos,
   darDeAltaConNombre,
   darDeAltaSinSaber,
   entrar,
@@ -44,9 +45,17 @@ test('«No sé» se pinta como una opción y no como un error', async ({ page })
   await entrar(page)
   await abrirAlta(page)
 
-  // Tres preguntas de opción en el alta: sexo, categoría y tenencia. Las tres
-  // vienen contestadas con «No sé», que es lo que se ve marcado.
-  await expect(page.getByRole('radio', { name: 'No sé', checked: true })).toHaveCount(3)
+  // Las tres preguntas de un toque vienen contestadas con «No sé», que es lo
+  // que se ve marcado: el tipo, el sexo y la tenencia.
+  await expect(
+    page.getByRole('radiogroup', { name: '¿Qué es?' }).getByRole('radio', { name: 'No sé' }),
+  ).toBeChecked()
+  await expect(
+    page.getByRole('radiogroup', { name: 'Sexo' }).getByRole('radio', { name: 'No sé' }),
+  ).toBeChecked()
+  await expect(
+    page.getByRole('radiogroup', { name: '¿De quién es?' }).getByRole('radio', { name: 'No sé' }),
+  ).toBeChecked()
 
   // Ninguna se marca como inválida.
   await expect(page.locator('[aria-invalid="true"]')).toHaveCount(0)
@@ -61,6 +70,9 @@ test('«a la parte» es una tenencia con nota verbal y no calcula ninguna parte'
   await abrirAlta(page)
 
   await page.getByRole('radio', { name: 'A la parte' }).check()
+
+  // La nota del arreglo vive en «Más datos», con lo que se captura poco.
+  await abrirMasDatos(page)
   await page.getByLabel('Nota del arreglo').fill('Arreglo verbal con el vecino, sin papeles.')
 
   await guardarAlta(page)
@@ -71,6 +83,60 @@ test('«a la parte» es una tenencia con nota verbal y no calcula ninguna parte'
   await expect(datos).toContainText('Arreglo verbal con el vecino, sin papeles.')
   // La nota es lo que hay; ningún porcentaje se deriva de ella (`OQ-OWN-001`).
   await expect(datos).not.toContainText('%')
+})
+
+test('el arete del alta queda puesto en la ficha como su propio hecho', async ({ page }) => {
+  await entrar(page)
+  await abrirAlta(page)
+
+  const nombre = nombreUnico('Becerro con arete')
+  const arete = `MX-${String(Date.now()).slice(-7)}`
+
+  await page.getByLabel('Nombre o seña').fill(nombre)
+  // El arete se escribe con el teclado numérico, como lo trae el animal.
+  const campoDelArete = page.getByLabel('Arete SINIIGA')
+  await expect(campoDelArete).toHaveAttribute('inputmode', 'numeric')
+  await campoDelArete.fill(arete)
+  await guardarAlta(page)
+
+  await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
+  // El arete puesto se ve arriba, entre las etiquetas de la ficha.
+  await expect(page.getByText(`SINIIGA ${arete}`).first()).toBeVisible()
+})
+
+test('«Guardar y dar de alta otro» deja el formulario listo y guarda dos animales', async ({
+  page,
+}) => {
+  await entrar(page)
+  await abrirAlta(page)
+
+  const primero = nombreUnico('Becerro Lote A')
+  const segundo = nombreUnico('Becerro Lote B')
+
+  await page.getByLabel('Nombre o seña').fill(primero)
+  await page.getByRole('radio', { name: 'Becerro' }).check()
+  await page.getByRole('radio', { name: 'Del rancho' }).check()
+  await page.getByRole('button', { name: 'Guardar y dar de alta otro' }).click()
+
+  // Sigue en el alta, con el formulario vacío y el aviso de lo que se guardó.
+  await expect(page.getByRole('heading', { name: 'Nuevo animal' })).toBeVisible()
+  await expect(page.getByLabel('Nombre o seña')).toHaveValue('')
+  // El tipo y la tenencia se conservan: en un lote casi siempre se repiten.
+  await expect(page.getByRole('radio', { name: 'Becerro' })).toBeChecked()
+  await expect(page.getByRole('radio', { name: 'Del rancho' })).toBeChecked()
+
+  await page.getByLabel('Nombre o seña').fill(segundo)
+  await page.getByRole('button', { name: 'Guardar y dar de alta otro' }).click()
+  await expect(page.getByLabel('Nombre o seña')).toHaveValue('')
+
+  // Los dos quedaron en el rancho y se distinguen por su nombre.
+  await irA(page, 'Hato')
+  await page.getByLabel('Buscar').fill(primero)
+  await expect(page.getByRole('button', { name: new RegExp(primero) })).toBeVisible()
+  await expect(page.getByRole('button', { name: new RegExp(segundo) })).toBeHidden()
+
+  await page.getByLabel('Buscar').fill(segundo)
+  await expect(page.getByRole('button', { name: new RegExp(segundo) })).toBeVisible()
 })
 
 test('el hato busca por nombre y lo encuentra', async ({ page }) => {

@@ -201,9 +201,15 @@ describe('Ficha: corregir', () => {
 
     pintarApp(`#/animal/${ANIMAL}`)
 
-    expect(await screen.findByText('SINIIGA MX-7777')).toBeDefined()
+    // Arriba, el arete puesto y la categoría como etiquetas.
+    expect((await screen.findAllByText('SINIIGA MX-7777')).length).toBeGreaterThan(0)
+
+    // Los aretes con su historia y las correcciones están plegados.
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: /Historia de correcciones/ }))
     expect(screen.getByText(/antes decía «Canela»/)).toBeDefined()
     expect(screen.getByText(/Estaba mal escrito en el cuaderno/)).toBeDefined()
+
     expect(screen.getByText('210.5 kg')).toBeDefined()
     expect(screen.getByText('Medido en la báscula')).toBeDefined()
   })

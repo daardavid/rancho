@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { entrar } from './ayudas'
+import { entrar, salirDesdeElHato } from './ayudas'
 
 /**
  * Entrar y salir.
@@ -30,8 +30,7 @@ test('el propietario entra, ve su hato y sale', async ({ page, context }) => {
   expect(sesion?.secure).toBe(true)
   expect(sesion?.sameSite).toBe('Lax')
 
-  await page.getByRole('button', { name: 'Salir' }).click()
-  await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
+  await salirDesdeElHato(page)
 
   // La fila de la sesión se borró: la cookie que quedó ya no sirve.
   const quedan = (await context.cookies()).filter((cookie) => cookie.name === 'rancho_sesion')
@@ -56,8 +55,7 @@ test('una contraseña mal puesta no abre la sesión y lo dice', async ({ page })
 
 test('al volver a entrar después de salir, la sesión se abre otra vez', async ({ page }) => {
   await entrar(page)
-  await page.getByRole('button', { name: 'Salir' }).click()
-  await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
+  await salirDesdeElHato(page)
 
   await entrar(page)
   await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
