@@ -64,6 +64,12 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
       if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/health-notes$/.test(ruta)) {
         return Response.json({ animalId: ruta.split('/')[3], notas: [] }, { status: 200 })
       }
+      if (metodo === 'GET' && /^\/api\/read-models\/ultima-observacion\/[^/]+$/.test(ruta)) {
+        return Response.json(
+          { animalId: ruta.split('/').pop(), observacion: null },
+          { status: 200 },
+        )
+      }
       return Response.json({ codigo: 'no_encontrado' }, { status: 404 })
     }
 

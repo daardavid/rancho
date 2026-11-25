@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { ErrorDeApi, pedir } from './http'
+import { LLAVE_DE_INICIO } from './inicio'
 
 /**
  * Las consultas y los comandos del pesaje.
@@ -103,4 +104,6 @@ function invalidarDespuesDePesar(cache: ReturnType<typeof useQueryClient>): void
   void cache.invalidateQueries({ queryKey: ['sesion'] })
   void cache.invalidateQueries({ queryKey: LLAVE_DE_ULTIMA_SESION })
   void cache.invalidateQueries({ queryKey: ['hato'] })
+  void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
+  void cache.invalidateQueries({ queryKey: ['observacion'] })
 }

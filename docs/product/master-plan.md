@@ -55,20 +55,20 @@ Closed at [../checkpoints/governance-v1.md](../checkpoints/governance-v1.md).
 
 ## NOW
 
-MVP Framing, proposed in [mvp-framing.md](mvp-framing.md), and the first increment, [INC-001 — Ficha del hato y pesaje de becerros](increments/INC-001-ficha-y-pesaje.md).
+The factory (`fabrica/`) has implemented [INC-001](increments/INC-001-ficha-y-pesaje.md) through [INC-004](increments/INC-004-vida-del-hato.md): the animal file and calf weighing, local operation, the experience redesign, and herd life (births, exits, expected place, health notes, last observation, and the Inicio screen).
 
-Both become accepted when David merges them into `main`. Until then this section still reads: no MVP scope has been selected and no production application has been scaffolded.
+Those increments become accepted when David merges them into `main`. Herd verification stays out (`OQ-COUNT-001`). Feed and money stay out until the interview answers arrive.
 
 Done means the whole TO-BE in the end, and the MVP is the first done (David, 2026-11-22). The MVP path and its non-goals are in [mvp-framing.md](mvp-framing.md).
 
-INC-001 is executed by the repository factory (`fabrica/`). The interview answers that unblock the critical pains are collected with [../domain/cuestionario-002.md](../domain/cuestionario-002.md).
+The interview answers that unblock the remaining pains are collected with [../domain/cuestionario-002.md](../domain/cuestionario-002.md).
 
 ## NEXT
 
-1. [INC-002 — Todo en local](increments/INC-002-todo-en-local.md): run the app on the laptop and on a phone on the same Wi-Fi, with a local backup and a photo of the scale.
-2. A later migration increment publishes the app so it can run off the laptop. It follows INC-002. Its id is assigned when it is framed.
-3. Feed, profitability, and herd-control increments, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path").
-4. Where loading the notebook or Excel history (`OQ-DATA-001`) lands is still open. INC-002 leaves it out.
+1. David's review of INC-001 through INC-004, and what real use on the ranch teaches.
+2. A later migration increment publishes the app so it can run off the laptop. It follows local use. Its id is assigned when it is framed.
+3. Feed and profitability, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path"). Herd verification stays later: its method and cadence are still open (`OQ-COUNT-001`).
+4. Where loading the notebook or Excel history (`OQ-DATA-001`) lands is still open.
 
 ## LATER
 

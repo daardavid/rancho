@@ -13,7 +13,7 @@ import { crearPuertoDeEvidencia } from './infrastructure/evidence/puerto'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
-import { crearModelosDeCrecimiento } from './read-models'
+import { crearModelosDeCrecimiento, crearModelosDePresencia } from './read-models'
 
 /**
  * El proceso de la aplicación: una base, una sesión y un servidor.
@@ -46,6 +46,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     growth: crearGrowth(cliente.db, herd, evidencia),
     evidencia,
     crecimiento: crearModelosDeCrecimiento(cliente.db),
+    presencia: crearModelosDePresencia(cliente.db),
     base: comprobacionDeBase(cliente.db),
     produccion: configuracion.cookieSegura,
   })

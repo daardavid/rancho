@@ -273,3 +273,44 @@ describe('Ficha: salida', () => {
     expect(screen.queryByText(/Salida guardada/)).toBeNull()
   })
 })
+
+describe('Ficha: última observación', () => {
+  it('dice hace cuántos días se vio y en qué pesaje', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+      [`GET /api/read-models/ultima-observacion/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          animalId: ANIMAL,
+          observacion: {
+            fecha: '2026-11-20',
+            origen: 'pesaje',
+            origenId: '44444444-4444-4444-8444-444444444444',
+            dias: 4,
+          },
+        },
+      }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(
+      await screen.findByText('Visto por última vez: hace 4 días, en el pesaje del 20 nov 2026.'),
+    ).toBeDefined()
+  })
+
+  it('sin pesaje ni nota vista se queda vacío, no en cero días', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(await screen.findByText('Sin observación')).toBeDefined()
+    expect(screen.queryByText(/hace 0 días/)).toBeNull()
+  })
+})

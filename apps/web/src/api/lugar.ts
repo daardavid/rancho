@@ -12,6 +12,7 @@ import {
 } from '@rancho/api-contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { LLAVE_DE_INICIO } from './inicio'
 import { pedir } from './http'
 
 export const LLAVE_DE_POTREROS = ['potreros'] as const
@@ -92,6 +93,7 @@ export function useAsignarLugar() {
       void cache.invalidateQueries({ queryKey: LLAVE_DE_POTREROS })
       // La ficha muestra el lugar vigente y su historia.
       void cache.invalidateQueries({ queryKey: ['lugar'] })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
     },
   })
 }
