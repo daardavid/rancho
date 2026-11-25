@@ -52,7 +52,7 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
 
   await page.getByRole('button', { name: 'Guardar pesaje (3)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
-  await expect(page.locator('.subtitulo')).toContainText('3 pesados')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('3 pesados')
   await expect(page.getByText('180.5 kg')).toBeVisible()
 
   // La vuelta 2: un mes después. La app propone a los tres de la vuelta
@@ -80,8 +80,8 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
 
   // Dos pesados y un hueco: el hueco se ve como «No se pesó», no como una baja.
-  await expect(page.locator('.subtitulo')).toContainText('2 pesados')
-  await expect(page.locator('.subtitulo')).toContainText('1 no se pesó')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('2 pesados')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('1 no se pesó')
   await expect(page.getByText('215.5 kg')).toBeVisible()
   await expect(page.getByRole('img', { name: 'Foto de la báscula' })).toBeVisible()
 
@@ -127,7 +127,7 @@ test('corregir un peso mal anotado guarda el valor anterior en la historia', asy
   // su valor anterior, quién lo cambió y por qué.
   await expect(page.getByText('205.25 kg')).toBeVisible()
 
-  await page.getByRole('button', { name: '← Hato' }).click()
+  await page.getByRole('button', { name: 'Regresar al hato' }).click()
   await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
   await page.getByRole('button', { name: new RegExp(nombre) }).click()
 
