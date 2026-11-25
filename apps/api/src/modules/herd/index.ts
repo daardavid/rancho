@@ -15,6 +15,7 @@ import {
   obtenerFicha,
   reemplazar,
   registrar,
+  type AlcanceDeSalida,
   type DepsDeHerd,
   type EntradaAgregarMarca,
   type EntradaCorregir,
@@ -107,14 +108,25 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
   const correr = <T>(trabajo: (repos: DepsDeHerd) => Promise<T>): Promise<T> =>
     db.transaction(async (tx) => trabajo(reposDe(tx, evidencia)))
 
+  // Recibo y foto fuera de la escritura. El puerto de evidencia no usa `tx`:
+  // con la transacción abierta, su SELECT no vuelve.
+  const salida: AlcanceDeSalida = {
+    leerRecibo: (commandId) =>
+      db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
+    leerAnimal: (ranchId, animalId) =>
+      db.transaction(async (tx) => crearRepositorioDeAnimales(tx).obtener(ranchId, animalId, false)),
+    escribir: correr,
+    evidencia,
+  }
+
   return {
     registrar: (entrada) => correr((repos) => registrar(repos, entrada)),
     corregir: (entrada) => correr((repos) => corregir(repos, entrada)),
     agregarMarca: (entrada) => correr((repos) => agregarMarca(repos, entrada)),
     reemplazarMarca: (entrada) => correr((repos) => reemplazar(repos, entrada)),
     marcarPerdida: (entrada) => correr((repos) => marcarPerdida(repos, entrada)),
-    registrarSalida: (entrada) => correr((repos) => registrarSalidaDe(repos, entrada)),
-    corregirSalida: (entrada) => correr((repos) => corregirSalidaDe(repos, entrada)),
+    registrarSalida: (entrada) => registrarSalidaDe(salida, entrada),
+    corregirSalida: (entrada) => corregirSalidaDe(salida, entrada),
     listarActivos: (ranchId) => correr((repos) => listarActivos(repos.animales, ranchId)),
     listarSalidas: (ranchId) => correr((repos) => listarSalidas(repos.animales, ranchId)),
     obtener: (ranchId, animalId) => correr((repos) => obtenerFicha(repos.animales, ranchId, animalId)),

@@ -1,6 +1,11 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { sembrarRancho } from '../../../src/infrastructure/db/semilla'
+import { crearPuertoDeEvidencia } from '../../../src/infrastructure/evidence/puerto'
 import { crearGrowth } from '../../../src/modules/growth'
 import { crearHerd } from '../../../src/modules/herd'
 import { RechazoDeHerd } from '../../../src/modules/herd/domain/errores'
@@ -267,4 +272,85 @@ describe('salida del activo', () => {
       evidenciaId: foto,
     })
   })
+
+  it(
+    'con el puerto real guarda la foto, corrige con otra y rechaza la de otro rancho',
+    async () => {
+      const carpeta = await mkdtemp(join(tmpdir(), 'rancho-salida-'))
+      const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9])
+      const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00])
+      try {
+        const evidencia = crearPuertoDeEvidencia(db, carpeta)
+        const herdConFoto = crearHerd(db, evidencia)
+        const animalId = nuevoId()
+        await herdConFoto.registrar({ commandId: nuevoId(), ranchId, recordedBy, id: animalId })
+
+        const primera = await evidencia.guardar({ ranchId, bytes: jpeg, nombreOriginal: null })
+        const baja = await herdConFoto.registrarSalida({
+          commandId: nuevoId(),
+          ranchId,
+          recordedBy,
+          animalId,
+          version: 1,
+          motivo: 'death',
+          fecha: '2026-06-01',
+          evidenciaId: primera.id,
+        })
+        expect(baja.salida?.evidenciaId).toBe(primera.id)
+
+        const segunda = await evidencia.guardar({ ranchId, bytes: png, nombreOriginal: null })
+        const corregida = await herdConFoto.corregirSalida({
+          commandId: nuevoId(),
+          ranchId,
+          recordedBy,
+          animalId,
+          version: baja.version,
+          motivo: 'era otra foto',
+          cambios: { evidenciaId: segunda.id },
+        })
+        expect(corregida.salida?.evidenciaId).toBe(segunda.id)
+        expect(new Uint8Array(await readFile(join(carpeta, ranchId, primera.id)))).toEqual(jpeg)
+
+        const otroRancho = ranchIdSchema.parse(nuevoId())
+        const ajena = await evidencia.guardar({
+          ranchId: otroRancho,
+          bytes: jpeg,
+          nombreOriginal: null,
+        })
+        await expect(
+          herdConFoto.corregirSalida({
+            commandId: nuevoId(),
+            ranchId,
+            recordedBy,
+            animalId,
+            version: corregida.version,
+            motivo: 'foto de otro rancho',
+            cambios: { evidenciaId: ajena.id },
+          }),
+        ).rejects.toMatchObject({ codigo: 'evidencia_ajena' } satisfies Partial<RechazoDeHerd>)
+
+        const sigue = await herdConFoto.obtener(ranchId, animalId)
+        expect(sigue?.salida?.evidenciaId).toBe(segunda.id)
+        expect(new Uint8Array(await readFile(join(carpeta, ranchId, primera.id)))).toEqual(jpeg)
+
+        const otro = nuevoId()
+        await herdConFoto.registrar({ commandId: nuevoId(), ranchId, recordedBy, id: otro })
+        await expect(
+          herdConFoto.registrarSalida({
+            commandId: nuevoId(),
+            ranchId,
+            recordedBy,
+            animalId: otro,
+            version: 1,
+            motivo: 'other',
+            fecha: '2026-06-02',
+            evidenciaId: ajena.id,
+          }),
+        ).rejects.toMatchObject({ codigo: 'evidencia_ajena' } satisfies Partial<RechazoDeHerd>)
+      } finally {
+        await rm(carpeta, { recursive: true, force: true })
+      }
+    },
+    20_000,
+  )
 })

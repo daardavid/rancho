@@ -1,8 +1,8 @@
-import type { AlmacenDeIdempotencia } from '../../../shared-kernel/idempotencia'
-import { ejecutarComandoIdempotente } from '../../../shared-kernel/idempotencia'
-import { animalIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
+import type { AlmacenDeIdempotencia, ReciboGuardado } from '../../../shared-kernel/idempotencia'
+import { ejecutarComandoIdempotente, huellaDeContenido } from '../../../shared-kernel/idempotencia'
+import { animalIdSchema, ranchIdSchema, type AnimalId, type RanchId } from '../../../shared-kernel/ids'
 import type { RecordedBy } from '../../../shared-kernel/actores'
-import { ConflictoDeVersion } from '../../../shared-kernel/conflictos'
+import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../shared-kernel/conflictos'
 import { z } from 'zod'
 
 import { corregirFicha, registrarAnimal, type Animal, type CambiosDeFicha } from '../domain/animal'
@@ -42,6 +42,20 @@ export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
   readonly filiacion: RepositorioDeFiliacion
   readonly idempotencia: AlmacenDeIdempotencia
+  readonly evidencia: ConsultaDeEvidencia | null
+}
+
+/**
+ * La salida consulta el recibo y la foto antes de escribir.
+ *
+ * El puerto de evidencia usa el cliente de afuera. Si se le pregunta con la
+ * transacción de la ficha abierta, en la base embebida (y con un solo cliente
+ * en el pool) las dos se esperan y no vuelven.
+ */
+export type AlcanceDeSalida = {
+  readonly leerRecibo: (commandId: string) => Promise<ReciboGuardado | null>
+  readonly leerAnimal: (ranchId: RanchId, animalId: AnimalId) => Promise<Animal | null>
+  readonly escribir: <T>(trabajo: (deps: DepsDeHerd) => Promise<T>) => Promise<T>
   readonly evidencia: ConsultaDeEvidencia | null
 }
 
@@ -237,26 +251,30 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
  * Da de baja. El mismo comando con el mismo contenido devuelve la ficha ya
  * guardada. Una versión vieja no cambia nada. La ficha, los aretes y las
  * correcciones se quedan.
+ *
+ * El recibo se lee primero: un reintento no vuelve a preguntar por la foto.
+ * La foto se valida antes de abrir la transacción que bloquea la fila.
  */
 export async function registrarSalidaDe(
-  deps: DepsDeHerd,
+  alcance: AlcanceDeSalida,
   entrada: EntradaRegistrarSalida,
 ): Promise<FichaConHistoria> {
-  return ejecutarComandoIdempotente(
-    deps.idempotencia,
-    entrada.commandId,
-    {
-      comando: 'registrar_salida',
-      ranchId: entrada.ranchId,
-      recordedBy: entrada.recordedBy,
-      animalId: entrada.animalId,
-      version: entrada.version,
-      motivo: entrada.motivo,
-      fecha: entrada.fecha,
-      nota: entrada.nota ?? null,
-      evidenciaId: entrada.evidenciaId ?? null,
-    },
-    async () => {
+  const contenido = contenidoDeRegistrarSalida(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as FichaConHistoria
+  }
+
+  const evidenciaId = idParaConsultar(entrada.evidenciaId)
+  if (evidenciaId !== null) {
+    await exigirEvidencia(alcance.evidencia, ranchIdSchema.parse(entrada.ranchId), evidenciaId)
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const animalId = animalIdSchema.parse(entrada.animalId)
       const actual = await deps.animales.obtener(ranchId, animalId, true)
@@ -273,7 +291,6 @@ export async function registrarSalidaDe(
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
         ...(entrada.evidenciaId !== undefined ? { evidenciaId: entrada.evidenciaId } : {}),
       })
-      await exigirEvidencia(deps.evidencia, ranchId, siguiente.salida?.evidenciaId ?? null)
       await deps.animales.guardarSalida({
         animal: siguiente,
         versionLeida: entrada.version,
@@ -283,31 +300,43 @@ export async function registrarSalidaDe(
         correctedAt: new Date(),
       })
       return await fichaDe(deps, siguiente)
-    },
+    }),
   )
 }
 
 /**
  * Corrige la salida, o la deshace y el animal vuelve a activo. Lo que estaba
  * queda en la historia. No se anota precio ni reposición.
+ *
+ * La foto nueva se consulta solo si es distinta a la vigente, y esa lectura
+ * de la ficha no bloquea la fila: ocurre antes de la transacción de escritura.
  */
 export async function corregirSalidaDe(
-  deps: DepsDeHerd,
+  alcance: AlcanceDeSalida,
   entrada: EntradaCorregirSalida,
 ): Promise<FichaConHistoria> {
-  return ejecutarComandoIdempotente(
-    deps.idempotencia,
-    entrada.commandId,
-    {
-      comando: 'corregir_salida',
-      ranchId: entrada.ranchId,
-      recordedBy: entrada.recordedBy,
-      animalId: entrada.animalId,
-      version: entrada.version,
-      motivo: entrada.motivo,
-      cambios: entrada.cambios,
-    },
-    async () => {
+  const contenido = contenidoDeCorregirSalida(entrada)
+  const previo = await alcance.leerRecibo(entrada.commandId)
+  if (previo !== null) {
+    if (previo.huella !== huellaDeContenido(contenido)) {
+      throw new ConflictoDeIdempotencia(entrada.commandId)
+    }
+    return JSON.parse(previo.resultado) as FichaConHistoria
+  }
+
+  const evidenciaId = idParaConsultar(entrada.cambios.evidenciaId)
+  if (entrada.cambios.activo !== true && evidenciaId !== null) {
+    const ranchId = ranchIdSchema.parse(entrada.ranchId)
+    const animalId = animalIdSchema.parse(entrada.animalId)
+    const actual = await alcance.leerAnimal(ranchId, animalId)
+    const vigente = actual?.salida?.evidenciaId ?? null
+    if (actual !== null && evidenciaId !== vigente) {
+      await exigirEvidencia(alcance.evidencia, ranchId, evidenciaId)
+    }
+  }
+
+  return alcance.escribir((deps) =>
+    ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
       const animalId = animalIdSchema.parse(entrada.animalId)
       const actual = await deps.animales.obtener(ranchId, animalId, true)
@@ -319,10 +348,6 @@ export async function corregirSalidaDe(
       }
 
       const corregida = corregirSalida(actual, entrada.cambios, entrada.motivo)
-      const evidenciaNueva = corregida.animal.salida?.evidenciaId ?? null
-      if (evidenciaNueva !== null && evidenciaNueva !== corregida.anterior.evidenciaId) {
-        await exigirEvidencia(deps.evidencia, ranchId, evidenciaNueva)
-      }
       await deps.animales.guardarSalida({
         animal: corregida.animal,
         versionLeida: entrada.version,
@@ -332,7 +357,7 @@ export async function corregirSalidaDe(
         correctedAt: new Date(),
       })
       return await fichaDe(deps, corregida.animal)
-    },
+    }),
   )
 }
 
@@ -518,6 +543,47 @@ async function fichaDe(deps: DepsDeHerd, animal: Animal): Promise<FichaConHistor
     correcciones: correcciones.map(publicarCorreccion),
     correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
   }
+}
+
+function contenidoDeRegistrarSalida(entrada: EntradaRegistrarSalida) {
+  return {
+    comando: 'registrar_salida',
+    ranchId: entrada.ranchId,
+    recordedBy: entrada.recordedBy,
+    animalId: entrada.animalId,
+    version: entrada.version,
+    motivo: entrada.motivo,
+    fecha: entrada.fecha,
+    nota: entrada.nota ?? null,
+    evidenciaId: entrada.evidenciaId ?? null,
+  }
+}
+
+function contenidoDeCorregirSalida(entrada: EntradaCorregirSalida) {
+  return {
+    comando: 'corregir_salida',
+    ranchId: entrada.ranchId,
+    recordedBy: entrada.recordedBy,
+    animalId: entrada.animalId,
+    version: entrada.version,
+    motivo: entrada.motivo,
+    cambios: entrada.cambios,
+  }
+}
+
+/**
+ * Id con texto, para preguntar si la foto es del rancho.
+ * Vacío no es una foto ajena: lo rechaza el dominio al guardar.
+ */
+function idParaConsultar(valor: string | null | undefined): string | null {
+  if (valor === undefined || valor === null) {
+    return null
+  }
+  const limpio = valor.trim()
+  if (limpio === '') {
+    return null
+  }
+  return limpio
 }
 
 async function exigirEvidencia(
