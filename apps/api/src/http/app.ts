@@ -8,6 +8,7 @@ import type { ModelosDeCrecimiento } from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
+import { registrarRutasDeNacimientos } from './routes/nacimientos'
 import { registrarRutasDeCrecimiento } from './routes/crecimiento'
 import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
 import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evidencia'
@@ -89,6 +90,7 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.herd !== undefined) {
     registrarRutasDeAnimales(app, opciones.herd)
+    registrarRutasDeNacimientos(app, opciones.herd)
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)

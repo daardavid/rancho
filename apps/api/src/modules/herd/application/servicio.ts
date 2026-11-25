@@ -15,6 +15,7 @@ import type {
   Tenencia,
   TipoDeMarca,
 } from '../domain/valores'
+import type { RepositorioDeFiliacion } from './repositorio-filiacion'
 import type { RepositorioDeAnimales } from './repositorio'
 import {
   publicarAnimal,
@@ -28,6 +29,7 @@ import {
 
 export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
+  readonly filiacion: RepositorioDeFiliacion
   readonly idempotencia: AlmacenDeIdempotencia
 }
 

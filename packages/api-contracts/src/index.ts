@@ -22,6 +22,7 @@ export {
 } from './crecimiento'
 export {
   agregarMarcaSchema,
+  codigoDeErrorDeAnimalSchema,
   consultaDeAnimalesSchema,
   corregirAnimalSchema,
   errorDeAnimalSchema,
@@ -74,6 +75,22 @@ export {
   type RegistrarSesion,
   type SesionDePesaje,
 } from './pesajes'
+export {
+  codigoDeErrorDeNacimientoSchema,
+  corregirFiliacionSchema,
+  errorDeNacimientoSchema,
+  familiaSchema,
+  filiacionConHistoriaSchema,
+  filiacionSchema,
+  nacimientoSchema,
+  registrarNacimientoSchema,
+  type CorregirFiliacion,
+  type ErrorDeNacimiento,
+  type Familia,
+  type FiliacionContrato,
+  type Nacimiento,
+  type RegistrarNacimiento,
+} from './nacimientos'
 export {
   LARGO_MAXIMO_CONTRASENA,
   LARGO_MAXIMO_USUARIO,

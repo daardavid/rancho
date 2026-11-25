@@ -1,5 +1,13 @@
 import type { Animal } from '../domain/animal'
 import type { Correccion } from '../domain/correccion'
+import type {
+  CertezaDeFiliacion,
+  Filiacion,
+  FiliacionAnterior,
+  LadoDeFiliacion,
+  MotivoDeInferencia,
+  PrecisionDeFecha,
+} from '../domain/filiacion'
 import type { Marca } from '../domain/marca'
 import type {
   Categoria,
@@ -91,5 +99,80 @@ export function publicarCorreccion(correccion: Correccion): CorreccionPublica {
     motivo: correccion.motivo,
     correctedBy: correccion.correctedBy,
     correctedAt: correccion.correctedAt.toISOString(),
+  }
+}
+
+export type LadoPublico = {
+  readonly certeza: CertezaDeFiliacion
+  readonly animalId: string | null
+  readonly motivo: MotivoDeInferencia | null
+}
+
+export type FiliacionPublica = {
+  readonly id: string
+  readonly criaId: string
+  readonly madre: LadoPublico
+  readonly padre: LadoPublico
+  readonly nota: string | null
+  readonly fechaNacimiento: string | null
+  readonly precisionFecha: PrecisionDeFecha | null
+  readonly version: number
+  readonly recordedBy: string
+  readonly recordedAt: string
+}
+
+export type CorreccionDeFiliacionPublica = {
+  readonly madre: LadoPublico
+  readonly padre: LadoPublico
+  readonly nota: string | null
+  readonly fechaNacimiento: string | null
+  readonly precisionFecha: PrecisionDeFecha | null
+  readonly motivo: string
+  readonly correctedBy: string
+  readonly correctedAt: string
+}
+
+export type FiliacionConHistoria = FiliacionPublica & {
+  readonly correcciones: readonly CorreccionDeFiliacionPublica[]
+}
+
+export function publicarLado(lado: LadoDeFiliacion): LadoPublico {
+  return {
+    certeza: lado.certeza,
+    animalId: lado.animalId,
+    motivo: lado.motivo,
+  }
+}
+
+export function publicarFiliacion(filiacion: Filiacion): FiliacionPublica {
+  return {
+    id: filiacion.id,
+    criaId: filiacion.criaId,
+    madre: publicarLado(filiacion.madre),
+    padre: publicarLado(filiacion.padre),
+    nota: filiacion.nota,
+    fechaNacimiento: filiacion.fechaNacimiento,
+    precisionFecha: filiacion.precisionFecha,
+    version: filiacion.version,
+    recordedBy: filiacion.recordedBy,
+    recordedAt: filiacion.recordedAt.toISOString(),
+  }
+}
+
+export function publicarCorreccionDeFiliacion(
+  anterior: FiliacionAnterior,
+  motivo: string,
+  correctedBy: string,
+  correctedAt: Date,
+): CorreccionDeFiliacionPublica {
+  return {
+    madre: publicarLado(anterior.madre),
+    padre: publicarLado(anterior.padre),
+    nota: anterior.nota,
+    fechaNacimiento: anterior.fechaNacimiento,
+    precisionFecha: anterior.precisionFecha,
+    motivo,
+    correctedBy,
+    correctedAt: correctedAt.toISOString(),
   }
 }
