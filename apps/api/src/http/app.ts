@@ -14,6 +14,7 @@ import { registrarRutasDeCrecimiento } from './routes/crecimiento'
 import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
 import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evidencia'
 import { registrarRutasDePesaje } from './routes/pesajes'
+import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
 
 export type OpcionesApp = {
@@ -93,6 +94,7 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
     registrarRutasDeAnimales(app, opciones.herd)
     registrarRutasDeNacimientos(app, opciones.herd)
     registrarRutasDeLugar(app, opciones.herd)
+    registrarRutasDeSalud(app, opciones.herd)
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)

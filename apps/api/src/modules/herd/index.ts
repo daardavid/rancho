@@ -56,6 +56,24 @@ import {
   type NacimientoPublico,
   type ResumenDeAnimal,
 } from './application/nacimiento'
+import {
+  anotarSalud,
+  corregirNota,
+  notasDeAnimal,
+  notasDeAnimales,
+  type AlcanceDeSalud,
+  type AnimalDeLaNota,
+  type DepsDeSalud,
+  type EntradaAnotarSalud,
+  type EntradaCorregirNota,
+} from './application/salud'
+import type {
+  CorreccionDeNotaPublica,
+  NotaDeSaludConHistoria,
+  NotaDeSaludPublica,
+  NotasAnotadasPublicas,
+  NotasDelAnimalPublicas,
+} from './application/publicar-salud'
 import type {
   AsignacionPublica,
   FiliacionConHistoria,
@@ -70,15 +88,20 @@ import type {
 import { crearRepositorioDeAnimales } from './persistence/repositorio'
 import { crearRepositorioDeFiliacion } from './persistence/repositorio-filiacion'
 import { crearRepositorioDeLugar } from './persistence/repositorio-lugar'
+import { crearRepositorioDeSalud } from './persistence/repositorio-salud'
 
 export type {
+  AnimalDeLaNota,
   AnimalDelMovimiento,
   AsignacionPublica,
+  CorreccionDeNotaPublica,
   CriaPublica,
   EntradaAgregarMarca,
+  EntradaAnotarSalud,
   EntradaAsignarLugar,
   EntradaCorregir,
   EntradaCorregirFiliacion,
+  EntradaCorregirNota,
   EntradaCorregirPotrero,
   EntradaMarcarPerdida,
   EntradaRegistrarPotrero,
@@ -98,6 +121,10 @@ export type {
   LugaresDelHato,
   MarcaPublica,
   NacimientoPublico,
+  NotaDeSaludConHistoria,
+  NotaDeSaludPublica,
+  NotasAnotadasPublicas,
+  NotasDelAnimalPublicas,
   PotreroConHistoria,
   PotreroEnLaLista,
   PotreroPublico,
@@ -141,6 +168,13 @@ export type Herd = {
   asignarLugar(entrada: EntradaAsignarLugar): Promise<{ asignaciones: readonly AsignacionPublica[] }>
   lugarDe(ranchId: RanchId, animalId: string): Promise<LugarDelAnimal | null>
   lugaresDelHato(ranchId: RanchId): Promise<LugaresDelHato>
+  anotarSalud(entrada: EntradaAnotarSalud): Promise<NotasAnotadasPublicas>
+  corregirNota(entrada: EntradaCorregirNota): Promise<NotaDeSaludConHistoria>
+  notasDeAnimal(ranchId: RanchId, animalId: string): Promise<NotasDelAnimalPublicas | null>
+  notasDeAnimales(
+    ranchId: RanchId,
+    animalIds: readonly string[],
+  ): Promise<readonly NotasDelAnimalPublicas[]>
 }
 
 /**
@@ -164,6 +198,15 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
       db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
     leerAnimal: (ranchId, animalId) =>
       db.transaction(async (tx) => crearRepositorioDeAnimales(tx).obtener(ranchId, animalId, false)),
+    escribir: correr,
+    evidencia,
+  }
+
+  // La nota de sanidad lee el recibo y comprueba la foto antes de abrir la
+  // transacción, por la misma razón que la salida.
+  const salud: AlcanceDeSalud = {
+    leerRecibo: (commandId) =>
+      db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
     escribir: correr,
     evidencia,
   }
@@ -194,7 +237,17 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
     lugarDe: (ranchId, animalId) =>
       correr((repos) => lugarDeAnimal(lugarDe(repos), ranchId, animalId)),
     lugaresDelHato: (ranchId) => correr((repos) => lugaresDelHato(lugarDe(repos), ranchId)),
+    anotarSalud: (entrada) => anotarSalud(salud, entrada),
+    corregirNota: (entrada) => corregirNota(salud, entrada),
+    notasDeAnimal: (ranchId, animalId) =>
+      correr((repos) => notasDeAnimal(saludDe(repos), ranchId, animalId)),
+    notasDeAnimales: (ranchId, animalIds) =>
+      correr((repos) => notasDeAnimales(saludDe(repos), ranchId, animalIds)),
   }
+}
+
+function saludDe(repos: DepsDeHerd): DepsDeSalud {
+  return { animales: repos.animales, salud: repos.salud, idempotencia: repos.idempotencia }
 }
 
 function lugarDe(repos: DepsDeHerd): DepsDeLugar {
@@ -206,6 +259,7 @@ function reposDe(tx: EjecutorSql, evidencia: ConsultaDeEvidencia | null): DepsDe
     animales: crearRepositorioDeAnimales(tx),
     filiacion: crearRepositorioDeFiliacion(tx),
     lugar: crearRepositorioDeLugar(tx),
+    salud: crearRepositorioDeSalud(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
     evidencia,
   }

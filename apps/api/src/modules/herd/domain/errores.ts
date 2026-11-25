@@ -28,6 +28,9 @@ export const CODIGOS_DE_RECHAZO = [
   'asignacion_ya_existe',
   'asignacion_vacia',
   'animal_repetido',
+  'nota_ya_existe',
+  'nota_vacia',
+  'tipo_invalido',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]
