@@ -1,15 +1,18 @@
 import { expect, test } from '@playwright/test'
 
-import { abrirAlta, entrar, guardarAlta, irA, nombreUnico } from './ayudas'
+import { abrirAlta, entrarAlHato, guardarAlta, irA, nombreUnico } from './ayudas'
 
 /**
  * Un nacimiento crea la cría y la filiación juntas.
  *
  * La madre viene de su ficha. Si hay un solo toro, «Inferido: único toro» se
  * ofrece y no viene marcado: inferido no es paternidad segura.
+ *
+ * El nacimiento se abre desde el menú ☰ del encabezado, que es el mismo en las
+ * cuatro pestañas.
  */
 test('el nacimiento deja la cría en la familia de la vaca', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
 
   await page.getByRole('button', { name: 'Menú' }).click()
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()

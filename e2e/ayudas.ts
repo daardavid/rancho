@@ -15,13 +15,24 @@ import { CONTRASENA_DE_PRUEBA, USUARIO_DE_PRUEBA } from './aplicacion'
  * lo que pasa en el rancho: el hato no se vacía entre una vuelta y otra.
  */
 
-/** Entra con la cuenta de la prueba y espera el hato. */
+/**
+ * Entra con la cuenta de la prueba y espera Inicio.
+ *
+ * `#/` es Inicio desde INC-005: al abrir la app se ve lo que hay que revisar.
+ * Las pruebas que necesitan el hato navegan con `irA(page, 'Hato')`.
+ */
 export async function entrar(page: Page): Promise<void> {
   await page.goto('/')
   await page.getByLabel('Usuario').fill(USUARIO_DE_PRUEBA)
   await page.getByLabel('Contraseña').fill(CONTRASENA_DE_PRUEBA)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+}
+
+/** Entra y se queda en el hato, que es donde viven las capturas de animales. */
+export async function entrarAlHato(page: Page): Promise<void> {
+  await entrar(page)
+  await irA(page, 'Hato')
 }
 
 /**
@@ -84,12 +95,12 @@ export async function irA(
 }
 
 /**
- * Cierra la sesión desde el hato.
+ * Cierra la sesión desde el menú ☰ del encabezado.
  *
- * «Salir» vive en el menú del encabezado, para no repetir acciones en la
- * pantalla. En las demás pantallas sigue en su barra de sesión.
+ * Las cuatro pestañas llevan el mismo encabezado y el mismo menú, así que
+ * «Salir» está siempre en el mismo sitio y no se repite suelto en la pantalla.
  */
-export async function salirDesdeElHato(page: Page): Promise<void> {
+export async function salirDesdeElMenu(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Menú' }).click()
   await page.getByRole('button', { name: 'Salir' }).click()
   await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()

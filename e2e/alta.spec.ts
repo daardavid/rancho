@@ -5,7 +5,7 @@ import {
   abrirMasDatos,
   darDeAltaConNombre,
   darDeAltaSinSaber,
-  entrar,
+  entrarAlHato,
   guardarAlta,
   irA,
   nombreUnico,
@@ -20,7 +20,7 @@ import {
  * inventado ([UX-04](../../docs/product/ux-principles.md)).
  */
 test('con todo en «No sé» el animal existe y la ficha no inventa nada', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await darDeAltaSinSaber(page)
 
   await expect(page.getByRole('heading', { name: 'Qué se sabe' })).toBeVisible()
@@ -42,7 +42,7 @@ test('con todo en «No sé» el animal existe y la ficha no inventa nada', async
 })
 
 test('«No sé» se pinta como una opción y no como un error', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await abrirAlta(page)
 
   // Las tres preguntas de un toque vienen contestadas con «No sé», que es lo
@@ -66,7 +66,7 @@ test('«No sé» se pinta como una opción y no como un error', async ({ page })
 })
 
 test('«a la parte» es una tenencia con nota verbal y no calcula ninguna parte', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await abrirAlta(page)
 
   await page.getByRole('radio', { name: 'A la parte' }).check()
@@ -86,7 +86,7 @@ test('«a la parte» es una tenencia con nota verbal y no calcula ninguna parte'
 })
 
 test('el arete del alta queda puesto en la ficha como su propio hecho', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await abrirAlta(page)
 
   const nombre = nombreUnico('Becerro con arete')
@@ -107,7 +107,7 @@ test('el arete del alta queda puesto en la ficha como su propio hecho', async ({
 test('«Guardar y dar de alta otro» deja el formulario listo y guarda dos animales', async ({
   page,
 }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await abrirAlta(page)
 
   const primero = nombreUnico('Becerro Lote A')
@@ -140,7 +140,7 @@ test('«Guardar y dar de alta otro» deja el formulario listo y guarda dos anima
 })
 
 test('el hato busca por nombre y lo encuentra', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   const nombre = nombreUnico('Becerro de la Loma')
   await darDeAltaConNombre(page, nombre)
 
@@ -153,7 +153,7 @@ test('el hato busca por nombre y lo encuentra', async ({ page }) => {
 })
 
 test('el alta guarda dos animales distintos y el hato cuenta a los dos', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   const primero = nombreUnico('Animal Uno')
   const segundo = nombreUnico('Animal Dos')
 

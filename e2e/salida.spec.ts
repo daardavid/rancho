@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { darDeAltaConNombre, entrar, irA, nombreUnico } from './ayudas'
+import { darDeAltaConNombre, entrarAlHato, irA, nombreUnico } from './ayudas'
 
 /**
  * Dar de baja y volver a encontrar al animal.
@@ -11,7 +11,7 @@ import { darDeAltaConNombre, entrar, irA, nombreUnico } from './ayudas'
  * rancho se haya quedado sin activos.
  */
 test('dar de baja lo saca del hato y del pesaje, y Salidas lo encuentra', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   const seQueda = nombreUnico('Se queda')
   await darDeAltaConNombre(page, seQueda)
   await page.getByRole('button', { name: 'Regresar al hato' }).click()
