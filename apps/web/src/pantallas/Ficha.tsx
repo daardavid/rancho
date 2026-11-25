@@ -264,6 +264,10 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             <LugarDelAnimalEnLaFicha
               animalId={animal.id}
               potreros={potreros.data?.potreros ?? []}
+              estadoDePotreros={
+                potreros.isError ? 'error' : potreros.isPending ? 'cargando' : 'listo'
+              }
+              alRecargarPotreros={() => void potreros.refetch()}
             />
           </section>
 

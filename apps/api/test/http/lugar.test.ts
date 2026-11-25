@@ -232,6 +232,182 @@ describe('potreros y lugar esperado por HTTP', () => {
     expect(vacio.statusCode).toBe(400)
   })
 
+  it('guarda quién lo dijo por HTTP y lo devuelve distinto de la cuenta', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId },
+    })
+
+    const movimiento = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-23',
+        reportedBy: 'el vaquero de la tarde',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      },
+    })
+    expect(movimiento.statusCode).toBe(201)
+    const asignacion = movimiento.json<{
+      asignaciones: { reportedBy: string | null; recordedBy: string }[]
+    }>().asignaciones[0]
+    expect(asignacion?.reportedBy).toBe('el vaquero de la tarde')
+    expect(asignacion?.recordedBy).not.toBe('el vaquero de la tarde')
+
+    const lugar = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}/location`,
+      headers: cabeceras,
+    })
+    expect(lugar.json<{ vigente: { reportedBy: string | null } }>().vigente.reportedBy).toBe(
+      'el vaquero de la tarde',
+    )
+  })
+
+  it('sin quién lo dijo el campo llega en nulo y un origen en blanco no entra', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId },
+    })
+
+    const sinOrigen = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-24',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      },
+    })
+    expect(sinOrigen.statusCode).toBe(201)
+    expect(
+      sinOrigen.json<{ asignaciones: { reportedBy: string | null }[] }>().asignaciones[0]
+        ?.reportedBy,
+    ).toBeNull()
+
+    const enBlanco = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-24',
+        reportedBy: '   ',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      },
+    })
+    expect(enBlanco.statusCode).toBe(400)
+    expect(enBlanco.json<{ codigo: string }>().codigo).toBe('cuerpo_invalido')
+  })
+
+  it('un id de asignación ya guardado con otro comando responde 409 y no escribe', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const uno = nuevoId()
+    const dos = nuevoId()
+    for (const id of [uno, dos]) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/animals',
+        headers: cabeceras,
+        payload: { commandId: nuevoId(), id },
+      })
+    }
+
+    const asignacionId = nuevoId()
+    const primera = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-25',
+        animales: [{ animalId: uno, asignacionId }],
+      },
+    })
+    expect(primera.statusCode).toBe(201)
+
+    const repetida = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-26',
+        animales: [{ animalId: dos, asignacionId }],
+      },
+    })
+    expect(repetida.statusCode).toBe(409)
+    expect(repetida.json<{ codigo: string }>().codigo).toBe('asignacion_ya_existe')
+
+    const segundoLugar = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${dos}/location`,
+      headers: cabeceras,
+    })
+    expect(segundoLugar.json<{ historia: unknown[] }>().historia).toEqual([])
+  })
+
+  it('el mismo id de asignación repetido en el grupo responde 409 y no deja filas', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const uno = nuevoId()
+    const dos = nuevoId()
+    for (const id of [uno, dos]) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/animals',
+        headers: cabeceras,
+        payload: { commandId: nuevoId(), id },
+      })
+    }
+
+    const asignacionId = nuevoId()
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-27',
+        animales: [
+          { animalId: uno, asignacionId },
+          { animalId: dos, asignacionId },
+        ],
+      },
+    })
+    expect(respuesta.statusCode).toBe(409)
+    expect(respuesta.json<{ codigo: string }>().codigo).toBe('asignacion_ya_existe')
+
+    for (const id of [uno, dos]) {
+      const lugar = await app.inject({
+        method: 'GET',
+        url: `/api/animals/${id}/location`,
+        headers: cabeceras,
+      })
+      expect(lugar.json<{ historia: unknown[] }>().historia).toEqual([])
+    }
+  })
+
   it('un potrero que no existe responde 404 y no inventa fila', async () => {
     const cookie = await entrar()
     const cabeceras = { cookie }

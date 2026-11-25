@@ -1,4 +1,4 @@
-import type { RecordedBy } from '../../../shared-kernel/actores'
+import { reportedBySchema, type RecordedBy, type ReportedBy } from '../../../shared-kernel/actores'
 import { ejecutarComandoIdempotente, type AlmacenDeIdempotencia } from '../../../shared-kernel/idempotencia'
 import { animalIdSchema, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
 import { ConflictoDeVersion } from '../../../shared-kernel/conflictos'
@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { RechazoDeHerd } from '../domain/errores'
 import { asignarLugar, vigentesPorAnimal, type AsignacionDeLugar } from '../domain/lugar'
+import { LARGO_MAXIMO_REPORTED_BY } from '../domain/valores'
 import {
   abrirPotrero,
   corregirPotrero,
@@ -59,6 +60,8 @@ export type EntradaAsignarLugar = {
   readonly potreroId: string | null
   readonly desde: string
   readonly nota?: string | null
+  /** Quién lo dijo, en palabras del rancho. Distinto de `recordedBy`. */
+  readonly reportedBy?: string | null
   readonly animales: readonly AnimalDelMovimiento[]
 }
 
@@ -176,6 +179,7 @@ export async function asignarLugarAGrupo(
       potreroId: entrada.potreroId,
       desde: entrada.desde,
       nota: entrada.nota ?? null,
+      reportedBy: entrada.reportedBy ?? null,
       animales,
     },
     async () => {
@@ -184,6 +188,7 @@ export async function asignarLugarAGrupo(
       }
 
       const ranchId = ranchIdSchema.parse(entrada.ranchId)
+      const reportedBy = quienLoDijo(entrada.reportedBy)
       const potreroId =
         entrada.potreroId === null
           ? null
@@ -200,6 +205,7 @@ export async function asignarLugarAGrupo(
           potreroId,
           desde: entrada.desde,
           nota: entrada.nota ?? null,
+          reportedBy,
           recordedBy: entrada.recordedBy,
           recordedAt: cuando,
         })
@@ -351,17 +357,42 @@ async function conHistoria(lugar: RepositorioDeLugar, potrero: Potrero): Promise
 /**
  * El mismo grupo da la misma huella aunque el celular mande los animales en
  * otro orden: se ordena por id. Un animal repetido es un error del cliente y se
- * dice antes de escribir nada.
+ * dice antes de escribir nada. Un `asignacionId` repetido también: el id lo
+ * acuña el cliente para que el reintento no duplique, y repetirlo dentro del
+ * mismo grupo haría chocar la segunda fila contra la primera. Se avisa antes de
+ * escribir, en vez de dejar que la base lo traduzca a medias.
  */
 function ordenarSinRepetir(animales: readonly AnimalDelMovimiento[]): AnimalDelMovimiento[] {
   const vistos = new Set<string>()
+  const asignaciones = new Set<string>()
   for (const animal of animales) {
     if (vistos.has(animal.animalId)) {
       throw new RechazoDeHerd('animal_repetido')
     }
     vistos.add(animal.animalId)
+
+    if (asignaciones.has(animal.asignacionId)) {
+      throw new RechazoDeHerd('asignacion_ya_existe')
+    }
+    asignaciones.add(animal.asignacionId)
   }
   return [...animales].sort((uno, otro) => (uno.animalId < otro.animalId ? -1 : 1))
+}
+
+/**
+ * Quién lo dijo, ya validado. Se revisa una vez aquí, antes de escribir, para no
+ * empezar una transacción que el dominio va a rechazar en la primera fila. Un
+ * texto en blanco no es un origen.
+ */
+function quienLoDijo(valor: string | null | undefined): ReportedBy | null {
+  if (valor === undefined || valor === null) {
+    return null
+  }
+  const leido = reportedBySchema.safeParse(valor)
+  if (!leido.success || leido.data.length > LARGO_MAXIMO_REPORTED_BY) {
+    throw new RechazoDeHerd('texto_invalido')
+  }
+  return leido.data
 }
 
 async function exigirPotreroDelRancho(

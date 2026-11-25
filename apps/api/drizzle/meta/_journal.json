@@ -71,6 +71,13 @@
       "when": 1795581796295,
       "tag": "0009_freezing_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795582866530,
+      "tag": "0010_unusual_moon_knight",
+      "breakpoints": true
     }
   ]
 }

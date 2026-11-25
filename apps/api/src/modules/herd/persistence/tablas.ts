@@ -347,6 +347,11 @@ export const correccionDePotrero = esquemaHerd.table(
  * `paddock_id` nulo es «no sé»: una asignación desconocida es un hecho, no la
  * falta de una asignación. No es una observación del animal y no toca ninguna
  * tabla de crecimiento.
+ *
+ * `reported_by` es quién lo dijo (`TGT-MOVE-001`: «Evidencia que produce: quién
+ * lo dijo»). Es texto libre, no una cuenta: el trabajador que avisó del
+ * movimiento no es un usuario de la app. `recorded_by` es otra cosa y se queda
+ * aparte.
  */
 export const asignacionDeLugar = esquemaHerd.table(
   'location_assignment',
@@ -359,6 +364,7 @@ export const asignacionDeLugar = esquemaHerd.table(
     potreroId: uuid('paddock_id').references(() => potrero.id, { onDelete: 'restrict' }),
     desde: date('valid_from', { mode: 'string' }).notNull(),
     nota: text('note'),
+    reportedBy: text('reported_by'),
     recordedBy: text('recorded_by').notNull(),
     recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
   },
@@ -366,6 +372,10 @@ export const asignacionDeLugar = esquemaHerd.table(
     index('location_assignment_animal').on(tabla.animalId, tabla.desde),
     index('location_assignment_ranch_potrero').on(tabla.ranchId, tabla.potreroId),
     check('location_assignment_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
+    check(
+      'location_assignment_reported_presente',
+      sql`${tabla.reportedBy} is null or length(btrim(${tabla.reportedBy})) > 0`,
+    ),
   ],
 )
 

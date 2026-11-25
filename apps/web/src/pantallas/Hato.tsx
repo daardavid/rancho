@@ -1,4 +1,4 @@
-import type { FilaDeCrecimiento } from '@rancho/api-contracts'
+import type { AsignarLugar, FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
@@ -19,7 +19,7 @@ import { irA } from '../ruta'
 import { Aviso } from '../ui/Aviso'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BotonFlotante, BotonPrincipal, BotonSecundario } from '../ui/Botones'
-import { CampoDeArea, CampoDeFecha } from '../ui/Campos'
+import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
 import { FilaDeAnimal, type CategoriaVisual } from '../ui/FilaDeAnimal'
@@ -39,6 +39,9 @@ const SIN_LUGAR = 'sin-lugar'
  * el filtro del hato. Es el mismo valor y quiere decir lo mismo.
  */
 const DESCONOCIDO = 'no-se'
+
+/** El mismo tope que el del contrato: quién lo dijo es un origen, no un cuaderno. */
+const LARGO_DE_QUIEN_LO_DIJO = 200
 
 /**
  * El hato: cuántos animales hay, quién va bien, a quién revisar y quién no se
@@ -389,6 +392,15 @@ export function Hato() {
  * «No sé» es un destino válido y viene como opción, no escondido. El día se
  * propone con el de hoy en el rancho y se puede cambiar: un movimiento anotado
  * tarde no es un movimiento de hoy.
+ *
+ * «¿Quién lo dijo?» es aparte de la nota: es el trabajador o el canal por el que
+ * llegó el aviso, no la cuenta que lo registra ni un comentario suelto.
+ *
+ * El `commandId` y los `asignacionId` se conservan entre intentos mientras el
+ * contenido no cambie: si se cae la red después de que la API guardó, el
+ * reintento es el mismo comando y el servidor devuelve lo guardado en vez de
+ * mover dos veces. Si el dueño cambia algo, es otro comando y hacen falta ids
+ * nuevos.
  */
 function MoverA({
   potreros,
@@ -404,27 +416,49 @@ function MoverA({
   const [destino, setDestino] = useState<string>(DESCONOCIDO)
   const [desde, setDesde] = useState(hoyEnElRancho())
   const [nota, setNota] = useState('')
+  const [quienLoDijo, setQuienLoDijo] = useState('')
   const mover = useAsignarLugar()
   const faltanAnimales = elegidos.length === 0
+  const pendiente = useRef<{ contenido: string; cuerpo: AsignarLugar } | null>(null)
 
   const guardar = (): void => {
     if (faltanAnimales || mover.isPending) {
       return
     }
     const limpio = nota.trim()
-    mover.mutate(
-      {
-        commandId: crypto.randomUUID(),
-        potreroId: destino === DESCONOCIDO ? null : destino,
-        desde,
-        ...(limpio === '' ? {} : { nota: limpio }),
-        animales: elegidos.map((animalId) => ({
-          animalId,
-          asignacionId: crypto.randomUUID(),
-        })),
+    const quien = quienLoDijo.trim()
+    // Los ids de asignación no entran en la huella: se acuñan una vez y se
+    // reusan tal cual mientras el contenido sea el mismo.
+    const contenido = JSON.stringify({
+      potreroId: destino === DESCONOCIDO ? null : destino,
+      desde,
+      nota: limpio === '' ? null : limpio,
+      reportedBy: quien === '' ? null : quien,
+      animales: elegidos,
+    })
+    if (pendiente.current === null || pendiente.current.contenido !== contenido) {
+      pendiente.current = {
+        contenido,
+        cuerpo: {
+          commandId: crypto.randomUUID(),
+          potreroId: destino === DESCONOCIDO ? null : destino,
+          desde,
+          ...(limpio === '' ? {} : { nota: limpio }),
+          ...(quien === '' ? {} : { reportedBy: quien }),
+          animales: elegidos.map((animalId) => ({
+            animalId,
+            asignacionId: crypto.randomUUID(),
+          })),
+        },
+      }
+    }
+
+    mover.mutate(pendiente.current.cuerpo, {
+      onSuccess: () => {
+        pendiente.current = null
+        alGuardar()
       },
-      { onSuccess: alGuardar },
-    )
+    })
   }
 
   return (
@@ -462,12 +496,19 @@ function MoverA({
 
       <CampoDeFecha etiqueta="¿Desde cuándo?" valor={desde} alCambiar={setDesde} />
 
-      <Desplegable titulo="Más datos" resumen="nota">
+      <Desplegable titulo="Más datos" resumen="nota y quién lo dijo">
         <CampoDeArea
           etiqueta="Nota"
           valor={nota}
           alCambiar={setNota}
-          ayuda="Opcional. Por ejemplo, quién lo dijo."
+          ayuda="Opcional. Si no hay nada más que anotar, se deja vacía."
+        />
+        <CampoDeTexto
+          etiqueta="¿Quién lo dijo?"
+          valor={quienLoDijo}
+          alCambiar={setQuienLoDijo}
+          maxLength={LARGO_DE_QUIEN_LO_DIJO}
+          ayuda="Opcional. Por ejemplo el vaquero o el canal por el que se supo. No es tu cuenta."
         />
       </Desplegable>
 

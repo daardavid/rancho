@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import { actualizarConVersion } from '../../../infrastructure/db/version'
 import { filasDe, type EjecutorSql } from '../../../infrastructure/db/filas'
-import { recordedBySchema } from '../../../shared-kernel/actores'
+import { recordedBySchema, reportedBySchema } from '../../../shared-kernel/actores'
 import { animalIdSchema, nuevoId, ranchIdSchema, type RanchId } from '../../../shared-kernel/ids'
 
 import type {
@@ -16,7 +16,7 @@ import type { CampoDePotrero, Potrero } from '../domain/potrero'
 const COLUMNAS_POTRERO = sql.raw('id, ranch_id, name, note, version, recorded_by, recorded_at')
 
 const COLUMNAS_ASIGNACION = sql.raw(
-  'id, ranch_id, animal_id, paddock_id, valid_from::text as valid_from, note, recorded_by, recorded_at',
+  'id, ranch_id, animal_id, paddock_id, valid_from::text as valid_from, note, reported_by, recorded_by, recorded_at',
 )
 
 const COLUMNA: Record<CampoDePotrero, string> = {
@@ -49,6 +49,7 @@ type FilaAsignacion = {
   paddock_id: string | null
   valid_from: unknown
   note: string | null
+  reported_by: string | null
   recorded_by: string
   recorded_at: unknown
 }
@@ -131,15 +132,18 @@ export function crearRepositorioDeLugar(db: EjecutorSql): RepositorioDeLugar {
       try {
         await db.execute(sql`
           INSERT INTO herd.location_assignment (
-            id, ranch_id, animal_id, paddock_id, valid_from, note, recorded_by, recorded_at
+            id, ranch_id, animal_id, paddock_id, valid_from, note, reported_by, recorded_by,
+            recorded_at
           ) VALUES (
             ${asignacion.id}, ${asignacion.ranchId}, ${asignacion.animalId},
             ${asignacion.potreroId}, ${asignacion.desde}::date, ${asignacion.nota},
-            ${asignacion.recordedBy}, ${asignacion.recordedAt}
+            ${asignacion.reportedBy}, ${asignacion.recordedBy}, ${asignacion.recordedAt}
           )
         `)
       } catch (error) {
-        throw traducirEscritura(error, () => new RechazoDeHerd('no_encontrado'))
+        // Una clave repetida es el mismo id de asignación dos veces: el cliente
+        // lo acuñó y ya está guardado. Es un 409, no un «no encontrado».
+        throw traducirEscritura(error, () => new RechazoDeHerd('asignacion_ya_existe'))
       }
     },
 
@@ -239,6 +243,7 @@ function asignacionDesde(fila: FilaAsignacion): AsignacionDeLugar {
     potreroId: fila.paddock_id,
     desde: dia(fila.valid_from),
     nota: fila.note,
+    reportedBy: fila.reported_by === null ? null : reportedBySchema.parse(fila.reported_by),
     recordedBy: recordedBySchema.parse(fila.recorded_by),
     recordedAt: instante(fila.recorded_at),
   }

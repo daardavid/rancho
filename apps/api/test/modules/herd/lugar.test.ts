@@ -250,6 +250,124 @@ describe('potreros y lugar esperado', () => {
     expect(conteo.potreros.find((fila) => fila.id === conPotrero)?.esperados).toBe(1)
   })
 
+  it('guarda quién lo dijo, aparte de la cuenta que lo registró', async () => {
+    const potrero = await potreroConNombre('Potrero del origen')
+    const animalId = await animalConNombre('Dicho por un trabajador')
+
+    const movimiento = await herd.asignarLugar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      potreroId: potrero,
+      desde: '2026-11-17',
+      nota: 'se pasaron al lote de abajo',
+      reportedBy: 'Don Chico, por WhatsApp',
+      animales: [{ animalId, asignacionId: nuevoId() }],
+    })
+
+    const publicada = movimiento.asignaciones[0]
+    expect(publicada?.reportedBy).toBe('Don Chico, por WhatsApp')
+    // La cuenta que registró es otra cosa: no se pisa ni se mezcla.
+    expect(publicada?.recordedBy).toBe(recordedBy)
+
+    const lugar = await herd.lugarDe(ranchId, animalId)
+    expect(lugar?.vigente?.reportedBy).toBe('Don Chico, por WhatsApp')
+    expect(lugar?.vigente?.nota).toBe('se pasaron al lote de abajo')
+  })
+
+  it('sin quién lo dijo, la asignación se guarda con el origen en nulo', async () => {
+    const animalId = await animalConNombre('Nadie dijo quién')
+    await herd.asignarLugar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      potreroId: null,
+      desde: '2026-11-18',
+      animales: [{ animalId, asignacionId: nuevoId() }],
+    })
+
+    const lugar = await herd.lugarDe(ranchId, animalId)
+    expect(lugar?.vigente?.reportedBy).toBeNull()
+    expect(lugar?.vigente?.recordedBy).toBe(recordedBy)
+  })
+
+  it('un origen de solo espacios se rechaza y no escribe nada', async () => {
+    const potrero = await potreroConNombre('Potrero del origen vacío')
+    const animalId = await animalConNombre('Origen en blanco')
+
+    await expect(
+      herd.asignarLugar({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        potreroId: potrero,
+        desde: '2026-11-19',
+        reportedBy: '   ',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      }),
+    ).rejects.toMatchObject({ codigo: 'texto_invalido' })
+
+    const lugar = await herd.lugarDe(ranchId, animalId)
+    expect(lugar?.historia).toEqual([])
+  })
+
+  it('repetir un id de asignación ya guardado es un rechazo y no escribe otra fila', async () => {
+    const potrero = await potreroConNombre('Potrero del id repetido')
+    const animalId = await animalConNombre('Id repetido fuera del comando')
+    const asignacionId = nuevoId()
+
+    await herd.asignarLugar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      potreroId: potrero,
+      desde: '2026-11-20',
+      animales: [{ animalId, asignacionId }],
+    })
+
+    // Otro comando, otro animal, el mismo id de asignación: el cliente lo acuñó
+    // y ya está guardado. Es un 409, no un «no encontrado».
+    const otroAnimal = await animalConNombre('Otro con el mismo id')
+    await expect(
+      herd.asignarLugar({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        potreroId: potrero,
+        desde: '2026-11-21',
+        animales: [{ animalId: otroAnimal, asignacionId }],
+      }),
+    ).rejects.toMatchObject({ codigo: 'asignacion_ya_existe' })
+
+    expect((await herd.lugarDe(ranchId, otroAnimal))?.historia).toEqual([])
+    expect((await herd.lugarDe(ranchId, animalId))?.historia).toHaveLength(1)
+  })
+
+  it('el mismo id de asignación repetido dentro del grupo se rechaza antes de escribir', async () => {
+    const potrero = await potreroConNombre('Potrero del id duplicado')
+    const uno = await animalConNombre('Duplicado uno')
+    const dos = await animalConNombre('Duplicado dos')
+    const asignacionId = nuevoId()
+
+    await expect(
+      herd.asignarLugar({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        potreroId: potrero,
+        desde: '2026-11-22',
+        animales: [
+          { animalId: uno, asignacionId },
+          { animalId: dos, asignacionId },
+        ],
+      }),
+    ).rejects.toMatchObject({ codigo: 'asignacion_ya_existe' })
+
+    // No quedó ninguna fila parcial del grupo.
+    expect((await herd.lugarDe(ranchId, uno))?.historia).toEqual([])
+    expect((await herd.lugarDe(ranchId, dos))?.historia).toEqual([])
+  })
+
   it('asignar un lugar no cambia la última observación ni escribe pesos', async () => {
     const potrero = await potreroConNombre('Potrero sin observar')
     const animalId = await animalConNombre('Pesado y movido')

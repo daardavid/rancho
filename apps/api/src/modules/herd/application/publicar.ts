@@ -182,6 +182,8 @@ export type AsignacionPublica = {
   readonly potreroId: string | null
   readonly desde: string
   readonly nota: string | null
+  /** Quién lo dijo, en texto libre. `null`: no se anotó. No es la cuenta. */
+  readonly reportedBy: string | null
   readonly recordedBy: string
   readonly recordedAt: string
 }
@@ -251,6 +253,7 @@ export function publicarAsignacion(asignacion: AsignacionDeLugar): AsignacionPub
     potreroId: asignacion.potreroId,
     desde: asignacion.desde,
     nota: asignacion.nota,
+    reportedBy: asignacion.reportedBy,
     recordedBy: asignacion.recordedBy,
     recordedAt: asignacion.recordedAt.toISOString(),
   }

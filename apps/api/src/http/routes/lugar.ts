@@ -111,6 +111,7 @@ export function registrarRutasDeLugar(app: FastifyInstance, herd: Herd): void {
         potreroId: cuerpo.data.potreroId,
         desde: cuerpo.data.desde,
         ...(cuerpo.data.nota !== undefined ? { nota: cuerpo.data.nota } : {}),
+        ...(cuerpo.data.reportedBy !== undefined ? { reportedBy: cuerpo.data.reportedBy } : {}),
         animales: cuerpo.data.animales,
       }),
     )

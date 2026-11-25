@@ -1,9 +1,9 @@
-import type { RecordedBy } from '../../../shared-kernel/actores'
+import { reportedBySchema, type RecordedBy, type ReportedBy } from '../../../shared-kernel/actores'
 import type { AnimalId, RanchId } from '../../../shared-kernel/ids'
 
 import { diaDeCalendario } from './dia'
 import { RechazoDeHerd } from './errores'
-import { LARGO_MAXIMO_NOTA } from './valores'
+import { LARGO_MAXIMO_NOTA, LARGO_MAXIMO_REPORTED_BY } from './valores'
 
 /**
  * Dónde se espera a un animal desde un día.
@@ -17,6 +17,11 @@ import { LARGO_MAXIMO_NOTA } from './valores'
  * ([domain-boundaries](../../../../../../docs/architecture/domain-boundaries.md),
  * «Paddock reference and expected location»). Tampoco afirma que el potrero
  * cubra el rancho ni que el animal esté ahí: dice dónde se le espera.
+ *
+ * `reportedBy` es quién lo dijo: el trabajador, el proveedor o el canal por el
+ * que llegó la noticia (`TGT-MOVE-001`). Es texto libre y no se cruza con
+ * `recordedBy`, que es la cuenta que lo registró. Puede faltar: no saber quién
+ * lo dijo no impide anotar el movimiento.
  */
 export type AsignacionDeLugar = {
   readonly id: string
@@ -27,6 +32,8 @@ export type AsignacionDeLugar = {
   /** El día desde el que vale. */
   readonly desde: string
   readonly nota: string | null
+  /** Quién lo dijo, en palabras del rancho. `null` es «no se anotó». */
+  readonly reportedBy: ReportedBy | null
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
 }
@@ -38,6 +45,7 @@ export type RegistroDeAsignacion = {
   readonly potreroId: string | null
   readonly desde: string
   readonly nota?: string | null
+  readonly reportedBy?: ReportedBy | null
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
 }
@@ -54,6 +62,7 @@ export function asignarLugar(entrada: RegistroDeAsignacion): AsignacionDeLugar {
     potreroId: entrada.potreroId,
     desde: diaDeCalendario(entrada.desde),
     nota: notaOpcional(entrada.nota),
+    reportedBy: quienLoDijo(entrada.reportedBy),
     recordedBy: entrada.recordedBy,
     recordedAt: entrada.recordedAt,
   }
@@ -102,4 +111,20 @@ function notaOpcional(valor: string | null | undefined): string | null {
     throw new RechazoDeHerd('texto_invalido')
   }
   return limpio
+}
+
+/**
+ * Quién lo dijo. Un origen vacío no es un origen: se rechaza, no se guarda como
+ * texto en blanco. Faltar sí puede faltar: no anotar quién lo dijo es un hueco
+ * honesto, no un dato inventado.
+ */
+function quienLoDijo(valor: ReportedBy | null | undefined): ReportedBy | null {
+  if (valor === undefined || valor === null) {
+    return null
+  }
+  const limpio = valor.trim()
+  if (limpio === '' || limpio.length > LARGO_MAXIMO_REPORTED_BY) {
+    throw new RechazoDeHerd('texto_invalido')
+  }
+  return reportedBySchema.parse(limpio)
 }

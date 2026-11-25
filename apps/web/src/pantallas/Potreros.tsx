@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { usePotreros, useRegistrarPotrero, useCorregirPotrero } from '../api/lugar'
+import { esConflictoDeVersion } from '../dominio/mensajes'
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
@@ -95,6 +96,10 @@ export function Potreros() {
             alCancelar={() => {
               setCreando(false)
             }}
+            alRecargar={() => {
+              setCreando(false)
+              void potreros.refetch()
+            }}
             alGuardar={() => {
               setCreando(false)
               void potreros.refetch()
@@ -154,6 +159,10 @@ export function Potreros() {
                     potrero={potrero}
                     alCancelar={() => {
                       setRenombrando(null)
+                    }}
+                    alRecargar={() => {
+                      setRenombrando(null)
+                      void potreros.refetch()
                     }}
                     alGuardar={() => {
                       setRenombrando(null)
@@ -240,14 +249,23 @@ type PotreroEnPantalla = {
 /**
  * Crear o renombrar. Es el mismo formulario porque es el mismo dato: el nombre
  * que el rancho usa. Renombrar guarda el anterior en la historia.
+ *
+ * El `commandId` y el `id` del potrero nuevo se conservan entre intentos
+ * mientras el contenido no cambie: si la red se cae después de que la API
+ * guardó, el reintento es el mismo comando y el servidor devuelve el potrero
+ * guardado en vez de crear otro. Si se renombra y alguien más ya cambió el
+ * potrero, la API responde `version_conflict` y aquí se explica y se ofrece
+ * recargar la lista (UX-17), como en la corrección de la ficha.
  */
 function FormularioDePotrero({
   potrero,
   alGuardar,
+  alRecargar,
   alCancelar,
 }: {
   readonly potrero?: PotreroEnPantalla
   readonly alGuardar: () => void
+  readonly alRecargar: () => void
   readonly alCancelar: () => void
 }) {
   const [nombre, setNombre] = useState(potrero?.nombre ?? '')
@@ -257,28 +275,72 @@ function FormularioDePotrero({
   const corregir = useCorregirPotrero(potrero?.id ?? '')
   const comando = potrero === undefined ? crear : corregir
   const faltaMotivo = potrero !== undefined && motivo.trim() === ''
+  const pendiente = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
+
+  const conflicto = esConflictoDeVersion(corregir.error)
 
   const guardar = (): void => {
     const limpio = nombre.trim()
     const conNota = nota.trim()
     if (potrero === undefined) {
-      crear.mutate({
-        commandId: crypto.randomUUID(),
-        id: crypto.randomUUID(),
+      const cuerpo = {
         ...(limpio === '' ? {} : { nombre: limpio }),
         ...(conNota === '' ? {} : { nota: conNota }),
-      }, { onSuccess: alGuardar })
+      }
+      const contenido = JSON.stringify(cuerpo)
+      if (pendiente.current === null || pendiente.current.contenido !== contenido) {
+        pendiente.current = {
+          contenido,
+          commandId: crypto.randomUUID(),
+          id: crypto.randomUUID(),
+        }
+      }
+      crear.mutate(
+        { commandId: pendiente.current.commandId, id: pendiente.current.id, ...cuerpo },
+        {
+          onSuccess: () => {
+            pendiente.current = null
+            alGuardar()
+          },
+        },
+      )
       return
     }
-    corregir.mutate(
-      {
+    const cuerpo = {
+      version: potrero.version,
+      motivo: motivo.trim(),
+      nombre: limpio === '' ? null : limpio,
+      nota: conNota === '' ? null : conNota,
+    }
+    const contenido = JSON.stringify(cuerpo)
+    if (pendiente.current === null || pendiente.current.contenido !== contenido) {
+      pendiente.current = {
+        contenido,
         commandId: crypto.randomUUID(),
-        version: potrero.version,
-        motivo: motivo.trim(),
-        nombre: limpio === '' ? null : limpio,
-        nota: conNota === '' ? null : conNota,
+        id: potrero.id,
+      }
+    }
+    corregir.mutate(
+      { commandId: pendiente.current.commandId, ...cuerpo },
+      {
+        onSuccess: () => {
+          pendiente.current = null
+          alGuardar()
+        },
       },
-      { onSuccess: alGuardar },
+    )
+  }
+
+  if (conflicto) {
+    return (
+      <div className="aviso aviso--ojo" role="alert">
+        <p className="aviso__titulo">Alguien más cambió este potrero mientras lo tenías abierto.</p>
+        <p className="aviso__quehacer">
+          Tu cambio no se guardó y no se perdió nada de lo que había. Recarga la lista para ver lo
+          último y vuelve a escribir el cambio si todavía hace falta.
+        </p>
+        <BotonPrincipal alTocar={alRecargar}>Recargar los potreros</BotonPrincipal>
+      </div>
     )
   }
 

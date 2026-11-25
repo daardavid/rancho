@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  asignacionDeLugarSchema,
   asignarLugarSchema,
   lugarDelAnimalSchema,
   potrerosDelRanchoSchema,
@@ -90,6 +91,75 @@ describe('contrato del lugar esperado', () => {
     expect(leido.success).toBe(false)
   })
 
+  it('quién lo dijo es un texto libre opcional, distinto de quién lo registró', () => {
+    const conOrigen = asignarLugarSchema.safeParse({
+      commandId: COMMAND,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      reportedBy: 'el vaquero',
+      animales: [{ animalId: ANIMAL, asignacionId: ASIGNACION }],
+    })
+    expect(conOrigen.success).toBe(true)
+    expect(conOrigen.data?.reportedBy).toBe('el vaquero')
+    // No es un id de cuenta: el contrato no lo exige ni lo convierte en uuid.
+    expect(conOrigen.data?.recordedBy).toBeUndefined()
+
+    const sinOrigen = asignarLugarSchema.safeParse({
+      commandId: COMMAND,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      animales: [{ animalId: ANIMAL, asignacionId: ASIGNACION }],
+    })
+    expect(sinOrigen.success).toBe(true)
+    expect(sinOrigen.data?.reportedBy).toBeUndefined()
+
+    const enBlanco = asignarLugarSchema.safeParse({
+      commandId: COMMAND,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      reportedBy: '   ',
+      animales: [{ animalId: ANIMAL, asignacionId: ASIGNACION }],
+    })
+    expect(enBlanco.success).toBe(false)
+  })
+
+  it('la asignación leída trae quién lo dijo y puede no traerlo', () => {
+    const conOrigen = asignacionDeLugarSchema.safeParse({
+      id: ASIGNACION,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      nota: null,
+      reportedBy: 'Don Chico, por WhatsApp',
+      recordedBy: ANIMAL,
+      recordedAt: CUANDO,
+    })
+    expect(conOrigen.success).toBe(true)
+    expect(conOrigen.data?.reportedBy).toBe('Don Chico, por WhatsApp')
+
+    const sinOrigen = asignacionDeLugarSchema.safeParse({
+      id: ASIGNACION,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      nota: null,
+      reportedBy: null,
+      recordedBy: ANIMAL,
+      recordedAt: CUANDO,
+    })
+    expect(sinOrigen.success).toBe(true)
+    expect(sinOrigen.data?.reportedBy).toBeNull()
+
+    // Quién lo dijo no se cambia por la cuenta que lo registró: son dos campos.
+    const soloCuenta = asignacionDeLugarSchema.safeParse({
+      id: ASIGNACION,
+      potreroId: POTRERO,
+      desde: '2026-11-20',
+      nota: null,
+      recordedBy: ANIMAL,
+      recordedAt: CUANDO,
+    })
+    expect(soloCuenta.success).toBe(false)
+  })
+
   it('el lugar del animal no trae calidad de dato: no es una observación', () => {
     const leido = lugarDelAnimalSchema.safeParse({
       vigente: {
@@ -97,6 +167,7 @@ describe('contrato del lugar esperado', () => {
         potreroId: POTRERO,
         desde: '2026-11-20',
         nota: null,
+        reportedBy: null,
         recordedBy: ANIMAL,
         recordedAt: CUANDO,
       },
@@ -110,6 +181,7 @@ describe('contrato del lugar esperado', () => {
         potreroId: POTRERO,
         desde: '2026-11-20',
         nota: null,
+        reportedBy: null,
         recordedBy: ANIMAL,
         recordedAt: CUANDO,
         calidad: 'measured',

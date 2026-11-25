@@ -1,0 +1,2 @@
+ALTER TABLE "herd"."location_assignment" ADD COLUMN "reported_by" text;--> statement-breakpoint
+ALTER TABLE "herd"."location_assignment" ADD CONSTRAINT "location_assignment_reported_presente" CHECK ("herd"."location_assignment"."reported_by" is null or length(btrim("herd"."location_assignment"."reported_by")) > 0);

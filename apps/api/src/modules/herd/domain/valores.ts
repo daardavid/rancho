@@ -55,6 +55,8 @@ export const LARGO_MAXIMO_NOMBRE = 200
 export const LARGO_MAXIMO_NOTA = 2000
 export const LARGO_MAXIMO_MOTIVO = 2000
 export const LARGO_MAXIMO_MARCA = 80
+/** El mismo tope que la sesión de pesaje: es el mismo dato, dicho por la misma gente. */
+export const LARGO_MAXIMO_REPORTED_BY = 200
 
 export function esSexo(valor: string): valor is Sexo {
   return (SEXOS as readonly string[]).includes(valor)
