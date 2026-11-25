@@ -212,6 +212,39 @@ describe('Filtros del hato', () => {
 })
 
 describe('Búsqueda del hato', () => {
+  it('un animal dado de baja no se puede elegir para potrero ni sanidad', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen([]),
+      'GET /api/paddocks': () => ({ estado: 200, cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 } }),
+      'GET /api/locations': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [
+            animalDeLista({
+              id: '99999999-9999-4999-8999-999999999999',
+              nombre: 'Vendido',
+              categoria: 'bull',
+              activo: false,
+              salida: { motivo: 'sale', fecha: '2026-11-01', nota: null, evidenciaId: null },
+            }),
+          ],
+        },
+      }),
+    })
+
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+    await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
+    await usuario.type(screen.getByLabelText('Buscar'), 'Vendido')
+
+    expect(await screen.findByText('Vendido')).toBeDefined()
+    expect(screen.queryByRole('checkbox', { name: 'Elegir a Vendido' })).toBeNull()
+  })
+
   it('encuentra al animal por un arete que ya se cambió', async () => {
     const usuario = userEvent.setup()
     montarApi({

@@ -314,3 +314,55 @@ describe('Ficha: última observación', () => {
     expect(screen.queryByText(/hace 0 días/)).toBeNull()
   })
 })
+
+describe('Ficha: lo que nadie dijo', () => {
+  it('la tenencia desconocida dice de qué es', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ nombre: 'Canelo', tenencia: 'unknown', categoria: 'unknown' }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(await screen.findByText('Dueño: no sé')).toBeDefined()
+    expect(screen.getByText('Categoría: no sé')).toBeDefined()
+  })
+
+  it('un animal dado de baja no ofrece sanidad ni moverlo de potrero', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({
+          nombre: 'Canelo',
+          activo: false,
+          salida: {
+            motivo: 'sale',
+            fecha: '2026-11-01',
+            nota: null,
+            evidenciaId: null,
+          },
+        }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo: false },
+      }),
+      [`GET /api/animals/${ANIMAL}/location`]: () => ({
+        estado: 200,
+        cuerpo: { vigente: null, historia: [] },
+      }),
+      'GET /api/paddocks': () => ({ estado: 200, cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 } }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(await screen.findByText('Ya salió del hato. No se le asigna potrero.')).toBeDefined()
+    expect(screen.queryByText(/Mover a…/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Anotar sanidad' })).toBeNull()
+  })
+})
