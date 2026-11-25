@@ -154,6 +154,7 @@ export const codigoDeErrorDeLugarSchema = z.enum([
   'asignacion_ya_existe',
   'asignacion_vacia',
   'animal_repetido',
+  'fuera_del_hato',
   'correccion_vacia',
   'motivo_vacio',
   'dia_invalido',

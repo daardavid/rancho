@@ -412,8 +412,8 @@ async function exigirPotreroDelRancho(
  * Cada animal tiene que existir en este rancho. Un id de otro rancho no existe
  * aquí y no se le asigna un lugar por error.
  *
- * Se permite asignar a un animal que ya salió: la asignación es historia y no
- * lo devuelve al hato. El hato activo es el que ofrece «Mover a…».
+ * Quien ya salió no recibe un lugar nuevo: la ficha y las asignaciones viejas
+ * se quedan, y el movimiento no lo devuelve al hato.
  */
 async function exigirAnimalesDelRancho(
   deps: DepsDeLugar,
@@ -434,6 +434,9 @@ async function exigirAnimalesDelRancho(
   // trae un id ajeno y no se escribe nada.
   if (estados.length !== animales.length) {
     throw new RechazoDeHerd('no_encontrado')
+  }
+  if (estados.some((estado) => !estado.activo)) {
+    throw new RechazoDeHerd('fuera_del_hato')
   }
 }
 

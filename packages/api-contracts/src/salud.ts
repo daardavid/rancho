@@ -9,8 +9,9 @@ import { LARGO_MAXIMO_NOMBRE, LARGO_MAXIMO_NOTA, LARGO_MAXIMO_MOTIVO, diaSchema 
  * animal, escritas en la misma captura. No hay calendario, dosis, retiro ni
  * flujo de veterinario (`OQ-HEALTH-001`): el contrato no tiene esos campos.
  *
- * `vioAlAnimal` es explícito. Por omisión, una nota no dice que el animal se
- * vio, así que no cuenta como observación (`TGT-SEC-001`).
+ * `vioAlAnimal` es obligatorio. Si no viene, la nota no se acepta: no se
+ * guarda «no se vio» porque el cuerpo lo omitió. Solo cuenta como observación
+ * cuando dice que el animal se vio (`TGT-SEC-001`).
  */
 
 export const LARGO_MAXIMO_PRODUCTO = LARGO_MAXIMO_NOMBRE
@@ -77,8 +78,8 @@ export const anotarSaludSchema = z.strictObject({
   fecha: diaSchema,
   producto: productoSchema.nullable().optional(),
   evidenciaId: z.uuid().nullable().optional(),
-  /** Explícito. Si no viene, la nota no dice que el animal se vio. */
-  vioAlAnimal: z.boolean().optional(),
+  /** Obligatorio. Omitirlo no se interpreta como «no se vio». */
+  vioAlAnimal: z.boolean(),
   animales: z.array(notaDelGrupoSchema).min(1),
 })
 
@@ -129,6 +130,8 @@ export const codigoDeErrorDeSaludSchema = z.enum([
   'nota_ya_existe',
   'nota_vacia',
   'tipo_invalido',
+  'visto_sin_elegir',
+  'fuera_del_hato',
   'animal_repetido',
   'correccion_vacia',
   'motivo_vacio',

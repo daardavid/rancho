@@ -50,6 +50,7 @@ describe('notas de sanidad', () => {
       detalle: 'Vacuna contra el ántrax, en la manga',
       fecha: '2026-11-20',
       producto: 'Ántrax 200',
+      vioAlAnimal: false,
       animales: [
         { animalId: uno, notaId: nuevoId() },
         { animalId: dos, notaId: nuevoId() },
@@ -74,18 +75,33 @@ describe('notas de sanidad', () => {
     expect(porAnimal.map((fila) => fila.notas.length)).toEqual([1, 1])
   })
 
-  it('«vio al animal» es explícito y por omisión es falso', async () => {
+  it('no guarda «no se vio» si nadie lo eligió, y sí lo guarda si se eligió', async () => {
     const sinVisto = await animalConNombre('Sin visto')
     const conVisto = await animalConNombre('Con visto')
+    const explicito = await animalConNombre('No se vio, dicho')
+
+    await expect(
+      herd.anotarSalud({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        tipo: 'problema',
+        detalle: 'Dijo el vaquero que se le veía una herida',
+        fecha: '2026-11-18',
+        animales: [{ animalId: sinVisto, notaId: nuevoId() }],
+      }),
+    ).rejects.toMatchObject({ codigo: 'visto_sin_elegir' })
+    expect((await herd.notasDeAnimal(ranchId, sinVisto))?.notas).toEqual([])
 
     await herd.anotarSalud({
       commandId: nuevoId(),
       ranchId,
       recordedBy,
       tipo: 'problema',
-      detalle: 'Dijo el vaquero que se le veía una herida',
+      detalle: 'Dijeron que no lo vieron',
       fecha: '2026-11-18',
-      animales: [{ animalId: sinVisto, notaId: nuevoId() }],
+      vioAlAnimal: false,
+      animales: [{ animalId: explicito, notaId: nuevoId() }],
     })
 
     const marcada = await herd.anotarSalud({
@@ -99,8 +115,9 @@ describe('notas de sanidad', () => {
       animales: [{ animalId: conVisto, notaId: nuevoId() }],
     })
 
-    const primera = await herd.notasDeAnimal(ranchId, sinVisto)
+    const primera = await herd.notasDeAnimal(ranchId, explicito)
     expect(primera?.notas[0]?.vioAlAnimal).toBe(false)
+    expect(primera?.notas[0]?.tipo).toBe('problema')
 
     const segunda = await herd.notasDeAnimal(ranchId, conVisto)
     expect(segunda?.notas[0]?.vioAlAnimal).toBe(true)
@@ -118,6 +135,7 @@ describe('notas de sanidad', () => {
       tipo: 'medicamento',
       detalle: 'Se le puso la vacuna de la rabia',
       fecha: '2026-11-10',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId }],
     })
 
@@ -160,6 +178,7 @@ describe('notas de sanidad', () => {
       tipo: 'otro',
       detalle: 'Se le curó una pata',
       fecha: '2026-11-12',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId }],
     })
 
@@ -202,6 +221,7 @@ describe('notas de sanidad', () => {
       tipo: 'vacuna',
       detalle: 'Vacuna de la rabia',
       fecha: '2026-11-13',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId }],
     })
 
@@ -232,6 +252,7 @@ describe('notas de sanidad', () => {
       tipo: 'bano' as const,
       detalle: 'Baño de garrapata',
       fecha: '2026-11-14',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId: nuevoId() }],
     }
 
@@ -259,6 +280,7 @@ describe('notas de sanidad', () => {
         tipo: 'vacuna',
         detalle: 'Vacuna del grupo',
         fecha: '2026-11-15',
+        vioAlAnimal: false,
         animales: [
           { animalId: propio, notaId: nuevoId() },
           { animalId: ajeno, notaId: nuevoId() },
@@ -284,6 +306,7 @@ describe('notas de sanidad', () => {
         tipo: 'otro',
         detalle: 'Se anotó dos veces el mismo renglón',
         fecha: '2026-11-16',
+        vioAlAnimal: false,
         animales: [
           { animalId: uno, notaId },
           { animalId: dos, notaId },
@@ -307,6 +330,7 @@ describe('notas de sanidad', () => {
         tipo: 'inyeccion',
         detalle: 'Algo',
         fecha: '2026-11-17',
+        vioAlAnimal: false,
         animales: [{ animalId, notaId: nuevoId() }],
       }),
     ).rejects.toMatchObject({ codigo: 'tipo_invalido' })
@@ -325,6 +349,7 @@ describe('notas de sanidad', () => {
       tipo: 'problema',
       detalle: 'Se le vio cojera en la pata derecha',
       fecha: '2026-10-30',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId }],
     })
 
@@ -333,11 +358,11 @@ describe('notas de sanidad', () => {
     expect(nota?.recordedBy).toBe(recordedBy)
     // El día del hecho y el día en que se anotó son distintos.
     expect(nota?.recordedAt.startsWith('2026-10-30')).toBe(false)
-    // Sin decirlo, la nota no es una observación.
+    // «No se vio» quedó porque se eligió, no porque el campo viniera vacío.
     expect(nota?.vioAlAnimal).toBe(false)
   })
 
-  it('se puede anotar sanidad a un animal que ya salió, sin devolverlo al hato', async () => {
+  it('rechaza sanidad para un animal que ya salió y no le escribe la nota', async () => {
     const animalId = await animalConNombre('Salió y se le anota')
     await herd.registrarSalida({
       commandId: nuevoId(),
@@ -349,19 +374,22 @@ describe('notas de sanidad', () => {
       fecha: '2026-11-01',
     })
 
-    await herd.anotarSalud({
-      commandId: nuevoId(),
-      ranchId,
-      recordedBy,
-      tipo: 'otro',
-      detalle: 'Se le anotó la última vacuna antes de irse',
-      fecha: '2026-10-31',
-      animales: [{ animalId, notaId: nuevoId() }],
-    })
+    await expect(
+      herd.anotarSalud({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        tipo: 'otro',
+        detalle: 'Se le anotó la última vacuna antes de irse',
+        fecha: '2026-10-31',
+        vioAlAnimal: true,
+        animales: [{ animalId, notaId: nuevoId() }],
+      }),
+    ).rejects.toMatchObject({ codigo: 'fuera_del_hato' })
 
     const ficha = await herd.obtener(ranchId, animalId)
     expect(ficha?.activo).toBe(false)
-    expect((await herd.notasDeAnimal(ranchId, animalId))?.notas).toHaveLength(1)
+    expect((await herd.notasDeAnimal(ranchId, animalId))?.notas).toEqual([])
   })
 
   it('las notas de un animal de otro rancho no se inventan', async () => {

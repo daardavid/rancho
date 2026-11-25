@@ -146,6 +146,14 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'El tipo de nota no es uno de los del rancho.',
     queHacer: 'Elige vacuna, medicamento, baño, problema visto u otro.',
   },
+  visto_sin_elegir: {
+    quePaso: 'Falta decir si se vio al animal.',
+    queHacer: 'Elige «Sí se vio» o «No se vio». Si no lo eliges, no se guarda.',
+  },
+  fuera_del_hato: {
+    quePaso: 'Este animal ya salió del hato.',
+    queHacer: 'No se le anota sanidad ni se le cambia el potrero. Si la salida está mal, corrígela en la ficha.',
+  },
   fila_repetida: {
     quePaso: 'Un renglón de la vuelta se repitió.',
     queHacer: 'Vuelve a abrir la pantalla del pesaje y captura de nuevo.',

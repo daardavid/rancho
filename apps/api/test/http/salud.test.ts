@@ -171,7 +171,7 @@ describe('notas de sanidad por HTTP', () => {
     expect(otra.json<{ notas: { producto: string }[] }>().notas[0]?.producto).toBe('Ántrax 200')
   })
 
-  it('sin decirlo, la nota no dice que el animal se vio', async () => {
+  it('sin decir si se vio, no guarda la nota', async () => {
     const cookie = await entrar()
     const cabeceras = { cookie }
     const animalId = nuevoId()
@@ -194,8 +194,46 @@ describe('notas de sanidad por HTTP', () => {
         animales: [{ animalId, notaId: nuevoId() }],
       },
     })
+    expect(alta.statusCode).toBe(400)
+    expect(alta.json<{ codigo: string }>()).toEqual({ codigo: 'cuerpo_invalido' })
+
+    const notas = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}/health-notes`,
+      headers: cabeceras,
+    })
+    expect(notas.json<{ notas: unknown[] }>().notas).toEqual([])
+  })
+
+  it('si se elige «no se vio», eso es lo que queda guardado', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId, nombre: 'No se vio HTTP' },
+    })
+
+    const alta = await app.inject({
+      method: 'POST',
+      url: '/api/health-notes',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        tipo: 'problema',
+        detalle: 'Dijeron que se veía mal',
+        fecha: '2026-11-21',
+        vioAlAnimal: false,
+        animales: [{ animalId, notaId: nuevoId() }],
+      },
+    })
     expect(alta.statusCode).toBe(201)
-    expect(alta.json<{ notas: { vioAlAnimal: boolean }[] }>().notas[0]?.vioAlAnimal).toBe(false)
+    expect(alta.json<{ notas: { vioAlAnimal: boolean; tipo: string }[] }>().notas[0]).toMatchObject({
+      vioAlAnimal: false,
+      tipo: 'problema',
+    })
   })
 
   it('un cuerpo mal formado es 400 y un tipo inventado es 422', async () => {
@@ -227,6 +265,7 @@ describe('notas de sanidad por HTTP', () => {
         tipo: 'inyeccion',
         detalle: 'Algo',
         fecha: '2026-11-22',
+        vioAlAnimal: false,
         animales: [{ animalId, notaId: nuevoId() }],
       },
     })
@@ -251,6 +290,7 @@ describe('notas de sanidad por HTTP', () => {
       tipo: 'medicamento',
       detalle: 'Se le puso la vacuna',
       fecha: '2026-11-23',
+      vioAlAnimal: false,
       animales: [{ animalId, notaId }],
     }
     const primera = await app.inject({ method: 'POST', url: '/api/health-notes', headers: cabeceras, payload: cuerpo })
