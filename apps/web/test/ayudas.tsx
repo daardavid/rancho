@@ -55,7 +55,7 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
       // familia la registra en su prueba.
       if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/family$/.test(ruta)) {
         return Response.json(
-          { filiacion: null, madre: null, padre: null, crias: [] },
+          { filiacion: null, madre: null, padre: null, crias: [], referidos: [] },
           { status: 200 },
         )
       }

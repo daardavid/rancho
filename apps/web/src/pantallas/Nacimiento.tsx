@@ -165,7 +165,9 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
       return
     }
 
-    const clave = JSON.stringify(armado.cuerpo)
+    // El arete no viaja en el cuerpo: se añade como marca. Si solo cambia el
+    // arete antes de reintentar, es otro comando; si no, se reutiliza el mismo.
+    const clave = JSON.stringify({ cuerpo: armado.cuerpo, arete: armado.arete ?? null })
     if (envio.current === null || envio.current.contenido !== clave) {
       envio.current = {
         contenido: clave,

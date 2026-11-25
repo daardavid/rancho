@@ -194,7 +194,7 @@ function Contenido({
                       Madre: antes{' '}
                       {textoDeLado(
                         correccion.madre,
-                        nombreDe(correccion.madre.animalId, animales),
+                        nombreDe(correccion.madre.animalId, animales, familia.referidos),
                         'la',
                       )}
                     </p>
@@ -202,10 +202,19 @@ function Contenido({
                       Padre: antes{' '}
                       {textoDeLado(
                         correccion.padre,
-                        nombreDe(correccion.padre.animalId, animales),
+                        nombreDe(correccion.padre.animalId, animales, familia.referidos),
                         'lo',
                       )}
                     </p>
+                    {correccion.fechaNacimiento === null || correccion.precisionFecha === null ? null : (
+                      <p className="correccion__campo">
+                        Nació: antes{' '}
+                        {textoDeFecha(correccion.fechaNacimiento, correccion.precisionFecha)}
+                      </p>
+                    )}
+                    {correccion.nota === null ? null : (
+                      <p className="correccion__campo">Nota: antes {correccion.nota}</p>
+                    )}
                     <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
                     <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
                   </li>
@@ -572,9 +581,19 @@ function textoDeLado(lado: Lado, nombre: string | null, visto: 'la' | 'lo'): str
   return `${visto === 'la' ? 'Inferida' : 'Inferido'} (${motivo}) · ${quien}`
 }
 
-function nombreDe(animalId: string | null, animales: readonly Animal[]): string | null {
+function nombreDe(
+  animalId: string | null,
+  animales: readonly Animal[],
+  referidos: readonly { readonly id: string; readonly nombre: string | null }[],
+): string | null {
   if (animalId === null) {
     return null
+  }
+  // La familia ya resolvió a quien la historia cita, aunque ya no esté activo.
+  // El hato solo entra si ese id no vino en la lectura.
+  const referido = referidos.find((animal) => animal.id === animalId)
+  if (referido !== undefined) {
+    return nombreVisible(referido)
   }
   const animal = animales.find((candidato) => candidato.id === animalId)
   return animal === undefined ? null : nombreVisible(animal)
