@@ -64,6 +64,11 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
       if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/health-notes$/.test(ruta)) {
         return Response.json({ animalId: ruta.split('/')[3], notas: [] }, { status: 200 })
       }
+      // El pesaje compara contra todos los pesos, no contra la última vuelta.
+      // Sin pesos anotados la lista va vacía; quien quiera historia la registra.
+      if (metodo === 'GET' && ruta === '/api/read-models/known-weights') {
+        return Response.json({ pesos: [] }, { status: 200 })
+      }
       if (metodo === 'GET' && /^\/api\/read-models\/ultima-observacion\/[^/]+$/.test(ruta)) {
         return Response.json(
           { animalId: ruta.split('/').pop(), observacion: null },

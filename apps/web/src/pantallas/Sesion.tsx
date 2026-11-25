@@ -8,7 +8,9 @@ import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
 import { calidad } from '../dominio/etiquetas'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
-import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { AvisoDeError, Cargando } from '../ui/Avisos'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { Encabezado } from '../ui/Encabezado'
 import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { CorreccionDePeso } from './CorreccionDePeso'
 
@@ -38,17 +40,16 @@ export function Sesion({ sesionId }: { readonly sesionId: string }) {
 
   if (sesion.isError) {
     return (
-      <main className="pantalla">
-        <AvisoDeError error={sesion.error} />
-        <BotonGrande alTocar={() => void sesion.refetch()}>Volver a intentar</BotonGrande>
-        <BotonGrande
-          secundario
-          alTocar={() => {
+      <main className="pantalla pantalla--sesion">
+        <Encabezado
+          titulo="Pesaje"
+          alRegresar={() => {
             irA({ nombre: 'hato' })
           }}
-        >
-          Regresar al hato
-        </BotonGrande>
+          etiquetaRegresar="Regresar al hato"
+        />
+        <AvisoDeError error={sesion.error} />
+        <BotonSecundario alTocar={() => void sesion.refetch()}>Volver a intentar</BotonSecundario>
       </main>
     )
   }
@@ -63,28 +64,18 @@ export function Sesion({ sesionId }: { readonly sesionId: string }) {
   const esLaUltima = ultima.data?.id === guardada.id
 
   return (
-    <main className="pantalla">
-      <header className="encabezado">
-        <p className="saludo">
-          <button
-            type="button"
-            className="enlace"
-            onClick={() => {
-              irA({ nombre: 'hato' })
-            }}
-          >
-            ← Hato
-          </button>
-        </p>
-        <h1>Pesaje del {diaLegible(guardada.fecha)}</h1>
-        <p className="subtitulo">
-          {pesados === 1 ? '1 pesado' : `${String(pesados)} pesados`}
-          {huecos === 0 ? '' : huecos === 1 ? ' · 1 no se pesó' : ` · ${String(huecos)} no se pesaron`}
-        </p>
-      </header>
+    <main className="pantalla pantalla--sesion">
+      <Encabezado
+        titulo={`Pesaje del ${diaLegible(guardada.fecha)}`}
+        subtitulo={resumenDeLaSesion(pesados, huecos)}
+        alRegresar={() => {
+          irA({ nombre: 'hato' })
+        }}
+        etiquetaRegresar="Regresar al hato"
+      />
 
-      <section className="seccion">
-        <h2 className="seccion__titulo">Lo que se asentó</h2>
+      <section className="ficha__seccion">
+        <h2 className="ficha__titulo">Lo que se asentó</h2>
         <ul className="lista lista--planas">
           {guardada.filas.map((fila) => (
             <li key={fila.id}>
@@ -103,8 +94,8 @@ export function Sesion({ sesionId }: { readonly sesionId: string }) {
         </ul>
       </section>
 
-      <section className="seccion">
-        <h2 className="seccion__titulo">Cómo quedó anotado</h2>
+      <section className="ficha__seccion">
+        <h2 className="ficha__titulo">Cómo quedó anotado</h2>
         <dl className="datos">
           <Dato etiqueta="Se registró" valor={instanteLegible(guardada.recordedAt)} />
           <Dato
@@ -116,19 +107,27 @@ export function Sesion({ sesionId }: { readonly sesionId: string }) {
       </section>
 
       {esLaUltima ? (
-        <BotonGrande
+        <BotonPrincipal
           alTocar={() => {
             irA({ nombre: 'pesaje' })
           }}
         >
           Pesaje de otra vuelta
-        </BotonGrande>
+        </BotonPrincipal>
       ) : null}
-      <BotonGrande secundario alTocar={() => irA({ nombre: 'hato' })}>
-        Regresar al hato
-      </BotonGrande>
     </main>
   )
+}
+
+function resumenDeLaSesion(pesados: number, huecos: number): string {
+  const pesos = pesados === 1 ? '1 pesado' : `${String(pesados)} pesados`
+  if (huecos === 0) {
+    return pesos
+  }
+  if (huecos === 1) {
+    return `${pesos} · 1 no se pesó`
+  }
+  return `${pesos} · ${String(huecos)} no se pesaron`
 }
 
 function FilaDeSesionGuardada({

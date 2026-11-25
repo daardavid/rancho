@@ -781,6 +781,18 @@
   margin-bottom: 12px;
 }
 
+.pantalla--sesion {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.pantalla--sesion .ui-encabezado {
+  margin-bottom: 16px;
+}
+
+.pantalla--sesion .ui-boton-principal {
+  margin-top: 8px;
+}
+
 .crecimiento__seccion {
   margin-top: 16px;
 }

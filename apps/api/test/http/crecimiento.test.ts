@@ -92,7 +92,11 @@ describe('vistas de crecimiento por HTTP', () => {
 
   it('responde 401 en las dos rutas cuando no hay sesión', async () => {
     const id = nuevoId()
-    for (const url of [`/api/read-models/animal-growth/${id}`, '/api/read-models/growth-overview']) {
+    for (const url of [
+      `/api/read-models/animal-growth/${id}`,
+      '/api/read-models/growth-overview',
+      '/api/read-models/known-weights',
+    ]) {
       const respuesta = await app.inject({ method: 'GET', url })
       expect(respuesta.statusCode, url).toBe(401)
       expect(respuesta.json()).toEqual({ codigo: 'no_autenticado' })

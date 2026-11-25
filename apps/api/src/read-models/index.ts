@@ -13,6 +13,7 @@ export {
   type HuecoDePesaje,
   type IntervaloDeCrecimiento,
   type ModelosDeCrecimiento,
+  type PesoConocido,
   type PesoEnLaVista,
   type PuntoDeCrecimiento,
   type ResumenDelHato,

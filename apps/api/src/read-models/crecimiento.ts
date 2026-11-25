@@ -105,6 +105,13 @@ export type ResumenDelHato = {
   readonly fechaDeLaUltimaVuelta: string | null
 }
 
+/** Un peso guardado, sin la ganancia. Sirve para comparar una captura por fecha. */
+export type PesoConocido = {
+  readonly animalId: string
+  readonly fecha: string
+  readonly kilos: string
+}
+
 export type ModelosDeCrecimiento = {
   /** `null` cuando el animal no existe en este rancho. */
   vistaDeAnimal(ranchId: RanchId, animalId: string): Promise<VistaDeAnimal | null>
@@ -114,6 +121,11 @@ export type ModelosDeCrecimiento = {
    * para que una prueba sea determinista.
    */
   resumenDelHato(ranchId: RanchId, hoy?: string): Promise<ResumenDelHato>
+  /**
+   * Todos los pesos del rancho, del más viejo al más nuevo por animal.
+   * Un hueco no entra: no es un peso y no se compara contra él.
+   */
+  pesosConocidos(ranchId: RanchId): Promise<readonly PesoConocido[]>
 }
 
 const CATEGORIAS: readonly Categoria[] = ['calf', 'cow', 'bull', 'other', 'unknown']
@@ -411,6 +423,30 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
         esperadosEnLaUltimaVuelta: primera === undefined ? 0 : entero(primera.esperados),
         fechaDeLaUltimaVuelta: primera?.fecha_ultima ?? null,
       }
+    },
+
+    async pesosConocidos(ranchId) {
+      const filas = filasDe<{ animal_id: string; fecha: string; kilos: string }>(
+        await db.execute(sql`
+          SELECT
+            linea.animal_id AS animal_id,
+            sesion.weighed_on::text AS fecha,
+            linea.kilos::text AS kilos
+          FROM growth.weighing_line linea
+          JOIN growth.weighing_session sesion
+            ON sesion.id = linea.session_id AND sesion.ranch_id = linea.ranch_id
+          WHERE linea.ranch_id = ${ranchId}
+            AND linea.result = 'weighed'
+            AND linea.kilos IS NOT NULL
+          ORDER BY linea.animal_id, sesion.weighed_on, sesion.recorded_at, linea.position, linea.id
+        `),
+      )
+
+      return filas.map((fila) => ({
+        animalId: fila.animal_id,
+        fecha: fila.fecha,
+        kilos: tresDecimales(fila.kilos),
+      }))
     },
   }
 }

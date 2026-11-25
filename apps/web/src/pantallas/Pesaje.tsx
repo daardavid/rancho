@@ -1,9 +1,9 @@
-import type { RegistrarSesion, SesionDePesaje } from '@rancho/api-contracts'
+import type { RegistrarSesion } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import { useHato } from '../api/hato'
 import { ErrorDeApi } from '../api/http'
-import { useRegistrarPesaje, useUltimaSesion } from '../api/pesajes'
+import { usePesosConocidos, useRegistrarPesaje, useUltimaSesion } from '../api/pesajes'
 import { useSesion } from '../api/sesion'
 import { coincide, normalizar, nombreVisible } from '../dominio/animal'
 import {
@@ -14,9 +14,10 @@ import {
   type CalidadBorrador,
   type FilaBorrador,
 } from '../dominio/borrador'
-import { diasEntre, diasLegibles, fechaDelPesaje, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
+import { diaCorto, diasEntre, diasLegibles, fechaDelPesaje, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
 import { calidad, categoria, tipoDeMarca } from '../dominio/etiquetas'
 import { compararConElAnterior, revisarKilos, type ComparacionDePeso } from '../dominio/kilos'
+import { referenciaDePeso, type PesoFechado } from '../dominio/referenciaDePeso'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
@@ -50,10 +51,13 @@ import { Tarjeta } from '../ui/Tarjeta'
  *
  * La diferencia contra el peso anterior se calcula al vuelo, en gramos enteros.
  * No se guarda: es lo que el dueño ve mientras escribe, no un hecho nuevo.
+ * El anterior es el último peso con fecha estrictamente anterior a la del
+ * borrador. Un peso posterior se enseña como dato y no se resta.
  */
 export function Pesaje() {
   const hato = useHato()
   const ultima = useUltimaSesion()
+  const conocidos = usePesosConocidos()
   const sesion = useSesion()
 
   /**
@@ -88,7 +92,10 @@ export function Pesaje() {
     return ultima.data.filas.map((fila) => fila.animalId).filter((id) => idsActivos.has(id))
   }, [ultima.data, idsActivos])
 
-  const anteriores = useMemo(() => pesosAnteriores(ultima.data), [ultima.data])
+  const pesosPorAnimal = useMemo(
+    () => agruparPesos(conocidos.data?.pesos ?? []),
+    [conocidos.data],
+  )
 
   /**
    * La propuesta se arma una sola vez, cuando ya se sabe qué animales había en
@@ -158,14 +165,13 @@ export function Pesaje() {
       cuentaId={cuentaId}
       animales={animales}
       porAnimal={porAnimal}
-      anteriores={anteriores}
+      pesosPorAnimal={pesosPorAnimal}
+      sinHistoria={conocidos.isError}
       huboVueltaAnterior={ultima.data !== null && ultima.data !== undefined}
       alCambiar={setCambiado}
     />
   )
 }
-
-type PesoAnterior = { readonly kilos: string; readonly fecha: string }
 
 const OPCIONES_DE_CALIDAD = [
   { valor: 'measured', texto: 'Báscula' },
@@ -178,7 +184,8 @@ function EditorDeSesion({
   cuentaId,
   animales,
   porAnimal,
-  anteriores,
+  pesosPorAnimal,
+  sinHistoria,
   huboVueltaAnterior,
   alCambiar,
 }: {
@@ -186,7 +193,8 @@ function EditorDeSesion({
   readonly cuentaId: string
   readonly animales: readonly Animal[]
   readonly porAnimal: ReadonlyMap<string, Animal>
-  readonly anteriores: ReadonlyMap<string, PesoAnterior>
+  readonly pesosPorAnimal: ReadonlyMap<string, readonly PesoFechado[]>
+  readonly sinHistoria: boolean
   readonly huboVueltaAnterior: boolean
   readonly alCambiar: Dispatch<SetStateAction<BorradorDePesaje | null>>
 }) {
@@ -375,6 +383,12 @@ function EditorDeSesion({
             />
           }
         />
+        {sinHistoria ? (
+          <p className="campo__ayuda">
+            No se pudieron traer los pesos de antes, así que no se muestra la diferencia.
+          </p>
+        ) : null}
+
         {intentado && faltaFecha(borrador.fecha) ? (
           <p className="campo__error" role="alert">
             Escoge el día en que se pesó.
@@ -404,7 +418,7 @@ function EditorDeSesion({
               <TarjetaActiva
                 fila={activa}
                 animal={porAnimal.get(activa.animalId)}
-                anterior={anteriores.get(activa.animalId)}
+                pesos={pesosPorAnimal.get(activa.animalId) ?? []}
                 fecha={borrador.fecha}
                 intentado={intentado}
                 ancla={setAncla}
@@ -433,7 +447,7 @@ function EditorDeSesion({
                 <FilaCompacta
                   fila={fila}
                   animal={porAnimal.get(fila.animalId)}
-                  comparacion={comparacionDe(fila, anteriores, borrador.fecha)}
+                  comparacion={comparacionDe(fila, pesosPorAnimal, borrador.fecha)}
                   alAbrir={() => {
                     abrir(fila.id)
                   }}
@@ -708,7 +722,7 @@ function SelectorDeCalidad({
 function TarjetaActiva({
   fila,
   animal,
-  anterior,
+  pesos,
   fecha,
   intentado,
   ancla,
@@ -720,7 +734,7 @@ function TarjetaActiva({
 }: {
   readonly fila: FilaBorrador
   readonly animal: Animal | undefined
-  readonly anterior: PesoAnterior | undefined
+  readonly pesos: readonly PesoFechado[]
   readonly fecha: string
   readonly intentado: boolean
   readonly ancla: (nodo: HTMLDivElement | null) => void
@@ -734,9 +748,11 @@ function TarjetaActiva({
   const revision = revisarKilos(fila.kilos)
   const error =
     intentado && fila.resultado === 'pesado' && !revision.ok ? revision.motivo : undefined
-  const dias = anterior === undefined ? null : diasEntre(anterior.fecha, fecha)
+  const referencia = referenciaDePeso(pesos, fecha)
+  const anterior = referencia.anterior
+  const dias = anterior === null ? null : diasEntre(anterior.fecha, fecha)
   const comparacion =
-    fila.resultado === 'pesado' && revision.ok && anterior !== undefined
+    fila.resultado === 'pesado' && revision.ok && anterior !== null
       ? compararConElAnterior(fila.kilos, anterior.kilos, dias ?? -1)
       : null
 
@@ -748,7 +764,10 @@ function TarjetaActiva({
           Quitar
         </button>
       </div>
-      {anterior === undefined ? null : <p className="pesaje__antes">{textoDeAntes(anterior, fecha)}</p>}
+      {anterior === null ? null : <p className="pesaje__antes">{textoDeAntes(anterior, fecha)}</p>}
+      {referencia.posterior === null ? null : (
+        <p className="pesaje__antes">{textoDeDespues(referencia.posterior)}</p>
+      )}
 
       {fila.resultado === 'hueco' ? (
         <div className="renglon__hueco">
@@ -913,15 +932,18 @@ function nombreDe(animal: Animal | undefined): string {
   return animal === undefined ? 'Animal que ya no está en el hato' : nombreVisible(animal)
 }
 
-/** El último peso de cada animal en la vuelta anterior. Un hueco no es un peso. */
-function pesosAnteriores(sesion: SesionDePesaje | null | undefined): ReadonlyMap<string, PesoAnterior> {
-  const mapa = new Map<string, PesoAnterior>()
-  if (sesion === null || sesion === undefined) {
-    return mapa
-  }
-  for (const fila of sesion.filas) {
-    if (fila.resultado === 'pesado') {
-      mapa.set(fila.animalId, { kilos: fila.kilos, fecha: sesion.fecha })
+/** Los pesos de cada animal, en el orden en que llegaron (fecha, y luego registro). */
+function agruparPesos(
+  pesos: readonly { animalId: string; fecha: string; kilos: string }[],
+): ReadonlyMap<string, readonly PesoFechado[]> {
+  const mapa = new Map<string, PesoFechado[]>()
+  for (const peso of pesos) {
+    const punto = { fecha: peso.fecha, kilos: peso.kilos }
+    const lista = mapa.get(peso.animalId)
+    if (lista === undefined) {
+      mapa.set(peso.animalId, [punto])
+    } else {
+      lista.push(punto)
     }
   }
   return mapa
@@ -1009,27 +1031,31 @@ function detalleDeAvance(huecos: number, faltan: number): string | undefined {
 
 function comparacionDe(
   fila: FilaBorrador,
-  anteriores: ReadonlyMap<string, PesoAnterior>,
+  pesosPorAnimal: ReadonlyMap<string, readonly PesoFechado[]>,
   fecha: string,
 ): ComparacionDePeso | null {
   if (fila.resultado !== 'pesado' || !revisarKilos(fila.kilos).ok) {
     return null
   }
-  const anterior = anteriores.get(fila.animalId)
-  if (anterior === undefined) {
+  const anterior = referenciaDePeso(pesosPorAnimal.get(fila.animalId) ?? [], fecha).anterior
+  if (anterior === null) {
     return null
   }
   const dias = diasEntre(anterior.fecha, fecha)
   return compararConElAnterior(fila.kilos, anterior.kilos, dias ?? -1)
 }
 
-function textoDeAntes(anterior: PesoAnterior, fecha: string): string {
+function textoDeAntes(anterior: PesoFechado, fecha: string): string {
   const peso = `Antes: ${kilosLegibles(anterior.kilos)}`
   const dias = diasEntre(anterior.fecha, fecha)
   if (dias === null || dias < 0) {
     return peso
   }
   return `${peso} · ${diasLegibles(dias)}`
+}
+
+function textoDeDespues(posterior: PesoFechado): string {
+  return `Después: ${kilosLegibles(posterior.kilos)} el ${diaCorto(posterior.fecha)}`
 }
 
 function textoDeLaComparacion(comparacion: ComparacionDePeso): string {
