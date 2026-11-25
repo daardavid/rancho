@@ -1,33 +1,64 @@
-import type { AnimalDelInicio, AnimalSinVerse, CambioDelPeriodo } from '@rancho/api-contracts'
-import { useState } from 'react'
+import type { AnimalDelInicio, AnimalSinVerse, CambioDelPeriodo, FilaDeCrecimiento } from '@rancho/api-contracts'
+import { useMemo, useState } from 'react'
 
+import { useResumenDelHato } from '../api/hato'
 import { useInicio } from '../api/inicio'
+import { ordenarCrecimiento } from '../dominio/crecimiento'
 import { categoria } from '../dominio/etiquetas'
 import { diaLegible, diaMas, hoyEnElRancho } from '../dominio/fechas'
 import { haceCuantosDias } from '../dominio/observacion'
+import { lecturaDeCrecimiento } from '../dominio/revision'
 import { rutaAHash } from '../ruta'
-import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { AvisoDeError, Cargando } from '../ui/Avisos'
+import { BotonPrincipal } from '../ui/Botones'
 import { CampoDeFecha } from '../ui/Campos'
-import { Encabezado } from '../ui/Encabezado'
+import { Desplegable } from '../ui/Desplegable'
+import {
+  IconoBascula,
+  IconoNacimiento,
+  IconoSalida,
+  IconoSanidad,
+} from '../ui/iconos'
 import { Resumen, type TarjetaDeResumen } from '../ui/Resumen'
+import { EncabezadoDelRancho } from './EncabezadoDelRancho'
+import { TarjetaDelPrimerAnimal } from './TarjetaDelPrimerAnimal'
 
 /**
- * La revisión del periodo ([TGT-GOV-001](../../../../docs/architecture/domain-boundaries.md),
- * en lo que esta pantalla ya puede leer).
+ * Inicio: lo que hay que revisar, como pide el North Star del MVP
+ * ([mvp-framing](../../../../docs/product/mvp-framing.md)) y el incremento
+ * ([INC-005](../../../../docs/product/increments/INC-005-listo-para-uso-real.md)).
  *
- * Arriba los activos y lo que cambió desde el día que se elija. Abajo lo que
- * hay que mirar: huecos de la última vuelta, quien no tiene lugar, quien no
- * tiene observación y el resto ordenado por los días sin verse. No hay un
- * límite inventado: entran todos. Lo que no se sabe se queda vacío.
+ * El orden lo puso la prueba de David del 2026-11-25: primero los accesos a las
+ * capturas, después lo que hay que revisar, y hasta abajo el resumen del
+ * periodo. La fecha del periodo va plegada —«Últimos 7 días»— porque es un
+ * control técnico: el dueño abre la app a ver qué atender, no a escoger fechas.
+ *
+ * «Para revisar» usa la misma regla de «Revisar primero» de Crecimiento
+ * ([`revision.ts`](../dominio/revision.ts)): no hay umbral de ganancia ni de
+ * días sin verse, y no se inventa uno. Un hueco de la última vuelta tiene su
+ * propio grupo y no se repite en «Van atrás».
+ *
+ * Sin animales no se afirma nada de «todos» ni de «nadie»: se dice que todavía
+ * no hay animales y se ofrece darlos de alta, igual que en el hato.
  */
-
 export function Inicio() {
   const [desde, setDesde] = useState(() => diaMas(hoyEnElRancho(), -7))
   const inicio = useInicio(desde)
+  const resumen = useResumenDelHato()
+
+  const filas = useMemo(() => resumen.data?.animales ?? [], [resumen.data])
+  const atras = useMemo(
+    () =>
+      ordenarCrecimiento(filas).filter(
+        (fila) =>
+          !fila.fueHuecoEnLaUltimaSesion && lecturaDeCrecimiento(fila).lugar === 'revisar',
+      ),
+    [filas],
+  )
 
   if (inicio.isPending) {
     return (
-      <main className="pantalla">
+      <main className="pantalla pantalla--pestana">
         <Cargando que="Armando el inicio…" />
       </main>
     )
@@ -35,90 +66,78 @@ export function Inicio() {
 
   if (inicio.isError) {
     return (
-      <main className="pantalla">
-        <Encabezado titulo="Inicio" />
+      <main className="pantalla pantalla--pestana">
+        <EncabezadoDelRancho titulo="Inicio" />
         <AvisoDeError error={inicio.error} />
-        <BotonGrande alTocar={() => void inicio.refetch()}>Volver a intentar</BotonGrande>
+        <BotonPrincipal alTocar={() => void inicio.refetch()}>Volver a intentar</BotonPrincipal>
       </main>
     )
   }
 
   const datos = inicio.data
   const revisar = datos.paraRevisar
+  const total = datos.activosPorCategoria.reduce((suma, fila) => suma + fila.cantidad, 0)
+
+  if (total === 0) {
+    return (
+      <main className="pantalla pantalla--pestana">
+        <EncabezadoDelRancho titulo="Inicio" subtitulo="Todavía no hay animales en el hato" />
+        <TarjetaDelPrimerAnimal />
+        <section className="ficha__seccion" aria-label="Para revisar">
+          <h2 className="ficha__titulo">Para revisar</h2>
+          {/* Una lista vacía porque no hay animales no dice «nadie» ni «todos». */}
+          <p className="inicio__vacio">
+            Cuando haya animales, aquí se ve a quién hay que revisar.
+          </p>
+        </section>
+      </main>
+    )
+  }
+
+  const delPeriodo = desde === diaMas(datos.hoy, -7)
+  const tituloDelPeriodo = delPeriodo ? 'Últimos 7 días' : `Desde el ${diaLegible(desde)}`
 
   return (
-    <main className="pantalla">
-      <Encabezado titulo="Inicio" subtitulo="Lo que cambió y lo que hay que revisar." />
+    <main className="pantalla pantalla--pestana">
+      <EncabezadoDelRancho titulo="Inicio" subtitulo="Primero lo que hay que revisar." />
 
-      <CampoDeFecha
-        etiqueta="Desde"
-        valor={desde}
-        alCambiar={(dia) => {
-          if (dia !== '') {
-            setDesde(dia)
-          }
-        }}
-        ayuda="Por omisión, los últimos 7 días. El día de hoy entra."
-      />
-
-      <section className="ficha__seccion" aria-label="Activos">
-        <h2 className="ficha__titulo">Activos</h2>
-        {datos.activosPorCategoria.length === 0 ? (
-          <p className="inicio__vacio">No hay animales activos.</p>
-        ) : (
-          <Resumen
-            tarjetas={datos.activosPorCategoria.map(
-              (fila): TarjetaDeResumen => ({
-                etiqueta: categoria(fila.categoria),
-                valor: String(fila.cantidad),
-                detalle: fila.categoria === 'unknown' ? 'Sin categoría' : 'En el hato',
-                tono: fila.categoria === 'unknown' ? 'neutro' : 'principal',
-              }),
-            )}
-          />
-        )}
-      </section>
-
-      <section className="ficha__seccion" aria-label="En este periodo">
-        <h2 className="ficha__titulo">En este periodo</h2>
-        <p className="inicio__vacio">
-          Del {diaLegible(datos.desde)} al {diaLegible(datos.hoy)}.
-        </p>
-        <Resumen
-          tarjetas={[
-            cuenta('Nacimientos', datos.cambios.nacimientos.length, 'Con fecha'),
-            cuenta('Salidas', datos.cambios.salidas.length, 'Se supo en estos días'),
-            cuenta('Pesajes', datos.cambios.pesajes, 'Animales pesados'),
-            cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
-          ]}
-        />
-        {datos.cambios.nacimientosSinFecha === 0 ? null : (
-          <p className="inicio__vacio">
-            {datos.cambios.nacimientosSinFecha === 1
-              ? 'Hay 1 nacimiento sin fecha. No entra en la cuenta.'
-              : `Hay ${datos.cambios.nacimientosSinFecha} nacimientos sin fecha. No entran en la cuenta.`}
-          </p>
-        )}
-        <section aria-label="Nacimientos">
-          <h3 className="inicio__grupo">Nacimientos</h3>
-          {datos.cambios.nacimientos.length === 0 ? (
-            <p className="inicio__vacio">Ninguno con fecha en este periodo.</p>
-          ) : (
-            <ListaCambios cambios={datos.cambios.nacimientos} />
-          )}
-        </section>
-        <section aria-label="Salidas">
-          <h3 className="inicio__grupo">Salidas</h3>
-          {datos.cambios.salidas.length === 0 ? (
-            <p className="inicio__vacio">Ninguna en este periodo.</p>
-          ) : (
-            <ListaCambios cambios={datos.cambios.salidas} />
-          )}
-        </section>
+      <section className="inicio__accesos" aria-label="Accesos directos">
+        <a className="inicio__acceso" href={rutaAHash({ nombre: 'pesaje' })}>
+          <IconoBascula />
+          <span>Registrar pesaje</span>
+        </a>
+        <a
+          className="inicio__acceso"
+          href={rutaAHash({ nombre: 'nacimiento', madreId: null })}
+        >
+          <IconoNacimiento />
+          <span>Nacimiento</span>
+        </a>
+        <a className="inicio__acceso" href={rutaAHash({ nombre: 'hato', modo: 'sanidad' })}>
+          <IconoSanidad />
+          <span>Nota de sanidad</span>
+        </a>
+        <a className="inicio__acceso" href={rutaAHash({ nombre: 'salida' })}>
+          <IconoSalida />
+          <span>Salida</span>
+        </a>
       </section>
 
       <section className="ficha__seccion" aria-label="Para revisar">
         <h2 className="ficha__titulo">Para revisar</h2>
+
+        <h3 className="inicio__grupo">Van atrás</h3>
+        {resumen.isPending ? (
+          <p className="inicio__vacio">Trayendo los pesos…</p>
+        ) : resumen.isError ? (
+          <p className="inicio__vacio" role="status">
+            No se pudieron traer los pesos. Vuelve a abrir Inicio para intentarlo otra vez.
+          </p>
+        ) : atras.length === 0 ? (
+          <p className="inicio__vacio">Ninguno va atrás con sus propios pesos.</p>
+        ) : (
+          <ListaVanAtras filas={atras} />
+        )}
 
         <h3 className="inicio__grupo">Huecos de la última vuelta</h3>
         {revisar.fechaDeLaUltimaVuelta === null ? (
@@ -175,6 +194,76 @@ export function Inicio() {
           )}
         </section>
       </section>
+
+      <section className="ficha__seccion" aria-label="Resumen del periodo">
+        <h2 className="ficha__titulo">Resumen del periodo</h2>
+        <Desplegable
+          titulo={tituloDelPeriodo}
+          {...(delPeriodo ? { resumen: 'por omisión' } : {})}
+        >
+          <CampoDeFecha
+            etiqueta="Desde"
+            valor={desde}
+            alCambiar={(dia) => {
+              if (dia !== '') {
+                setDesde(dia)
+              }
+            }}
+            ayuda="El día de hoy entra en la cuenta."
+          />
+          <p className="inicio__vacio">
+            Del {diaLegible(datos.desde)} al {diaLegible(datos.hoy)}.
+          </p>
+          <Resumen
+            tarjetas={[
+              cuenta('Nacimientos', datos.cambios.nacimientos.length, 'Con fecha'),
+              cuenta('Salidas', datos.cambios.salidas.length, 'Se supo en estos días'),
+              cuenta('Pesajes', datos.cambios.pesajes, 'Animales pesados'),
+              cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
+            ]}
+          />
+          {datos.cambios.nacimientosSinFecha === 0 ? null : (
+            <p className="inicio__vacio">
+              {datos.cambios.nacimientosSinFecha === 1
+                ? 'Hay 1 nacimiento sin fecha. No entra en la cuenta.'
+                : `Hay ${datos.cambios.nacimientosSinFecha} nacimientos sin fecha. No entran en la cuenta.`}
+            </p>
+          )}
+          <section aria-label="Nacimientos">
+            <h3 className="inicio__grupo">Nacimientos</h3>
+            {datos.cambios.nacimientos.length === 0 ? (
+              <p className="inicio__vacio">Ninguno con fecha en este periodo.</p>
+            ) : (
+              <ListaCambios cambios={datos.cambios.nacimientos} />
+            )}
+          </section>
+          <section aria-label="Salidas">
+            <h3 className="inicio__grupo">Salidas</h3>
+            {datos.cambios.salidas.length === 0 ? (
+              <p className="inicio__vacio">Ninguna en este periodo.</p>
+            ) : (
+              <ListaCambios cambios={datos.cambios.salidas} />
+            )}
+          </section>
+        </Desplegable>
+      </section>
+
+      <section className="ficha__seccion" aria-label="Activos">
+        <h2 className="ficha__titulo">Activos</h2>
+        <p className="inicio__vacio">
+          {total === 1 ? '1 animal activo' : `${String(total)} animales activos`}
+        </p>
+        <Resumen
+          tarjetas={datos.activosPorCategoria.map(
+            (fila): TarjetaDeResumen => ({
+              etiqueta: categoria(fila.categoria),
+              valor: String(fila.cantidad),
+              detalle: fila.categoria === 'unknown' ? 'Sin categoría' : 'En el hato',
+              tono: fila.categoria === 'unknown' ? 'neutro' : 'principal',
+            }),
+          )}
+        />
+      </section>
     </main>
   )
 }
@@ -186,6 +275,33 @@ function cuenta(etiqueta: string, cantidad: number, detalle: string): TarjetaDeR
     detalle,
     tono: 'neutro',
   }
+}
+
+/**
+ * Los que van atrás según su propio intervalo. Se dice por qué: perdió kilos,
+ * bajó contra su vuelta anterior o su último peso no se midió en la báscula.
+ */
+function ListaVanAtras({ filas }: { readonly filas: readonly FilaDeCrecimiento[] }) {
+  return (
+    <ul className="inicio__lista">
+      {filas.map((fila) => {
+        const lectura = lecturaDeCrecimiento(fila)
+        const nombre = fila.nombre ?? 'Sin nombre o seña'
+        const motivo = lectura.nota ?? lectura.valor
+        return (
+          <li key={fila.animalId}>
+            <a
+              href={rutaAHash({ nombre: 'ficha', animalId: fila.animalId })}
+              aria-label={`${nombre}, ${motivo}`}
+            >
+              <span>{nombre}</span>
+              <span className="inicio__meta">{motivo}</span>
+            </a>
+          </li>
+        )
+      })}
+    </ul>
+  )
 }
 
 function ListaCambios({ cambios }: { readonly cambios: readonly CambioDelPeriodo[] }) {

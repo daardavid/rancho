@@ -742,6 +742,8 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     expect(window.localStorage.getItem('rancho.pesaje.borrador')).not.toBeNull()
 
+    // «Salir» vive en el menú ☰ del encabezado, el mismo de todas las pestañas.
+    await usuario.click(screen.getByRole('button', { name: 'Menú' }))
     await usuario.click(screen.getByRole('button', { name: 'Salir' }))
 
     // Lo capturado no sobrevive al cierre: el siguiente que entre en este
@@ -990,6 +992,23 @@ function colaDeFotos(): {
     },
   }
 }
+
+describe('Pesaje con el hato vacío', () => {
+  it('manda a dar de alta primero y no ofrece guardar una vuelta de cero', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/weighing-sessions/latest': sinVueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+
+    expect(await screen.findByText('Todavía no hay animales en el hato')).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Dar de alta el primer animal' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Agregar otro animal' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Guardar pesaje/ })).toBeNull()
+  })
+})
 
 describe('Sesión guardada', () => {
   it('enseña los pesos y los huecos, y no inventa la ganancia', async () => {

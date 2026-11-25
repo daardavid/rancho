@@ -269,7 +269,7 @@ describe('pantalla Potreros', () => {
       'GET /api/locations': sinLugares(),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Menú' }))
     await usuario.click(screen.getByRole('button', { name: 'Potreros' }))
@@ -297,7 +297,7 @@ describe('filtro por potrero en el hato', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     const filtro = await screen.findByRole('radiogroup', { name: 'Filtrar por potrero' })
@@ -326,7 +326,7 @@ describe('filtro por potrero en el hato', () => {
       'GET /api/locations': sinLugares(),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     expect(screen.queryByRole('radiogroup', { name: 'Filtrar por potrero' })).toBeNull()
@@ -348,7 +348,7 @@ describe('Mover a… en el hato', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
@@ -380,7 +380,7 @@ describe('Mover a… en el hato', () => {
       'POST /api/locations': () => ({ estado: 201, cuerpo: { asignaciones: [] } }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
@@ -407,7 +407,7 @@ describe('Mover a… en el hato', () => {
       'GET /api/locations': sinLugares(),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
 
@@ -425,7 +425,7 @@ describe('Mover a… en el hato', () => {
       'POST /api/locations': () => ({ estado: 201, cuerpo: { asignaciones: [] } }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
@@ -465,7 +465,7 @@ describe('Mover a… en el hato', () => {
       },
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
@@ -508,7 +508,7 @@ describe('Mover a… en el hato', () => {
       },
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
     await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
