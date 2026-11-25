@@ -29,14 +29,16 @@ import { Mosaicos } from '../ui/Mosaicos'
 import { Tarjeta } from '../ui/Tarjeta'
 
 /**
- * Valores del filtro de lugar que no son ids de potrero. Van con prefijo para
- * que no puedan chocar con un id de verdad.
+ * Valores del filtro de lugar que no son ids de potrero. Van con un texto fijo
+ * para que no puedan chocar con un id de verdad.
  */
 const SIN_FILTRO_DE_POTRERO = 'cualquiera'
 const SIN_LUGAR = 'sin-lugar'
-const LUGAR_DESCONOCIDO = 'no-se'
-/** En «Mover a…», el destino «No sé». */
-const SIN_POTRERO = 'no-se'
+/**
+ * «No sé» en los dos sentidos que usa el rancho: el destino de un movimiento y
+ * el filtro del hato. Es el mismo valor y quiere decir lo mismo.
+ */
+const DESCONOCIDO = 'no-se'
 
 /**
  * El hato: cuántos animales hay, quién va bien, a quién revisar y quién no se
@@ -399,7 +401,7 @@ function MoverA({
   readonly alGuardar: () => void
   readonly alCerrar: () => void
 }) {
-  const [destino, setDestino] = useState<string>(SIN_POTRERO)
+  const [destino, setDestino] = useState<string>(DESCONOCIDO)
   const [desde, setDesde] = useState(hoyEnElRancho())
   const [nota, setNota] = useState('')
   const mover = useAsignarLugar()
@@ -413,7 +415,7 @@ function MoverA({
     mover.mutate(
       {
         commandId: crypto.randomUUID(),
-        potreroId: destino === SIN_POTRERO ? null : destino,
+        potreroId: destino === DESCONOCIDO ? null : destino,
         desde,
         ...(limpio === '' ? {} : { nota: limpio }),
         animales: elegidos.map((animalId) => ({
@@ -452,7 +454,7 @@ function MoverA({
             valor: potrero.id,
             texto: potrero.nombre ?? 'Sin nombre',
           })),
-          { valor: SIN_POTRERO, texto: 'No sé' },
+          { valor: DESCONOCIDO, texto: 'No sé' },
         ]}
         valor={destino}
         alElegir={setDestino}
@@ -743,7 +745,7 @@ function opcionesDeFiltroPorPotrero(
       texto: `${potrero.nombre ?? 'Sin nombre'} ${String(potrero.esperados)}`,
     })),
     { valor: SIN_LUGAR, texto: 'Sin lugar' },
-    { valor: LUGAR_DESCONOCIDO, texto: 'No sé' },
+    { valor: DESCONOCIDO, texto: 'No sé' },
   ]
 }
 
@@ -764,7 +766,7 @@ function pasaElFiltroDePotrero(
   if (filtro === SIN_LUGAR) {
     return vigente === undefined
   }
-  if (filtro === LUGAR_DESCONOCIDO) {
+  if (filtro === DESCONOCIDO) {
     return vigente === null
   }
   return vigente === filtro

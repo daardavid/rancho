@@ -31,9 +31,12 @@ test('un potrero, un grupo movido y el lugar vigente en la ficha', async ({ page
   await page.getByRole('button', { name: 'Potreros' }).click()
   await expect(page.getByRole('heading', { name: 'Potreros' })).toBeVisible()
 
-  // En el encabezado hay un «+» para agregar; la tarjeta del hato vacío ofrece lo
-  // mismo. Se usa el del encabezado, que existe con o sin potreros.
-  await page.getByRole('button', { name: 'Agregar un potrero' }).click()
+  // En un hato de potreros vacío la única invitación es la tarjeta; con
+  // potreros ya anotados, es el «+» del encabezado. Nunca están las dos.
+  await page
+    .getByRole('button', { name: 'Agregar un potrero' })
+    .or(page.getByRole('button', { name: 'Agregar el primer potrero' }))
+    .click()
   await page.getByLabel('Nombre del potrero').fill(potrero)
   await page.getByRole('button', { name: 'Agregar potrero' }).click()
 

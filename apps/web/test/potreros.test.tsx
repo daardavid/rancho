@@ -122,6 +122,8 @@ describe('pantalla Potreros', () => {
 
     expect(await screen.findByText('Empieza con un potrero')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Agregar el primer potrero' })).toBeDefined()
+    // La acción no se repite: el «+» del encabezado no está en la lista vacía.
+    expect(screen.queryByRole('button', { name: 'Agregar un potrero' })).toBeNull()
   })
 
   it('abre el alta de potrero y manda el nombre que el rancho usa', async () => {

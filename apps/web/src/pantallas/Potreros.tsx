@@ -64,17 +64,23 @@ export function Potreros() {
           irA({ nombre: 'hato' })
         }}
         etiquetaRegresar="Regresar al hato"
-        acciones={[
-          {
-            etiqueta: 'Agregar un potrero',
-            icono: <IconoMas />,
-            alTocar: () => {
-              setRenombrando(null)
-              setCreando(!creando)
-            },
-            destacado: true,
-          },
-        ]}
+        acciones={
+          // Una sola acción por pantalla: en la lista vacía la invitación es la
+          // tarjeta, y el «+» aparece cuando ya hay potreros que agregar.
+          lista.length === 0
+            ? []
+            : [
+                {
+                  etiqueta: 'Agregar un potrero',
+                  icono: <IconoMas />,
+                  alTocar: () => {
+                    setRenombrando(null)
+                    setCreando(!creando)
+                  },
+                  destacado: true,
+                },
+              ]
+        }
       />
 
       <p className="campo__ayuda">
