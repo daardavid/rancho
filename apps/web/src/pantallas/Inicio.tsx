@@ -229,6 +229,11 @@ function nombreDe(animal: AnimalDelInicio): string {
 }
 
 function detalleDeDias(animal: AnimalSinVerse): string {
-  const evento = animal.origen === 'pesaje' ? 'pesaje' : 'nota de sanidad'
+  const evento =
+    animal.origen === 'pesaje'
+      ? 'pesaje'
+      : animal.origen === 'nacimiento'
+        ? 'nacimiento'
+        : 'nota de sanidad'
   return `${haceCuantosDias(animal.dias)} · ${evento}`
 }

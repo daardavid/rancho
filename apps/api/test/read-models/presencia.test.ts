@@ -45,6 +45,11 @@ const ids = {
   criaPeriodo: nuevoId(),
   criaVieja: nuevoId(),
   criaSinFecha: nuevoId(),
+  madreDelParto: nuevoId(),
+  criaVista: nuevoId(),
+  criaInferida: nuevoId(),
+  criaSinCerteza: nuevoId(),
+  filiacionVista: nuevoId(),
   salio: nuevoId(),
   potrero: nuevoId(),
   sesionUltima: nuevoId(),
@@ -165,6 +170,7 @@ beforeAll(async () => {
     tipo: 'vacuna',
     detalle: 'La anotaron sin verlo',
     fecha: '2026-11-22',
+    vioAlAnimal: false,
     animales: [{ animalId: ids.notaNoVista, notaId: ids.notaNoVistaId }],
   })
   await herd.anotarSalud({
@@ -192,6 +198,18 @@ beforeAll(async () => {
   await nacimiento(ids.criaPeriodo, 'Cría del periodo', '2026-11-20', 'exact')
   await nacimiento(ids.criaVieja, 'Cría vieja', '2026-10-01', 'exact')
   await nacimiento(ids.criaSinFecha, 'Cría sin fecha', null, null)
+  await animal(ids.madreDelParto, 'Madre del parto', 'cow')
+  await nacimientoConMadre(ids.criaVista, ids.filiacionVista, 'Cría vista', {
+    certeza: 'observed',
+    animalId: ids.madreDelParto,
+    motivo: null,
+  })
+  await nacimientoConMadre(ids.criaInferida, nuevoId(), 'Cría inferida', {
+    certeza: 'inferred',
+    animalId: ids.madreDelParto,
+    motivo: 'parto_visto',
+  })
+  await nacimientoConMadre(ids.criaSinCerteza, nuevoId(), 'Cría sin certeza', DESCONOCIDO)
 
   await herd.registrarSalida({
     commandId: nuevoId(),
@@ -243,6 +261,21 @@ describe('última observación', () => {
     expect(await modelos.ultimaObservacion(ranchId, nuevoId(), HOY)).toBeNull()
   })
 
+  it('un nacimiento con fecha y madre «La vi» observa a la cría; inferida o «No sé» no', async () => {
+    const leida = await modelos.ultimaObservacion(ranchId, ids.criaVista, HOY)
+    expect(leida?.observacion).toMatchObject({
+      origen: 'nacimiento',
+      origenId: ids.filiacionVista,
+      fecha: '2026-11-21',
+      dias: 3,
+    })
+    expect((await modelos.ultimaObservacion(ranchId, ids.criaInferida, HOY))?.observacion).toBeNull()
+    expect((await modelos.ultimaObservacion(ranchId, ids.criaSinCerteza, HOY))?.observacion).toBeNull()
+    expect(idsDe(vista.paraRevisar.sinObservacion)).not.toContain(ids.criaVista)
+    expect(idsDe(vista.paraRevisar.sinObservacion)).toContain(ids.criaInferida)
+    expect(idsDe(vista.paraRevisar.sinObservacion)).toContain(ids.criaSinCerteza)
+  })
+
   it('sigue leyéndose en un animal que ya salió, sin devolverlo a los activos', () => {
     return modelos.ultimaObservacion(ranchId, ids.salio, HOY).then((lectura) => {
       expect(lectura?.observacion).toMatchObject({ origen: 'pesaje', fecha: '2026-11-18', dias: 6 })
@@ -261,14 +294,19 @@ describe('Inicio', () => {
 
   it('cuenta activos, nacimientos, salidas, pesajes y notas con los datos sembrados', () => {
     expect(vista.activosPorCategoria).toEqual([
-      { categoria: 'calf', cantidad: 4 },
-      { categoria: 'cow', cantidad: 5 },
+      { categoria: 'calf', cantidad: 7 },
+      { categoria: 'cow', cantidad: 6 },
       { categoria: 'bull', cantidad: 1 },
       { categoria: 'other', cantidad: 1 },
       { categoria: 'unknown', cantidad: 1 },
     ])
 
-    expect(vista.cambios.nacimientos.map((fila) => fila.animalId)).toEqual([ids.criaPeriodo])
+    expect(vista.cambios.nacimientos.map((fila) => fila.animalId)).toEqual([
+      ids.criaInferida,
+      ids.criaSinCerteza,
+      ids.criaVista,
+      ids.criaPeriodo,
+    ])
     expect(vista.cambios.nacimientosSinFecha).toBe(1)
     expect(vista.cambios.salidas.map((fila) => fila.animalId)).toEqual([ids.salio])
     expect(vista.cambios.pesajes).toBe(2)
@@ -301,21 +339,32 @@ describe('Inicio', () => {
         ids.criaPeriodo,
         ids.criaVieja,
         ids.criaSinFecha,
+        ids.madreDelParto,
+        ids.criaInferida,
+        ids.criaSinCerteza,
       ].sort(),
     )
   })
 
   it('ordena por días a todos los que tienen observación, sin dejar fuera al de hoy ni al de hace meses', () => {
     const lista = vista.paraRevisar.porDiasSinVerse
-    expect(lista.map((fila) => fila.dias)).toEqual([327, 14, 9, 1, 0])
+    expect(lista.map((fila) => fila.dias)).toEqual([327, 14, 9, 3, 1, 0])
     expect(lista.map((fila) => fila.animalId)).toEqual([
       ids.vistoHaceMucho,
       ids.pesado,
       ids.mismoDia,
+      ids.criaVista,
       ids.notaVista,
       ids.vistoHoy,
     ])
-    expect(lista.map((fila) => fila.origen)).toEqual(['pesaje', 'pesaje', 'pesaje', 'sanidad', 'pesaje'])
+    expect(lista.map((fila) => fila.origen)).toEqual([
+      'pesaje',
+      'pesaje',
+      'pesaje',
+      'nacimiento',
+      'sanidad',
+      'pesaje',
+    ])
     expect(ultimaObservacionSchema.parse({ animalId: ids.vistoHoy, observacion: null }).observacion).toBeNull()
   })
 })
@@ -353,6 +402,30 @@ async function pesar(
     id: sesionId,
     fecha,
     filas: [{ id: pesoId, animalId, resultado: 'pesado', kilos, calidad: 'measured' }],
+  })
+}
+
+async function nacimientoConMadre(
+  id: string,
+  filiacionId: string,
+  nombre: string,
+  madre: {
+    readonly certeza: 'observed' | 'inferred' | 'unknown'
+    readonly animalId: string | null
+    readonly motivo: 'parto_visto' | null
+  },
+): Promise<void> {
+  await herd.registrarNacimiento({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    id,
+    filiacionId,
+    nombre,
+    fechaNacimiento: '2026-11-21',
+    precisionFecha: 'exact',
+    madre,
+    padre: DESCONOCIDO,
   })
 }
 
