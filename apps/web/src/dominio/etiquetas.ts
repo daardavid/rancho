@@ -89,6 +89,28 @@ export const CAMPOS_DE_FICHA: readonly Etiquetado[] = [
   { codigo: 'nota', texto: 'Nota' },
 ]
 
+/**
+ * Las notas de sanidad. El vocabulario es el del rancho: la vacuna, el
+ * medicamento, el baño y el problema visto. No hay dosis ni calendario porque
+ * el rancho no los tiene (`OQ-HEALTH-001`).
+ */
+export const TIPOS_DE_NOTA: readonly Etiquetado[] = [
+  { codigo: 'vacuna', texto: 'Vacuna' },
+  { codigo: 'medicamento', texto: 'Medicamento' },
+  { codigo: 'bano', texto: 'Baño' },
+  { codigo: 'problema', texto: 'Problema visto' },
+  { codigo: 'otro', texto: 'Otro' },
+]
+
+export const CAMPOS_DE_NOTA: readonly Etiquetado[] = [
+  { codigo: 'tipo', texto: 'Tipo' },
+  { codigo: 'detalle', texto: 'Qué se hizo o se vio' },
+  { codigo: 'fecha', texto: 'Día' },
+  { codigo: 'producto', texto: 'Producto' },
+  { codigo: 'evidencia', texto: 'Foto' },
+  { codigo: 'vioAlAnimal', texto: 'Se vio al animal' },
+]
+
 export const sexo = (codigo: string): string => textoDe(SEXOS, codigo)
 export const categoria = (codigo: string): string => textoDe(CATEGORIAS, codigo)
 export const tenencia = (codigo: string): string => textoDe(TENENCIAS, codigo)
@@ -98,6 +120,8 @@ export const estadoDeMarca = (codigo: string): string => textoDe(ESTADOS_DE_MARC
 export const calidad = (codigo: string): string => textoDe(CALIDADES, codigo)
 export const campoDeFicha = (codigo: string): string => textoDe(CAMPOS_DE_FICHA, codigo)
 export const motivoDeSalida = (codigo: string): string => textoDe(MOTIVOS_DE_SALIDA, codigo)
+export const tipoDeNota = (codigo: string): string => textoDe(TIPOS_DE_NOTA, codigo)
+export const campoDeNota = (codigo: string): string => textoDe(CAMPOS_DE_NOTA, codigo)
 
 export const CERTEZAS_DE_FILIACION: readonly Etiquetado[] = [
   { codigo: 'observed', texto: 'La vi' },

@@ -27,6 +27,7 @@ import { Filtros } from '../ui/Filtros'
 import { IconoBascula, IconoBuscar, IconoMas, IconoMenu } from '../ui/iconos'
 import { Mosaicos } from '../ui/Mosaicos'
 import { Tarjeta } from '../ui/Tarjeta'
+import { FormularioDeSanidad } from './Sanidad'
 
 /**
  * Valores del filtro de lugar que no son ids de potrero. Van con un texto fijo
@@ -72,7 +73,13 @@ export function Hato() {
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState('todos')
   const [filtroDePotrero, setFiltroDePotrero] = useState(SIN_FILTRO_DE_POTRERO)
-  const [moviendo, setMoviendo] = useState(false)
+  /**
+   * El modo de selección del hato. Tocar varias filas sirve para dos capturas
+   * distintas —mover a un potrero o anotar sanidad—, pero solo hay un modo a la
+   * vez: una acción por pantalla.
+   */
+  const [modo, setModo] = useState<'mover' | 'sanidad' | null>(null)
+  const [sanidadGuardada, setSanidadGuardada] = useState(false)
   const [elegidos, setElegidos] = useState<readonly string[]>([])
   const buscando = normalizar(busqueda) !== ''
   // Sin activos hay que saber si alguien ya salió: «no hay animales» sería
@@ -294,24 +301,48 @@ export function Hato() {
 
           {vacio ? null : (
             <div className="hato__modo">
-              {moviendo ? (
+              {modo === 'mover' ? (
                 <p className="campo__ayuda" role="status">
                   Elige los animales y toca «Mover a…». La lista deja de abrir fichas mientras
                   eliges.
                 </p>
+              ) : modo === 'sanidad' ? (
+                <p className="campo__ayuda" role="status">
+                  Elige los animales y toca «Anotar sanidad». La nota se escribe una vez por cada
+                  uno.
+                </p>
               ) : (
-                <BotonSecundario
-                  tono="tinta"
-                  alTocar={() => {
-                    setElegidos([])
-                    setMoviendo(true)
-                  }}
-                >
-                  Mover animales a un potrero
-                </BotonSecundario>
+                <>
+                  <BotonSecundario
+                    tono="tinta"
+                    alTocar={() => {
+                      setSanidadGuardada(false)
+                      setElegidos([])
+                      setModo('mover')
+                    }}
+                  >
+                    Mover animales a un potrero
+                  </BotonSecundario>
+                  <BotonSecundario
+                    tono="tinta"
+                    alTocar={() => {
+                      setSanidadGuardada(false)
+                      setElegidos([])
+                      setModo('sanidad')
+                    }}
+                  >
+                    Anotar sanidad a varios animales
+                  </BotonSecundario>
+                </>
               )}
             </div>
           )}
+
+          {sanidadGuardada ? (
+            <p className="aviso aviso--bien" role="status">
+              Notas de sanidad guardadas. Cada animal tiene la suya.
+            </p>
+          ) : null}
 
           {visibles.length === 0 ? null : (
             <ul className="hato__lista">
@@ -320,8 +351,9 @@ export function Hato() {
                   <FilaDeHato
                     animal={animal}
                     fila={porAnimal.get(animal.id)}
-                    {...(moviendo
-                      ? {
+                    {...(modo === null
+                      ? {}
+                      : {
                           seleccion: {
                             marcado: elegidos.includes(animal.id),
                             nombreAccesible: `Elegir a ${nombreVisible(animal)}`,
@@ -333,28 +365,50 @@ export function Hato() {
                               )
                             },
                           },
-                        }
-                      : {})}
+                        })}
                   />
                 </li>
               ))}
             </ul>
           )}
 
-          {moviendo && !vacio ? (
+          {modo === 'mover' && !vacio ? (
             <MoverA
               potreros={todosLosPotreros.data?.potreros ?? []}
               elegidos={elegidos}
               alCerrar={() => {
-                setMoviendo(false)
+                setModo(null)
                 setElegidos([])
               }}
               alGuardar={() => {
-                setMoviendo(false)
+                setModo(null)
                 setElegidos([])
                 void hato.refetch()
                 void lugares.refetch()
                 void todosLosPotreros.refetch()
+              }}
+            />
+          ) : null}
+
+          {modo === 'sanidad' && !vacio ? (
+            <FormularioDeSanidad
+              animales={elegidos}
+              nombreDelGrupo={
+                elegidos.length === 0
+                  ? 'elige los animales'
+                  : elegidos.length === 1
+                    ? '1 animal'
+                    : `${String(elegidos.length)} animales`
+              }
+              alGuardar={() => {
+                setModo(null)
+                setElegidos([])
+                setSanidadGuardada(true)
+              }}
+              alCancelar={() => {
+                setModo(null)
+                setElegidos([])
+                setSanidadGuardada(false)
               }}
             />
           ) : null}

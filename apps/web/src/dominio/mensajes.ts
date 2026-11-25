@@ -134,6 +134,18 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Un animal aparece dos veces en esta vuelta.',
     queHacer: 'Deja una sola vez a cada animal y vuelve a guardar.',
   },
+  nota_ya_existe: {
+    quePaso: 'Alguna de estas notas ya se había guardado.',
+    queHacer: 'Vuelve a abrir la ficha del animal para ver sus notas antes de anotar otra vez.',
+  },
+  nota_vacia: {
+    quePaso: 'No hay ningún animal en la nota.',
+    queHacer: 'Elige al menos un animal y vuelve a anotar.',
+  },
+  tipo_invalido: {
+    quePaso: 'El tipo de nota no es uno de los del rancho.',
+    queHacer: 'Elige vacuna, medicamento, baño, problema visto u otro.',
+  },
   fila_repetida: {
     quePaso: 'Un renglón de la vuelta se repitió.',
     queHacer: 'Vuelve a abrir la pantalla del pesaje y captura de nuevo.',
