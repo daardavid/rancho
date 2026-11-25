@@ -11,6 +11,7 @@ import { Ficha } from './pantallas/Ficha'
 import { Hato } from './pantallas/Hato'
 import { IniciarSesion } from './pantallas/IniciarSesion'
 import { Muestra } from './pantallas/Muestra'
+import { Nacimiento } from './pantallas/Nacimiento'
 import { Pesaje } from './pantallas/Pesaje'
 import { Sesion } from './pantallas/Sesion'
 import { useRuta } from './ruta'
@@ -76,12 +77,14 @@ export function App() {
       */}
       {ruta.nombre === 'hato' ||
       ruta.nombre === 'alta' ||
+      ruta.nombre === 'nacimiento' ||
       ruta.nombre === 'ficha' ||
       ruta.nombre === 'crecimiento' ? null : (
         <BarraDeSesion />
       )}
       {ruta.nombre === 'hato' ? <Hato /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
+      {ruta.nombre === 'nacimiento' ? <Nacimiento madreId={ruta.madreId} /> : null}
       {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}
       {ruta.nombre === 'pesaje' ? <Pesaje /> : null}
       {ruta.nombre === 'sesion' ? <Sesion sesionId={ruta.sesionId} /> : null}

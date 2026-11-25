@@ -70,6 +70,26 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'La fecha no existe.',
     queHacer: 'Escoge otra fecha.',
   },
+  filiacion_incoherente: {
+    quePaso: 'La madre o el padre no cuadran con lo que se dijo.',
+    queHacer: 'Revisa la certeza. Si es «No sé», no elijas un animal. Único toro no se marca como seguro.',
+  },
+  progenitor_ausente: {
+    quePaso: 'Esa madre o ese padre no está en el hato.',
+    queHacer: 'Elige un animal de la lista, o déjalo en «No sé».',
+  },
+  tenencia_de_cria: {
+    quePaso: 'La madre está a la parte y el reparto de la cría no está definido.',
+    queHacer: 'La cría se guarda con tenencia «No sé». No elijas otra.',
+  },
+  unico_toro_no_aplica: {
+    quePaso: 'No hay un solo toro activo para inferir al padre.',
+    queHacer: 'Deja al padre en «No sé». Único toro no se anota como seguro.',
+  },
+  filiacion_ya_existe: {
+    quePaso: 'Ese nacimiento ya estaba anotado.',
+    queHacer: 'Abre la ficha de la cría. La filiación se corrige ahí, sin dar de alta otro animal.',
+  },
   categoria_incoherente: {
     quePaso: 'El texto libre solo acompaña a «Otra» categoría.',
     queHacer: 'Escoge «Otra» o borra el detalle.',

@@ -50,6 +50,15 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
 
     const rutaFalsa = rutas[`${metodo} ${ruta}`]
     if (rutaFalsa === undefined) {
+      // La ficha siempre pide la familia. Un animal dado de alta sin nacimiento
+      // no tiene filiación: la API responde vacío, no 404. Quien quiera otra
+      // familia la registra en su prueba.
+      if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/family$/.test(ruta)) {
+        return Response.json(
+          { filiacion: null, madre: null, padre: null, crias: [] },
+          { status: 200 },
+        )
+      }
       return Response.json({ codigo: 'no_encontrado' }, { status: 404 })
     }
 

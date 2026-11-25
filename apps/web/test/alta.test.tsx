@@ -281,7 +281,11 @@ describe('Alta de un animal', () => {
 
     // El animal sí se guardó; se dice, y la ficha no se da por buena.
     expect(await screen.findByText('El animal sí se guardó. El arete no.')).toBeDefined()
-    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+    expect(
+      api.peticiones.filter(
+        (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/animals',
+      ),
+    ).toHaveLength(1)
 
     // Se corrige el número y se reintenta: solo viaja el arete, con un comando
     // nuevo porque el contenido cambió.
@@ -293,8 +297,13 @@ describe('Alta de un animal', () => {
       expect(api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))).toHaveLength(2)
     })
 
-    // El alta no se repitió: un solo comando de animal.
-    expect(api.peticiones.filter((peticion) => peticion.ruta === '/api/animals')).toHaveLength(1)
+    // El alta no se repitió: un solo comando de animal. La ficha, ya abierta,
+    // sí puede leer el hato para la familia; eso no es otro alta.
+    expect(
+      api.peticiones.filter(
+        (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/animals',
+      ),
+    ).toHaveLength(1)
     const intentos = api.peticiones.filter((peticion) => peticion.ruta.includes('/marks'))
     const primero = intentos[0]?.cuerpo as Record<string, unknown>
     const segundo = intentos[1]?.cuerpo as Record<string, unknown>

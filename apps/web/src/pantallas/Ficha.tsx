@@ -25,6 +25,7 @@ import { Etiqueta, type TonoDeEtiqueta } from '../ui/Etiqueta'
 import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
+import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
 import { GraficaDePesos } from './GraficaDePesos'
 
@@ -112,6 +113,8 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
         )}
         {animal.activo ? null : <Etiqueta tono="revisar">Inactivo</Etiqueta>}
       </div>
+
+      <Familia animal={animal} />
 
       {corrigiendo ? (
         <section className="ficha__seccion">

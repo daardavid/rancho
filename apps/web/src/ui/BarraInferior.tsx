@@ -20,6 +20,7 @@ function pestanaDe(ruta: Ruta): Pestana | null {
   switch (ruta.nombre) {
     case 'hato':
     case 'alta':
+    case 'nacimiento':
     case 'ficha':
       return 'hato'
     case 'pesaje':

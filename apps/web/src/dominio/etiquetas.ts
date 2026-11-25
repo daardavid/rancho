@@ -90,6 +90,32 @@ export const estadoDeMarca = (codigo: string): string => textoDe(ESTADOS_DE_MARC
 export const calidad = (codigo: string): string => textoDe(CALIDADES, codigo)
 export const campoDeFicha = (codigo: string): string => textoDe(CAMPOS_DE_FICHA, codigo)
 
+export const CERTEZAS_DE_FILIACION: readonly Etiquetado[] = [
+  { codigo: 'observed', texto: 'La vi' },
+  { codigo: 'inferred', texto: 'Inferida' },
+  { codigo: 'unknown', texto: 'No sé' },
+]
+
+export const MOTIVOS_DE_LA_MADRE: readonly Etiquetado[] = [
+  { codigo: 'parto_visto', texto: 'Parto visto' },
+  { codigo: 'dicho_de_trabajador', texto: 'Dicho de un trabajador' },
+  { codigo: 'otro', texto: 'Otro' },
+]
+
+export const PRECISIONES_DE_FECHA: readonly Etiquetado[] = [
+  { codigo: 'exact', texto: 'Fecha exacta' },
+  { codigo: 'approximate', texto: 'Aproximada' },
+  { codigo: 'unknown', texto: 'No sé' },
+]
+
+export const certezaDeFiliacion = (codigo: string): string => textoDe(CERTEZAS_DE_FILIACION, codigo)
+export const motivoDeInferencia = (codigo: string): string => {
+  if (codigo === 'unico_toro') {
+    return 'Único toro'
+  }
+  return textoDe(MOTIVOS_DE_LA_MADRE, codigo)
+}
+
 /** El valor guardado de un campo, en palabras. `null` es «sin dato». */
 export function valorDeFicha(campo: string, valor: string | null): string {
   if (valor === null) {
