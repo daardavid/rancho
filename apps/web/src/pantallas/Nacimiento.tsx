@@ -177,6 +177,16 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     madres.find((animal) => animal.id === borrador.madreId) ??
     (madre !== null && madre.id === borrador.madreId ? madre : null)
   const aLaParte = madreElegida?.tenencia === 'a_la_parte'
+  const lugarDeMadre =
+    madreElegida === null
+      ? null
+      : lugarDeLaMadre(
+          madreElegida.id,
+          lugares.data,
+          potreros.data,
+          potreros.isPending,
+          potreros.isError,
+        )
 
   const cambiar = (cambios: Partial<Borrador>): void => {
     setAviso(null)
@@ -362,20 +372,21 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
           }}
         />
 
-        {madreElegida === null ? null : (
+        {madreElegida === null || lugarDeMadre === null ? null : (
           <PropuestaDeLaMadre
             tenencia={madreElegida.tenencia}
-            lugar={lugarDeLaMadre(madreElegida.id, lugares.data, potreros.data)}
+            lugar={lugarDeMadre}
             lugaresPendientes={lugares.isPending}
             lugaresConError={lugares.isError}
+            potrerosPendientes={potreros.isPending}
+            potrerosConError={potreros.isError}
             aceptada={borrador.propuestaAceptada}
             alAceptar={() => {
-              const lugar = lugarDeLaMadre(madreElegida.id, lugares.data, potreros.data)
               cambiar({
                 propuestaAceptada: true,
                 tenencia: tenenciaPropuesta(madreElegida.tenencia),
-                escribirLugar: lugar.hayAsignacion,
-                potreroAceptado: lugar.potreroId,
+                escribirLugar: lugarDeMadre.hayAsignacion,
+                potreroAceptado: lugarDeMadre.potreroId,
               })
             }}
           />
@@ -698,6 +709,8 @@ function lugarDeLaMadre(
   madreId: string,
   lugares: LugaresDelHato | undefined,
   potreros: PotrerosDelRancho | undefined,
+  potrerosPendientes: boolean,
+  potrerosConError: boolean,
 ): LugarDeLaMadre {
   const fila = lugares?.animales.find((animal) => animal.animalId === madreId)
   if (fila === undefined) {
@@ -705,6 +718,10 @@ function lugarDeLaMadre(
   }
   if (fila.potreroId === null) {
     return { hayAsignacion: true, potreroId: null, texto: 'Lugar: no sé' }
+  }
+  // El id ya se sabe. El nombre solo se afirma cuando la lista de potreros llegó.
+  if (potrerosPendientes || potrerosConError) {
+    return { hayAsignacion: true, potreroId: fila.potreroId, texto: null }
   }
   const nombre = potreros?.potreros.find((potrero) => potrero.id === fila.potreroId)?.nombre
   return {
@@ -733,6 +750,8 @@ function PropuestaDeLaMadre({
   lugar,
   lugaresPendientes,
   lugaresConError,
+  potrerosPendientes,
+  potrerosConError,
   aceptada,
   alAceptar,
 }: {
@@ -740,6 +759,8 @@ function PropuestaDeLaMadre({
   readonly lugar: LugarDeLaMadre
   readonly lugaresPendientes: boolean
   readonly lugaresConError: boolean
+  readonly potrerosPendientes: boolean
+  readonly potrerosConError: boolean
   readonly aceptada: boolean
   readonly alAceptar: () => void
 }) {
@@ -755,8 +776,11 @@ function PropuestaDeLaMadre({
           No se pudo traer el potrero de la madre. Si aceptas, se anota el dueño y no el lugar.
         </p>
       ) : null}
+      {potrerosConError && lugar.potreroId !== null ? (
+        <p className="campo__ayuda">No se pudo traer el nombre del potrero.</p>
+      ) : null}
       {aceptada ? null : (
-        <BotonSecundario alTocar={alAceptar} deshabilitado={lugaresPendientes}>
+        <BotonSecundario alTocar={alAceptar} deshabilitado={lugaresPendientes || potrerosPendientes}>
           Va con su madre
         </BotonSecundario>
       )}

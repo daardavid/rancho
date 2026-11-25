@@ -194,4 +194,23 @@ describe('Nacimiento: la propuesta de la madre', () => {
       animales: [{ animalId: CRIA }],
     })
   })
+
+  it('si falla la lista de potreros no afirma «Potrero sin nombre»', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [laMadre()] } }),
+      'GET /api/paddocks': () => ({ estado: 500, cuerpo: { codigo: 'error_desconocido' } }),
+      'GET /api/locations': () => ({
+        estado: 200,
+        cuerpo: { animales: [{ animalId: MADRE, potreroId: POTRERO, desde: '2026-11-01' }] },
+      }),
+    })
+
+    pintarApp('#/nacimiento')
+    await usuario.selectOptions(await screen.findByLabelText('Madre'), MADRE)
+
+    expect(await screen.findByText('No se pudo traer el nombre del potrero.')).toBeDefined()
+    expect(screen.queryByText(/Potrero sin nombre/)).toBeNull()
+  })
 })
