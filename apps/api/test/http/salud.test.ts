@@ -341,4 +341,54 @@ describe('notas de sanidad por HTTP', () => {
     })
     expect(correccion.statusCode).toBe(404)
   })
+
+  it('un animal dado de baja no acepta una nota y no la guarda', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    const alta = await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId, nombre: 'Salió HTTP sanidad' },
+    })
+    expect(alta.statusCode).toBe(201)
+
+    const baja = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/exit`,
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        version: alta.json<{ version: number }>().version,
+        motivo: 'sale',
+        fecha: '2026-11-20',
+      },
+    })
+    expect(baja.statusCode).toBe(200)
+
+    const nota = await app.inject({
+      method: 'POST',
+      url: '/api/health-notes',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        tipo: 'vacuna',
+        detalle: 'Vacuna después de la venta',
+        fecha: '2026-11-21',
+        vioAlAnimal: true,
+        animales: [{ animalId, notaId: nuevoId() }],
+      },
+    })
+    expect(nota.statusCode).toBe(422)
+    expect(nota.json()).toEqual({ codigo: 'fuera_del_hato' })
+
+    const notas = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}/health-notes`,
+      headers: cabeceras,
+    })
+    expect(notas.statusCode).toBe(200)
+    expect(notas.json<{ notas: unknown[] }>().notas).toEqual([])
+  })
 })
