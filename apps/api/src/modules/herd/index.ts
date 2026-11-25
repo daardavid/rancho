@@ -31,6 +31,21 @@ import {
   type MarcaPublica,
 } from './application/servicio'
 import {
+  asignarLugarAGrupo,
+  corregirPotreroDe,
+  listarPotreros,
+  lugarDeAnimal,
+  lugaresDelHato,
+  potreroDe,
+  potrerosDelRancho,
+  registrarPotrero,
+  type AnimalDelMovimiento,
+  type DepsDeLugar,
+  type EntradaAsignarLugar,
+  type EntradaCorregirPotrero,
+  type EntradaRegistrarPotrero,
+} from './application/lugar'
+import {
   corregirFiliacionDeCria,
   familiaDe,
   registrarNacimiento,
@@ -41,16 +56,32 @@ import {
   type NacimientoPublico,
   type ResumenDeAnimal,
 } from './application/nacimiento'
-import type { FiliacionConHistoria, FiliacionPublica } from './application/publicar'
+import type {
+  AsignacionPublica,
+  FiliacionConHistoria,
+  FiliacionPublica,
+  LugarDelAnimal,
+  LugaresDelHato,
+  PotreroConHistoria,
+  PotreroEnLaLista,
+  PotreroPublico,
+  PotrerosDelRancho,
+} from './application/publicar'
 import { crearRepositorioDeAnimales } from './persistence/repositorio'
 import { crearRepositorioDeFiliacion } from './persistence/repositorio-filiacion'
+import { crearRepositorioDeLugar } from './persistence/repositorio-lugar'
 
 export type {
+  AnimalDelMovimiento,
+  AsignacionPublica,
   CriaPublica,
   EntradaAgregarMarca,
+  EntradaAsignarLugar,
   EntradaCorregir,
   EntradaCorregirFiliacion,
+  EntradaCorregirPotrero,
   EntradaMarcarPerdida,
+  EntradaRegistrarPotrero,
   EntradaReemplazarMarca,
   ConsultaDeEvidencia,
   EntradaCorregirSalida,
@@ -63,18 +94,28 @@ export type {
   FichaConHistoria,
   FiliacionConHistoria,
   FiliacionPublica,
+  LugarDelAnimal,
+  LugaresDelHato,
   MarcaPublica,
   NacimientoPublico,
+  PotreroConHistoria,
+  PotreroEnLaLista,
+  PotreroPublico,
+  PotrerosDelRancho,
   ResumenDeAnimal,
 }
 export { RechazoDeHerd } from './domain/errores'
 
 /**
- * Ficha, correcciones y marcas. Quien llama no ve Drizzle: la transacción se
- * abre aquí y el servicio solo recibe el repositorio.
+ * Ficha, correcciones, marcas, filiación, potreros y lugar esperado. Quien
+ * llama no ve Drizzle: la transacción se abre aquí y el servicio solo recibe
+ * los repositorios.
  *
  * `existenEnElRancho` es la consulta pública que Growth usará para saber si
  * unos ids están activos en este rancho.
+ *
+ * El lugar esperado no es una observación: nada de este módulo escribe en
+ * `growth`, y asignar un lugar no toca la última observación del animal.
  */
 export type Herd = {
   registrar(entrada: EntradaRegistrar): Promise<FichaAnimal>
@@ -92,6 +133,14 @@ export type Herd = {
   registrarNacimiento(entrada: EntradaRegistrarNacimiento): Promise<NacimientoPublico>
   corregirFiliacion(entrada: EntradaCorregirFiliacion): Promise<FiliacionConHistoria>
   familia(ranchId: RanchId, animalId: string): Promise<FamiliaPublica | null>
+  registrarPotrero(entrada: EntradaRegistrarPotrero): Promise<PotreroConHistoria>
+  corregirPotrero(entrada: EntradaCorregirPotrero): Promise<PotreroConHistoria>
+  potrero(ranchId: RanchId, potreroId: string): Promise<PotreroConHistoria | null>
+  potreros(ranchId: RanchId): Promise<readonly PotreroConHistoria[]>
+  potrerosDelRancho(ranchId: RanchId): Promise<PotrerosDelRancho>
+  asignarLugar(entrada: EntradaAsignarLugar): Promise<{ asignaciones: readonly AsignacionPublica[] }>
+  lugarDe(ranchId: RanchId, animalId: string): Promise<LugarDelAnimal | null>
+  lugaresDelHato(ranchId: RanchId): Promise<LugaresDelHato>
 }
 
 /**
@@ -135,13 +184,28 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
     registrarNacimiento: (entrada) => correr((repos) => registrarNacimiento(repos, entrada)),
     corregirFiliacion: (entrada) => correr((repos) => corregirFiliacionDeCria(repos, entrada)),
     familia: (ranchId, animalId) => correr((repos) => familiaDe(repos, ranchId, animalId)),
+    registrarPotrero: (entrada) => correr((repos) => registrarPotrero(lugarDe(repos), entrada)),
+    corregirPotrero: (entrada) => correr((repos) => corregirPotreroDe(lugarDe(repos), entrada)),
+    potrero: (ranchId, potreroId) =>
+      correr((repos) => potreroDe(repos.lugar, ranchId, potreroId)),
+    potreros: (ranchId) => correr((repos) => listarPotreros(repos.lugar, ranchId)),
+    potrerosDelRancho: (ranchId) => correr((repos) => potrerosDelRancho(lugarDe(repos), ranchId)),
+    asignarLugar: (entrada) => correr((repos) => asignarLugarAGrupo(lugarDe(repos), entrada)),
+    lugarDe: (ranchId, animalId) =>
+      correr((repos) => lugarDeAnimal(lugarDe(repos), ranchId, animalId)),
+    lugaresDelHato: (ranchId) => correr((repos) => lugaresDelHato(lugarDe(repos), ranchId)),
   }
+}
+
+function lugarDe(repos: DepsDeHerd): DepsDeLugar {
+  return { animales: repos.animales, lugar: repos.lugar, idempotencia: repos.idempotencia }
 }
 
 function reposDe(tx: EjecutorSql, evidencia: ConsultaDeEvidencia | null): DepsDeHerd {
   return {
     animales: crearRepositorioDeAnimales(tx),
     filiacion: crearRepositorioDeFiliacion(tx),
+    lugar: crearRepositorioDeLugar(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
     evidencia,
   }

@@ -9,6 +9,7 @@ import { Alta } from './pantallas/Alta'
 import { Crecimiento } from './pantallas/Crecimiento'
 import { Ficha } from './pantallas/Ficha'
 import { Hato } from './pantallas/Hato'
+import { Potreros } from './pantallas/Potreros'
 import { Salidas } from './pantallas/Salidas'
 import { IniciarSesion } from './pantallas/IniciarSesion'
 import { Muestra } from './pantallas/Muestra'
@@ -78,6 +79,7 @@ export function App() {
       */}
       {ruta.nombre === 'hato' ||
       ruta.nombre === 'salidas' ||
+      ruta.nombre === 'potreros' ||
       ruta.nombre === 'alta' ||
       ruta.nombre === 'nacimiento' ||
       ruta.nombre === 'ficha' ||
@@ -86,6 +88,7 @@ export function App() {
       )}
       {ruta.nombre === 'hato' ? <Hato /> : null}
       {ruta.nombre === 'salidas' ? <Salidas /> : null}
+      {ruta.nombre === 'potreros' ? <Potreros /> : null}
       {ruta.nombre === 'alta' ? <Alta /> : null}
       {ruta.nombre === 'nacimiento' ? <Nacimiento madreId={ruta.madreId} /> : null}
       {ruta.nombre === 'ficha' ? <Ficha animalId={ruta.animalId} /> : null}

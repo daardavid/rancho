@@ -289,6 +289,97 @@ export const filiacion = esquemaHerd.table(
 )
 
 /**
+ * Potrero: una referencia viva del rancho, no un agregado de tierra.
+ *
+ * No hay hectáreas, carga animal, agua, pasto, arrendamiento ni geometría: eso
+ * no está aceptado (`docs/architecture/domain-boundaries.md`, «Paddock
+ * reference and expected location»). El nombre puede faltar: el potrero se
+ * identifica por su id aunque el rancho todavía no le ponga nombre.
+ */
+export const potrero = esquemaHerd.table(
+  'paddock',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    nombre: text('name'),
+    nota: text('note'),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('paddock_ranch').on(tabla.ranchId),
+    check('paddock_version_positiva', sql`${tabla.version} >= 1`),
+    check('paddock_nombre_presente', sql`${tabla.nombre} is null or length(btrim(${tabla.nombre})) > 0`),
+    check('paddock_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
+  ],
+)
+
+/**
+ * Nombre o nota anteriores del potrero. Una fila por campo que cambió, con
+ * quién, cuándo y por qué. Renombrar no borra cómo se llamaba.
+ */
+export const correccionDePotrero = esquemaHerd.table(
+  'paddock_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    potreroId: uuid('paddock_id')
+      .notNull()
+      .references(() => potrero.id, { onDelete: 'restrict' }),
+    campo: text('field').notNull(),
+    valorAnterior: text('previous_value'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('paddock_correction_potrero').on(tabla.potreroId, tabla.correctedAt),
+    check('paddock_correction_campo_valido', sql`${tabla.campo} in ('nombre', 'nota')`),
+    check('paddock_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
+  ],
+)
+
+/**
+ * Dónde se espera a un animal desde un día. Se agrega y no se edita: el lugar
+ * vigente es la última asignación.
+ *
+ * `paddock_id` nulo es «no sé»: una asignación desconocida es un hecho, no la
+ * falta de una asignación. No es una observación del animal y no toca ninguna
+ * tabla de crecimiento.
+ *
+ * `reported_by` es quién lo dijo (`TGT-MOVE-001`: «Evidencia que produce: quién
+ * lo dijo»). Es texto libre, no una cuenta: el trabajador que avisó del
+ * movimiento no es un usuario de la app. `recorded_by` es otra cosa y se queda
+ * aparte.
+ */
+export const asignacionDeLugar = esquemaHerd.table(
+  'location_assignment',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    potreroId: uuid('paddock_id').references(() => potrero.id, { onDelete: 'restrict' }),
+    desde: date('valid_from', { mode: 'string' }).notNull(),
+    nota: text('note'),
+    reportedBy: text('reported_by'),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('location_assignment_animal').on(tabla.animalId, tabla.desde),
+    index('location_assignment_ranch_potrero').on(tabla.ranchId, tabla.potreroId),
+    check('location_assignment_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
+    check(
+      'location_assignment_reported_presente',
+      sql`${tabla.reportedBy} is null or length(btrim(${tabla.reportedBy})) > 0`,
+    ),
+  ],
+)
+
+/**
  * Certeza anterior de una corrección de filiación. Una fila por corrección,
  * con quién, cuándo y por qué. La ficha del animal no se toca.
  */

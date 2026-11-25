@@ -118,6 +118,18 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'Algo falló y no sabemos exactamente qué.',
     queHacer: 'Vuelve a intentar. Si se repite, avísale a quien te da soporte.',
   },
+  potrero_ya_existe: {
+    quePaso: 'Ese potrero ya se había anotado.',
+    queHacer: 'Vuelve a la lista de potreros y ábrelo desde ahí, en vez de anotarlo otra vez.',
+  },
+  asignacion_ya_existe: {
+    quePaso: 'Alguno de estos movimientos ya se había guardado.',
+    queHacer: 'Vuelve a abrir el hato y mira dónde se espera a cada animal antes de moverlo otra vez.',
+  },
+  asignacion_vacia: {
+    quePaso: 'No hay ningún animal en el movimiento.',
+    queHacer: 'Elige al menos un animal y vuelve a mover.',
+  },
   animal_repetido: {
     quePaso: 'Un animal aparece dos veces en esta vuelta.',
     queHacer: 'Deja una sola vez a cada animal y vuelve a guardar.',
