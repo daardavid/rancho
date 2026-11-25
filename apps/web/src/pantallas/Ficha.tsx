@@ -182,7 +182,9 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
           ) : null}
           {salidaGuardada ? (
             <p className="aviso aviso--bien" role="status">
-              Salida guardada. La ficha y la historia se quedan.
+              {animal.activo
+                ? 'El animal volvió al hato activo. La salida anterior quedó en la historia.'
+                : 'Salida guardada. La ficha y la historia se quedan.'}
             </p>
           ) : null}
 

@@ -61,7 +61,8 @@ export function useRegistrarSalida(animalId: string) {
   return useMutation({
     mutationFn: (cuerpo: RegistrarSalida) =>
       pedir(fichaConHistoriaSchema, `/api/animals/${animalId}/exit`, { metodo: 'POST', cuerpo }),
-    onSuccess: () => {
+    onSuccess: (ficha) => {
+      cache.setQueryData(['ficha', animalId], ficha)
       invalidarHato(cache, animalId)
     },
   })
@@ -75,7 +76,8 @@ export function useCorregirSalida(animalId: string) {
         metodo: 'POST',
         cuerpo,
       }),
-    onSuccess: () => {
+    onSuccess: (ficha) => {
+      cache.setQueryData(['ficha', animalId], ficha)
       invalidarHato(cache, animalId)
     },
   })
