@@ -79,13 +79,15 @@ export function Inicio() {
   const total = datos.activosPorCategoria.reduce((suma, fila) => suma + fila.cantidad, 0)
 
   if (total === 0) {
+    // «Todavía no hay animales» es lo que pasa, y no afirma nada de «nadie» ni
+    // de «todos» sobre un hato que no se está mirando. La invitación es la
+    // misma del hato: dar de alta el primero.
     return (
       <main className="pantalla pantalla--pestana">
         <EncabezadoDelRancho titulo="Inicio" subtitulo="Todavía no hay animales en el hato" />
         <TarjetaDelPrimerAnimal />
         <section className="ficha__seccion" aria-label="Para revisar">
           <h2 className="ficha__titulo">Para revisar</h2>
-          {/* Una lista vacía porque no hay animales no dice «nadie» ni «todos». */}
           <p className="inicio__vacio">
             Cuando haya animales, aquí se ve a quién hay que revisar.
           </p>
