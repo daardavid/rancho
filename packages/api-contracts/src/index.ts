@@ -127,6 +127,26 @@ export {
   type RegistrarPotrero,
 } from './lugar'
 export {
+  animalDelInicioSchema,
+  animalSinVerseSchema,
+  cambioDelPeriodoSchema,
+  codigoDeErrorDeInicioSchema,
+  conteoDeCategoriaSchema,
+  errorDeInicioSchema,
+  inicioSchema,
+  observacionSchema,
+  origenDeObservacionSchema,
+  ultimaObservacionSchema,
+  type AnimalDelInicio,
+  type AnimalSinVerse,
+  type CambioDelPeriodo,
+  type ErrorDeInicio,
+  type Inicio,
+  type Observacion,
+  type OrigenDeObservacion,
+  type UltimaObservacion,
+} from './inicio'
+export {
   LARGO_MAXIMO_PRODUCTO,
   anotarSaludSchema,
   codigoDeErrorDeSaludSchema,
