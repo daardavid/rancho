@@ -11,7 +11,12 @@ export default defineConfig({
      * pruebas de persistencia siguen corriendo contra una base real y no se
      * saltan ([ADR-014](../../../docs/architecture/adr/ADR-014-local-test-database.md)).
      * Con `TEST_DATABASE_URL` el arranque es más rápido y este margen no estorba.
+     *
+     * Algunas pruebas abren una segunda base dentro del `it`, no en el
+     * `beforeAll`. Con la suite en paralelo ese arranque pasa de los 5 s
+     * por omisión y la prueba se corta aunque la base sí abre.
      */
     hookTimeout: 60_000,
+    testTimeout: 20_000,
   },
 })
