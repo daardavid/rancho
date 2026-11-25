@@ -116,6 +116,10 @@ export function useRegistrarAnimal() {
     onSuccess: () => {
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
+      // Inicio invita a dar de alta el primero cuando el hato está vacío y
+      // cuenta los activos por categoría: sin esto, volver a Inicio dentro de
+      // los 30 s de `staleTime` seguiría mostrando la respuesta vieja.
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
     },
   })
 }
@@ -135,6 +139,7 @@ export function useCorregirAnimal(animalId: string) {
       void cache.invalidateQueries({ queryKey: ['ficha', animalId] })
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
+      void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
     },
   })
 }

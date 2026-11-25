@@ -70,7 +70,13 @@ export function Ficha({
   const historia = usePesosConHistoria(animalId)
   const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
-  const [dandoDeBaja, setDandoDeBaja] = useState(abrirSalida)
+  /**
+   * Si la baja está abierta lo dice la URL, no un estado aparte: la ficha vive
+   * en `#/animal/<id>` y con `#/animal/<id>/salida` llega el formulario
+   * desplegado. Así Atrás y Adelante del navegador abren y cierran el
+   * formulario como cualquier otra navegación, sin quedar desfasados.
+   */
+  const dandoDeBaja = abrirSalida
   const [anotandoSanidad, setAnotandoSanidad] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [salidaGuardada, setSalidaGuardada] = useState(false)
@@ -115,7 +121,6 @@ export function Ficha({
    * «Salida» de Inicio sigue funcionando con `#/animal/<id>/salida`.
    */
   const abrirLaBaja = (abrir: boolean): void => {
-    setDandoDeBaja(abrir)
     if (abrir) {
       irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true })
     } else if (window.location.hash.endsWith('/salida')) {

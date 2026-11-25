@@ -103,8 +103,11 @@ describe('Encabezado de las pestañas', () => {
 
     expect(within(encabezado).getByText('MI RANCHO')).toBeDefined()
     expect(within(encabezado).getByRole('button', { name: 'Menú' })).toBeDefined()
-    // Ninguna pestaña trae flecha de regreso: no se regresa del trabajo.
+    // Ninguna pestaña trae flecha de regreso: no se regresa del trabajo. Se
+    // mira el botón y el enlace: el encabezado pinta la flecha como `<button>`,
+    // y Pesaje la traía así antes de R-29, no como enlace.
     expect(within(encabezado).queryByRole('link', { name: /Regresar/ })).toBeNull()
+    expect(within(encabezado).queryByRole('button', { name: /Regresar/ })).toBeNull()
     // Y «Salir» no aparece suelto fuera del menú.
     expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
   })

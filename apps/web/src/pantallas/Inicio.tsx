@@ -78,7 +78,15 @@ export function Inicio() {
   const revisar = datos.paraRevisar
   const total = datos.activosPorCategoria.reduce((suma, fila) => suma + fila.cantidad, 0)
 
-  if (total === 0) {
+  /*
+    Un hato sin animales activos no siempre es un hato que nunca tuvo: puede
+    haberse vaciado. Si en el periodo hubo salidas o nacimientos, hay algo que
+    revisar y no se puede decir «todavía no hay animales» ni esconder el
+    resumen. Es la misma distinción que hace el hato con `haySalidas`.
+  */
+  const hayMovimientos = datos.cambios.salidas.length > 0 || datos.cambios.nacimientos.length > 0
+
+  if (total === 0 && !hayMovimientos) {
     // «Todavía no hay animales» es lo que pasa, y no afirma nada de «nadie» ni
     // de «todos» sobre un hato que no se está mirando. La invitación es la
     // misma del hato: dar de alta el primero.
@@ -97,11 +105,19 @@ export function Inicio() {
   }
 
   const delPeriodo = desde === diaMas(datos.hoy, -7)
+  // Solo la fecha va en el desplegable: los contadores del periodo se quedan a
+  // la vista. La etiqueta es la del rango, sin el «por omisión» técnico.
   const tituloDelPeriodo = delPeriodo ? 'Últimos 7 días' : `Desde el ${diaLegible(desde)}`
+  const hayAnimales = total > 0
 
   return (
     <main className="pantalla pantalla--pestana">
-      <EncabezadoDelRancho titulo="Inicio" subtitulo="Primero lo que hay que revisar." />
+      <EncabezadoDelRancho
+        titulo="Inicio"
+        subtitulo={
+          hayAnimales ? 'Primero lo que hay que revisar.' : 'En el hato activo no queda nadie.'
+        }
+      />
 
       <section className="inicio__accesos" aria-label="Accesos directos">
         <a className="inicio__acceso" href={rutaAHash({ nombre: 'pesaje' })}>
@@ -128,81 +144,106 @@ export function Inicio() {
       <section className="ficha__seccion" aria-label="Para revisar">
         <h2 className="ficha__titulo">Para revisar</h2>
 
-        <h3 className="inicio__grupo">Van atrás</h3>
-        {resumen.isPending ? (
-          <p className="inicio__vacio">Trayendo los pesos…</p>
-        ) : resumen.isError ? (
-          <p className="inicio__vacio" role="status">
-            No se pudieron traer los pesos. Vuelve a abrir Inicio para intentarlo otra vez.
-          </p>
-        ) : atras.length === 0 ? (
-          <p className="inicio__vacio">Ninguno va atrás con sus propios pesos.</p>
-        ) : (
-          <ListaVanAtras filas={atras} />
-        )}
-
-        <h3 className="inicio__grupo">Huecos de la última vuelta</h3>
-        {revisar.fechaDeLaUltimaVuelta === null ? (
-          <p className="inicio__vacio">Todavía no hay una vuelta de pesaje.</p>
-        ) : revisar.huecosDeLaUltimaVuelta.length === 0 ? (
-          <p className="inicio__vacio">
-            La última vuelta, del {diaLegible(revisar.fechaDeLaUltimaVuelta)}, no dejó huecos.
-          </p>
-        ) : (
-          <Lista animales={revisar.huecosDeLaUltimaVuelta} />
-        )}
-
-        <h3 className="inicio__grupo">Sin lugar asignado</h3>
-        {revisar.sinLugar.length === 0 ? (
-          <p className="inicio__vacio">Nadie está sin una asignación.</p>
-        ) : (
-          <Lista animales={revisar.sinLugar} />
-        )}
-
-        {revisar.lugarDesconocido.length === 0 ? null : (
+        {hayAnimales ? (
           <>
-            <h3 className="inicio__grupo">Lugar desconocido</h3>
-            <p className="inicio__vacio">Se anotó «No sé». No es un potrero.</p>
-            <Lista animales={revisar.lugarDesconocido} />
+            <h3 className="inicio__grupo">Van atrás</h3>
+            {resumen.isPending ? (
+              <p className="inicio__vacio">Trayendo los pesos…</p>
+            ) : resumen.isError ? (
+              <p className="inicio__vacio" role="status">
+                No se pudieron traer los pesos. Vuelve a abrir Inicio para intentarlo otra vez.
+              </p>
+            ) : atras.length === 0 ? (
+              <p className="inicio__vacio">Ninguno va atrás con sus propios pesos.</p>
+            ) : (
+              <ListaVanAtras filas={atras} />
+            )}
+
+            <h3 className="inicio__grupo">Huecos de la última vuelta</h3>
+            {revisar.fechaDeLaUltimaVuelta === null ? (
+              <p className="inicio__vacio">Todavía no hay una vuelta de pesaje.</p>
+            ) : revisar.huecosDeLaUltimaVuelta.length === 0 ? (
+              <p className="inicio__vacio">
+                La última vuelta, del {diaLegible(revisar.fechaDeLaUltimaVuelta)}, no dejó huecos.
+              </p>
+            ) : (
+              <Lista animales={revisar.huecosDeLaUltimaVuelta} />
+            )}
+
+            <h3 className="inicio__grupo">Sin lugar asignado</h3>
+            {revisar.sinLugar.length === 0 ? (
+              <p className="inicio__vacio">Nadie está sin una asignación.</p>
+            ) : (
+              <Lista animales={revisar.sinLugar} />
+            )}
+
+            {revisar.lugarDesconocido.length === 0 ? null : (
+              <>
+                <h3 className="inicio__grupo">Lugar desconocido</h3>
+                <p className="inicio__vacio">Se anotó «No sé». No es un potrero.</p>
+                <Lista animales={revisar.lugarDesconocido} />
+              </>
+            )}
+
+            <h3 className="inicio__grupo">Sin observación</h3>
+            {revisar.sinObservacion.length === 0 ? (
+              <p className="inicio__vacio">
+                Todos tienen un pesaje o una nota en la que se les vio.
+              </p>
+            ) : (
+              <Lista animales={revisar.sinObservacion} />
+            )}
+
+            <section aria-label="Días sin verse">
+              <h3 className="inicio__grupo">Días sin verse</h3>
+              <p className="inicio__vacio">
+                Sin un límite: se ordenan por los días, de más a menos.
+              </p>
+              {revisar.porDiasSinVerse.length === 0 ? (
+                <p className="inicio__vacio">Nadie tiene una observación todavía.</p>
+              ) : (
+                <ul className="inicio__lista">
+                  {revisar.porDiasSinVerse.map((animal) => (
+                    <li key={animal.animalId}>
+                      <a
+                        href={rutaAHash({ nombre: 'ficha', animalId: animal.animalId })}
+                        aria-label={`${nombreDe(animal)}, ${detalleDeDias(animal)}`}
+                      >
+                        <span>{nombreDe(animal)}</span>
+                        <span className="inicio__meta">{detalleDeDias(animal)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
-        )}
-
-        <h3 className="inicio__grupo">Sin observación</h3>
-        {revisar.sinObservacion.length === 0 ? (
-          <p className="inicio__vacio">Todos tienen un pesaje o una nota en la que se les vio.</p>
         ) : (
-          <Lista animales={revisar.sinObservacion} />
+          // Sin animales activos no se afirma nada de «todos» ni de «nadie»:
+          // no hay a quién revisar, aunque el periodo sí tenga movimientos.
+          <p className="inicio__vacio">En el hato activo no queda nadie que revisar.</p>
         )}
-
-        <section aria-label="Días sin verse">
-          <h3 className="inicio__grupo">Días sin verse</h3>
-          <p className="inicio__vacio">Sin un límite: se ordenan por los días, de más a menos.</p>
-          {revisar.porDiasSinVerse.length === 0 ? (
-            <p className="inicio__vacio">Nadie tiene una observación todavía.</p>
-          ) : (
-            <ul className="inicio__lista">
-              {revisar.porDiasSinVerse.map((animal) => (
-                <li key={animal.animalId}>
-                  <a
-                    href={rutaAHash({ nombre: 'ficha', animalId: animal.animalId })}
-                    aria-label={`${nombreDe(animal)}, ${detalleDeDias(animal)}`}
-                  >
-                    <span>{nombreDe(animal)}</span>
-                    <span className="inicio__meta">{detalleDeDias(animal)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </section>
 
       <section className="ficha__seccion" aria-label="Resumen del periodo">
         <h2 className="ficha__titulo">Resumen del periodo</h2>
-        <Desplegable
-          titulo={tituloDelPeriodo}
-          {...(delPeriodo ? { resumen: 'por omisión' } : {})}
-        >
+        {/* Los contadores se quedan a la vista; solo la fecha va plegada. */}
+        <Resumen
+          tarjetas={[
+            cuenta('Nacimientos', datos.cambios.nacimientos.length, 'Con fecha'),
+            cuenta('Salidas', datos.cambios.salidas.length, 'Se supo en estos días'),
+            cuenta('Pesajes', datos.cambios.pesajes, 'Animales pesados'),
+            cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
+          ]}
+        />
+        {datos.cambios.nacimientosSinFecha === 0 ? null : (
+          <p className="inicio__vacio">
+            {datos.cambios.nacimientosSinFecha === 1
+              ? 'Hay 1 nacimiento sin fecha. No entra en la cuenta.'
+              : `Hay ${String(datos.cambios.nacimientosSinFecha)} nacimientos sin fecha. No entran en la cuenta.`}
+          </p>
+        )}
+        <Desplegable titulo={tituloDelPeriodo}>
           <CampoDeFecha
             etiqueta="Desde"
             valor={desde}
@@ -216,21 +257,6 @@ export function Inicio() {
           <p className="inicio__vacio">
             Del {diaLegible(datos.desde)} al {diaLegible(datos.hoy)}.
           </p>
-          <Resumen
-            tarjetas={[
-              cuenta('Nacimientos', datos.cambios.nacimientos.length, 'Con fecha'),
-              cuenta('Salidas', datos.cambios.salidas.length, 'Se supo en estos días'),
-              cuenta('Pesajes', datos.cambios.pesajes, 'Animales pesados'),
-              cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
-            ]}
-          />
-          {datos.cambios.nacimientosSinFecha === 0 ? null : (
-            <p className="inicio__vacio">
-              {datos.cambios.nacimientosSinFecha === 1
-                ? 'Hay 1 nacimiento sin fecha. No entra en la cuenta.'
-                : `Hay ${datos.cambios.nacimientosSinFecha} nacimientos sin fecha. No entran en la cuenta.`}
-            </p>
-          )}
           <section aria-label="Nacimientos">
             <h3 className="inicio__grupo">Nacimientos</h3>
             {datos.cambios.nacimientos.length === 0 ? (
@@ -252,19 +278,26 @@ export function Inicio() {
 
       <section className="ficha__seccion" aria-label="Activos">
         <h2 className="ficha__titulo">Activos</h2>
-        <p className="inicio__vacio">
-          {total === 1 ? '1 animal activo' : `${String(total)} animales activos`}
-        </p>
-        <Resumen
-          tarjetas={datos.activosPorCategoria.map(
-            (fila): TarjetaDeResumen => ({
-              etiqueta: categoria(fila.categoria),
-              valor: String(fila.cantidad),
-              detalle: fila.categoria === 'unknown' ? 'Sin categoría' : 'En el hato',
-              tono: fila.categoria === 'unknown' ? 'neutro' : 'principal',
-            }),
-          )}
-        />
+        {hayAnimales ? (
+          <>
+            <p className="inicio__vacio">
+              {total === 1 ? '1 animal activo' : `${String(total)} animales activos`}
+            </p>
+            <Resumen
+              tarjetas={datos.activosPorCategoria.map(
+                (fila): TarjetaDeResumen => ({
+                  etiqueta: categoria(fila.categoria),
+                  valor: String(fila.cantidad),
+                  detalle: fila.categoria === 'unknown' ? 'Sin categoría' : 'En el hato',
+                  tono: fila.categoria === 'unknown' ? 'neutro' : 'principal',
+                }),
+              )}
+            />
+          </>
+        ) : (
+          // El hato activo quedó vacío: la misma invitación que en el hato.
+          <TarjetaDelPrimerAnimal />
+        )}
       </section>
     </main>
   )
