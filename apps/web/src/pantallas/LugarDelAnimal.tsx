@@ -68,7 +68,6 @@ function ContenidoDelLugar({
   readonly alRecargarPotreros: () => void
 }) {
   const nombres = new Map(potreros.map((potrero) => [potrero.id, potrero.nombre]))
-  const sinNombreConocido = estadoDePotreros !== 'listo'
 
   if (lugar.vigente === null) {
     return (
@@ -96,14 +95,11 @@ function ContenidoDelLugar({
         <p className="campo__ayuda">Lo dijo: {vigente.reportedBy}</p>
       )}
 
-      {sinNombreConocido && vigente.potreroId !== null ? (
+      {estadoDePotreros === 'error' && vigente.potreroId !== null ? (
         <p className="campo__ayuda" role="status">
-          {estadoDePotreros === 'error'
-            ? 'No se pudo traer el nombre del potrero.'
-            : 'Trayendo el nombre del potrero…'}
-          {' '}
+          No se pudo traer el nombre del potrero.{' '}
           <button type="button" className="enlace" onClick={alRecargarPotreros}>
-            Ver los potreros
+            Volver a intentar
           </button>
         </p>
       ) : null}

@@ -101,8 +101,9 @@ describe('contrato del lugar esperado', () => {
     })
     expect(conOrigen.success).toBe(true)
     expect(conOrigen.data?.reportedBy).toBe('el vaquero')
-    // No es un id de cuenta: el contrato no lo exige ni lo convierte en uuid.
-    expect(conOrigen.data?.recordedBy).toBeUndefined()
+    // No es un id de cuenta ni una llave del cuerpo: la cuenta que registra sale
+    // de la sesión y no viaja en el comando.
+    expect(conOrigen.data).not.toHaveProperty('recordedBy')
 
     const sinOrigen = asignarLugarSchema.safeParse({
       commandId: COMMAND,

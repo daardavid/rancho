@@ -275,7 +275,9 @@ function FormularioDePotrero({
   const corregir = useCorregirPotrero(potrero?.id ?? '')
   const comando = potrero === undefined ? crear : corregir
   const faltaMotivo = potrero !== undefined && motivo.trim() === ''
-  const pendiente = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
+  /** Mismo contenido ⇒ mismo comando. Si el contenido cambia, se renuevan los ids. */
+  const altaPendiente = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
+  const cambioPendiente = useRef<{ contenido: string; commandId: string } | null>(null)
 
   const conflicto = esConflictoDeVersion(corregir.error)
 
@@ -287,19 +289,21 @@ function FormularioDePotrero({
         ...(limpio === '' ? {} : { nombre: limpio }),
         ...(conNota === '' ? {} : { nota: conNota }),
       }
+      // Si se cae la red después de que la API guardó, el reintento es el mismo
+      // comando con el mismo id y el servidor devuelve el potrero guardado.
       const contenido = JSON.stringify(cuerpo)
-      if (pendiente.current === null || pendiente.current.contenido !== contenido) {
-        pendiente.current = {
+      if (altaPendiente.current === null || altaPendiente.current.contenido !== contenido) {
+        altaPendiente.current = {
           contenido,
           commandId: crypto.randomUUID(),
           id: crypto.randomUUID(),
         }
       }
       crear.mutate(
-        { commandId: pendiente.current.commandId, id: pendiente.current.id, ...cuerpo },
+        { commandId: altaPendiente.current.commandId, id: altaPendiente.current.id, ...cuerpo },
         {
           onSuccess: () => {
-            pendiente.current = null
+            altaPendiente.current = null
             alGuardar()
           },
         },
@@ -313,18 +317,14 @@ function FormularioDePotrero({
       nota: conNota === '' ? null : conNota,
     }
     const contenido = JSON.stringify(cuerpo)
-    if (pendiente.current === null || pendiente.current.contenido !== contenido) {
-      pendiente.current = {
-        contenido,
-        commandId: crypto.randomUUID(),
-        id: potrero.id,
-      }
+    if (cambioPendiente.current === null || cambioPendiente.current.contenido !== contenido) {
+      cambioPendiente.current = { contenido, commandId: crypto.randomUUID() }
     }
     corregir.mutate(
-      { commandId: pendiente.current.commandId, ...cuerpo },
+      { commandId: cambioPendiente.current.commandId, ...cuerpo },
       {
         onSuccess: () => {
-          pendiente.current = null
+          cambioPendiente.current = null
           alGuardar()
         },
       },

@@ -6,6 +6,7 @@ import {
   LARGO_MAXIMO_NOTA,
   diaSchema,
 } from './animales'
+import { LARGO_MAXIMO_REPORTED_BY } from './pesajes'
 
 /**
  * Contratos de los potreros y del lugar esperado.
@@ -26,11 +27,10 @@ const motivoSchema = z.string().trim().min(1).max(LARGO_MAXIMO_MOTIVO)
 const instanteSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
 
 /**
- * Quién lo dijo: texto libre, no una cuenta. Es el mismo tope que el de la
+ * Quién lo dijo: texto libre, no una cuenta. El tope es el mismo que el de la
  * sesión de pesaje, porque es el mismo dato dicho por la misma gente. Un origen
  * en blanco no es un origen: si no se sabe, no se manda.
  */
-export const LARGO_MAXIMO_REPORTED_BY = 200
 const reportedBySchema = z.string().trim().min(1).max(LARGO_MAXIMO_REPORTED_BY)
 
 export const potreroSchema = z.strictObject({
