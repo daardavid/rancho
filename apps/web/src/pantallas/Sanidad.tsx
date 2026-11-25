@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 
 import { useAnotarSalud, useCorregirNotaDeSalud, useNotasDeSalud } from '../api/salud'
 import { diaLegible, hoyEnElRancho, instanteLegible } from '../dominio/fechas'
-import { CAMPOS_DE_NOTA, TIPOS_DE_NOTA, campoDeNota, opcionesElegibles, tipoDeNota } from '../dominio/etiquetas'
+import { TIPOS_DE_NOTA, campoDeNota, opcionesElegibles, tipoDeNota } from '../dominio/etiquetas'
 import { esConflictoDeVersion } from '../dominio/mensajes'
 import { AvisoDeError } from '../ui/Avisos'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
@@ -426,6 +426,3 @@ function tipoDe(valor: string): AnotarSalud['tipo'] {
   }
   return 'otro'
 }
-
-/** Los campos que la historia de una nota puede tener, para las pruebas. */
-export const CAMPOS_DE_LA_HISTORIA = CAMPOS_DE_NOTA

@@ -137,19 +137,6 @@ export function crearRepositorioDeSalud(db: EjecutorSql): RepositorioDeSalud {
       )
       return filas.map(notaDesde)
     },
-
-    async notasDelRancho(ranchId, limite) {
-      const filas = filasDe<FilaNota>(
-        await db.execute(sql`
-          SELECT ${COLUMNAS_NOTA}
-          FROM herd.health_event
-          WHERE ranch_id = ${ranchId}
-          ORDER BY occurred_on DESC, recorded_at DESC, id DESC
-          LIMIT ${limite}
-        `),
-      )
-      return filas.map(notaDesde)
-    },
   }
 }
 

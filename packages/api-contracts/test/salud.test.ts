@@ -44,7 +44,7 @@ describe('contrato de la nota de sanidad', () => {
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: 'si' }).success).toBe(false)
   })
 
-  it('un grupo con el mismo animal dos veces no es una captura válida', () => {
+  it('el contrato no esconde el grupo: quien rechaza el animal repetido es la aplicación', () => {
     const leido = anotarSaludSchema.safeParse({
       ...notaBase,
       animales: [
@@ -52,9 +52,9 @@ describe('contrato de la nota de sanidad', () => {
         { animalId: ANIMAL, notaId: '44444444-4444-4444-8444-444444444444' },
       ],
     })
-    // El contrato no repite animales: el cuerpo es una lista de renglones.
+    // El contrato solo valida la forma; el animal repetido lo dice Herd antes
+    // de escribir, porque es quien escribe una nota por animal.
     expect(leido.success).toBe(true)
-    // Quien lo rechaza es la aplicación, que es la que escribe.
   })
 
   it('sin animales no hay nota', () => {

@@ -37,6 +37,4 @@ export type RepositorioDeSalud = {
   notasDeAnimal(ranchId: RanchId, animalId: string): Promise<NotaDeSalud[]>
   /** Las notas de varios animales, en el mismo orden. */
   notasDeAnimales(ranchId: RanchId, animalIds: readonly string[]): Promise<NotaDeSalud[]>
-  /** Las últimas notas del rancho, de la más nueva a la más vieja. */
-  notasDelRancho(ranchId: RanchId, limite: number): Promise<NotaDeSalud[]>
 }
