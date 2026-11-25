@@ -196,7 +196,122 @@ describe('nacimiento y filiación', () => {
     expect(ficha?.categoria).toBe('calf')
     expect(ficha?.correcciones).toEqual([])
   })
+
+  it('corregir la madre deja el único toro ya guardado, y asignarlo con dos toros sigue sin aplicar', async () => {
+    await dejarSinTorosActivos()
+    try {
+      const toroId = await alta('Toro de la corrección', 'bull', 'male', 'ranch')
+      const madreId = await alta('Vaca del parto', 'cow', 'female', 'ranch')
+      const padre = {
+        certeza: 'inferred' as const,
+        animalId: toroId,
+        motivo: 'unico_toro' as const,
+      }
+      const criaId = nuevoId()
+      await herd.registrarNacimiento(
+        nacimiento(criaId, nuevoId(), {
+          nombre: 'Cría del único toro',
+          madre: { certeza: 'observed' as const, animalId: madreId, motivo: null },
+          padre,
+          fechaNacimiento: '2026-03-15',
+          precisionFecha: 'approximate' as const,
+        }),
+      )
+
+      await alta('Segundo toro activo', 'bull', 'male', 'ranch')
+
+      const corregida = await herd.corregirFiliacion({
+        commandId: nuevoId(),
+        ranchId,
+        recordedBy,
+        criaId,
+        version: 1,
+        motivo: 'la madre no era esa',
+        madre: desconocido,
+        padre,
+        nota: 'parto en el corral norte',
+        fechaNacimiento: '2026-03-15',
+        precisionFecha: 'approximate',
+      })
+
+      expect(corregida.version).toBe(2)
+      expect(corregida.padre).toEqual(padre)
+      expect(corregida.madre).toEqual(desconocido)
+      expect(corregida.correcciones[0]).toMatchObject({
+        madre: { certeza: 'observed', animalId: madreId, motivo: null },
+        padre,
+        nota: null,
+        fechaNacimiento: '2026-03-15',
+        precisionFecha: 'approximate',
+        motivo: 'la madre no era esa',
+      })
+
+      const ficha = await herd.obtener(ranchId, criaId)
+      expect(ficha?.nombre).toBe('Cría del único toro')
+      expect(ficha?.version).toBe(1)
+      expect(ficha?.categoria).toBe('calf')
+      expect(ficha?.correcciones).toEqual([])
+
+      // La madre ya no está activa y aun así la historia puede decir su nombre.
+      await db.execute(sql`UPDATE herd.animal SET active = false WHERE id = ${madreId}`)
+      const activos = await herd.listarActivos(ranchId)
+      expect(activos.some((animal) => animal.id === madreId)).toBe(false)
+      const familia = await herd.familia(ranchId, criaId)
+      expect(familia?.referidos).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: madreId, nombre: 'Vaca del parto' })]),
+      )
+
+      const rechazada = nuevoId()
+      await expect(
+        herd.registrarNacimiento(
+          nacimiento(rechazada, nuevoId(), {
+            padre: { certeza: 'inferred' as const, animalId: toroId, motivo: 'unico_toro' as const },
+          }),
+        ),
+      ).rejects.toMatchObject({ codigo: 'unico_toro_no_aplica' })
+      expect(await contar('herd.animal', rechazada)).toBe(0)
+
+      const sinPadre = nuevoId()
+      await herd.registrarNacimiento(nacimiento(sinPadre, nuevoId(), {}))
+      await expect(
+        herd.corregirFiliacion({
+          commandId: nuevoId(),
+          ranchId,
+          recordedBy,
+          criaId: sinPadre,
+          version: 1,
+          motivo: 'ahora dicen que era el único toro',
+          madre: desconocido,
+          padre,
+          nota: null,
+          fechaNacimiento: null,
+          precisionFecha: null,
+        }),
+      ).rejects.toMatchObject({ codigo: 'unico_toro_no_aplica' })
+    } finally {
+      await dejarSinTorosActivos()
+    }
+  })
 })
+
+/** Los toros que dejaron otras pruebas no cuentan: pasan a «Otra» y este caso arma los suyos. */
+async function dejarSinTorosActivos(): Promise<void> {
+  const activos = await herd.listarActivos(ranchId)
+  for (const animal of activos) {
+    if (animal.categoria !== 'bull') {
+      continue
+    }
+    await herd.corregir({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      animalId: animal.id,
+      version: animal.version,
+      motivo: 'en la prueba ya no cuenta como toro',
+      cambios: { categoria: 'other' },
+    })
+  }
+}
 
 async function alta(
   nombre: string,

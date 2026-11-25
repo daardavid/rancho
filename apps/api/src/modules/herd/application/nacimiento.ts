@@ -90,6 +90,12 @@ export type FamiliaPublica = {
   readonly madre: ResumenDeAnimal | null
   readonly padre: ResumenDeAnimal | null
   readonly crias: readonly CriaPublica[]
+  /**
+   * Madre y padre citados en la filiación vigente o en su historia. Incluye
+   * a quien ya no está activo: el hato solo lista activos y la historia no
+   * puede depender de esa lista para decir el nombre.
+   */
+  readonly referidos: readonly ResumenDeAnimal[]
 }
 
 export type NacimientoPublico = {
@@ -233,7 +239,12 @@ export async function corregirFiliacionDeCria(
 
       await progenitor(deps.animales, ranchId, corregida.filiacion.madre, 'madre')
       await progenitor(deps.animales, ranchId, corregida.filiacion.padre, 'padre')
-      await exigirToroUnico(deps.animales, ranchId, corregida.filiacion.padre)
+      // El único toro se exige al asignarlo. Si el padre guardado no cambió,
+      // una corrección de la madre, la fecha o la nota no lo vuelve a juzgar:
+      // el hato pudo ganar o perder toros después, y el motivo ya estaba escrito.
+      if (ladoDistinto(actual.padre, corregida.filiacion.padre)) {
+        await exigirToroUnico(deps.animales, ranchId, corregida.filiacion.padre)
+      }
 
       const cuando = new Date()
       await deps.filiacion.guardarCorreccion({
@@ -280,13 +291,19 @@ export async function familiaDe(
   const crias = await deps.filiacion.criasDe(alcance, id)
 
   const ids = new Set<string>()
-  const madreId = filiacion?.madre.animalId
-  const padreId = filiacion?.padre.animalId
-  if (madreId !== undefined && madreId !== null) {
-    ids.add(madreId)
+  const idsDeReferidos = new Set<string>()
+  const anotarReferido = (citado: string | null | undefined): void => {
+    if (citado === undefined || citado === null) {
+      return
+    }
+    ids.add(citado)
+    idsDeReferidos.add(citado)
   }
-  if (padreId !== undefined && padreId !== null) {
-    ids.add(padreId)
+  anotarReferido(filiacion?.madre.animalId)
+  anotarReferido(filiacion?.padre.animalId)
+  for (const correccion of correcciones) {
+    anotarReferido(correccion.madre.animalId)
+    anotarReferido(correccion.padre.animalId)
   }
   for (const cria of crias) {
     ids.add(cria.criaId)
@@ -300,6 +317,7 @@ export async function familiaDe(
           [...ids].map((pedido) => animalIdSchema.parse(pedido)),
         )
   const porId = new Map<string, ResumenDeAnimal>(encontrados.map((fila) => [fila.id, resumir(fila)]))
+  const referidos = encontrados.filter((fila) => idsDeReferidos.has(fila.id)).map(resumir)
 
   return {
     filiacion:
@@ -325,6 +343,7 @@ export async function familiaDe(
       }
       return [{ animal: resumen, como: cria.como, certeza: cria.certeza, motivo: cria.motivo }]
     }),
+    referidos,
   }
 }
 
@@ -362,6 +381,15 @@ async function progenitor(
     throw new RechazoDeHerd('filiacion_incoherente')
   }
   return animal
+}
+
+/** Certeza, animal y motivo. Es lo que decide si el padre de la corrección cambió. */
+function ladoDistinto(actual: LadoDeFiliacion, corregido: LadoDeFiliacion): boolean {
+  return (
+    actual.certeza !== corregido.certeza ||
+    actual.animalId !== corregido.animalId ||
+    actual.motivo !== corregido.motivo
+  )
 }
 
 async function exigirToroUnico(

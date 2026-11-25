@@ -137,6 +137,11 @@ export const familiaSchema = z.strictObject({
       motivo: motivoDeInferenciaSchema.nullable(),
     }),
   ),
+  /**
+   * Animales citados como madre o padre, en la filiación vigente o en la
+   * historia. Pueden ya no estar activos: el nombre de la historia sale de aquí.
+   */
+  referidos: z.array(resumenDeAnimalSchema),
 })
 
 export const codigoDeErrorDeNacimientoSchema = z.enum([
