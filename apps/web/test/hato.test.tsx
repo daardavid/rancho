@@ -1,8 +1,16 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { animalDeLista, CUANDO, CUENTA, montarApi, pintarApp, sesionAbierta } from './ayudas'
+import {
+  animalDeLista,
+  CUANDO,
+  CUENTA,
+  montarApi,
+  pintarApp,
+  sesionAbierta,
+  type Respuesta,
+} from './ayudas'
 
 /**
  * El hato como lo pide R-18: conteos en los filtros, búsqueda que también
@@ -229,6 +237,7 @@ describe('Búsqueda del hato', () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
       'GET /api/animals': elHato(),
+      'GET /api/animals?estado=salidas': () => ({ estado: 200, cuerpo: { animales: [] } }),
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
@@ -237,6 +246,46 @@ describe('Búsqueda del hato', () => {
 
     await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
 
+    expect(await screen.findByText('Ningún animal coincide')).toBeDefined()
+  })
+
+  it('mientras las salidas cargan no dice que nadie coincide', async () => {
+    const usuario = userEvent.setup()
+    let soltar: (respuesta: Respuesta) => void = () => {}
+    const pendiente = new Promise<Respuesta>((resolve) => {
+      soltar = resolve
+    })
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/animals?estado=salidas': () => pendiente,
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+    await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
+
+    expect(screen.queryByText('Ningún animal coincide')).toBeNull()
+
+    soltar({ estado: 200, cuerpo: { animales: [] } })
+    expect(await screen.findByText('Ningún animal coincide')).toBeDefined()
+  })
+
+  it('si la búsqueda no puede ver las salidas, lo dice', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/animals?estado=salidas': () => ({ estado: 500, cuerpo: { codigo: 'error_desconocido' } }),
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    pintarApp('#/')
+    await screen.findByText('Canelo')
+    await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
+
+    expect(await screen.findByText(/No se pudieron ver las salidas/)).toBeDefined()
     expect(screen.getByText('Ningún animal coincide')).toBeDefined()
   })
 })
@@ -477,6 +526,7 @@ describe('Una sola acción de cada cosa', () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
       'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({ estado: 200, cuerpo: { animales: [] } }),
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
@@ -487,6 +537,28 @@ describe('Una sola acción de cada cosa', () => {
     expect(screen.queryByRole('link', { name: 'Dar de alta un animal' })).toBeNull()
     // Tampoco se ofrece un pesaje que no tiene a quién pesar.
     expect(screen.queryByRole('link', { name: /Registrar pesaje/ })).toBeNull()
+  })
+
+  it('si no hay activos y las salidas fallan, no dice que el hato está vacío', async () => {
+    const usuario = userEvent.setup()
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({ estado: 500, cuerpo: { codigo: 'error_desconocido' } }),
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    pintarApp('#/')
+
+    expect(await screen.findByRole('button', { name: 'Volver a intentar' })).toBeDefined()
+    expect(screen.queryByText('Todavía no hay animales')).toBeNull()
+    expect(screen.queryByText('Empieza con el primer animal')).toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Volver a intentar' }))
+    await waitFor(() => {
+      const consultas = api.peticiones.filter((peticion) => peticion.ruta === '/api/animals?estado=salidas')
+      expect(consultas.length).toBeGreaterThan(1)
+    })
   })
 
   it('«Salir» vive en el menú y no se repite en la pantalla', async () => {

@@ -114,11 +114,15 @@ export function Hato() {
   const vacio = total === 0
   const haySalidas = (salidas.data?.animales.length ?? 0) > 0
   const mirandoSalidas = sinActivos && salidas.isLoading
+  const salidasSinVer = sinActivos && salidas.isError
+  const buscandoSalidas = buscando && salidas.isLoading
   const subtituloVacio = mirandoSalidas
     ? 'Viendo el hato…'
-    : haySalidas
-      ? 'En el hato activo no queda nadie'
-      : 'Todavía no hay animales'
+    : salidasSinVer
+      ? 'No se pudo ver si hay salidas'
+      : haySalidas
+        ? 'En el hato activo no queda nadie'
+        : 'Todavía no hay animales'
 
   return (
     <main className="pantalla pantalla--hato">
@@ -138,6 +142,11 @@ export function Hato() {
 
       {mirandoSalidas ? (
         <Cargando que="Viendo el hato…" />
+      ) : salidasSinVer ? (
+        <>
+          <AvisoDeError error={salidas.error} />
+          <BotonPrincipal alTocar={() => void salidas.refetch()}>Volver a intentar</BotonPrincipal>
+        </>
       ) : vacio && !haySalidas ? (
         <Tarjeta>
           <h2 className="hato__vacio-titulo">Empieza con el primer animal</h2>
@@ -210,9 +219,16 @@ export function Hato() {
             </p>
           ) : null}
 
+          {buscando && salidas.isError ? (
+            <p className="campo__ayuda" role="status">
+              No se pudieron ver las salidas. Esta búsqueda no las incluye.
+            </p>
+          ) : null}
+
           {(buscando || filtro !== 'todos') &&
           visibles.length === 0 &&
-          salidasVisibles.length === 0 ? (
+          salidasVisibles.length === 0 &&
+          !buscandoSalidas ? (
             <section className="vacio">
               <h2 className="vacio__titulo">Ningún animal coincide</h2>
               <p>Revisa cómo se escribe o cambia el filtro.</p>

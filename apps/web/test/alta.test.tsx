@@ -370,13 +370,14 @@ describe('Alta de un animal', () => {
 
     await usuario.clear(screen.getByLabelText('Buscar'))
     await usuario.type(screen.getByLabelText('Buscar'), 'no existe')
-    expect(screen.getByText('Ningún animal coincide')).toBeDefined()
+    expect(await screen.findByText('Ningún animal coincide')).toBeDefined()
   })
 
   it('sin animales invita a dar de alta el primero', async () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
       'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({ estado: 200, cuerpo: { animales: [] } }),
       'GET /api/read-models/growth-overview': () => ({
         estado: 200,
         cuerpo: {
