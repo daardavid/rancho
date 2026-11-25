@@ -8,8 +8,8 @@ import { lecturaDeCrecimiento, type LecturaDeCrecimiento } from '../dominio/revi
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BotonPrincipal } from '../ui/Botones'
-import { Encabezado } from '../ui/Encabezado'
 import { Resumen } from '../ui/Resumen'
+import { EncabezadoDelRancho } from './EncabezadoDelRancho'
 
 /**
  * Cómo va la última vuelta y a quién revisar
@@ -57,13 +57,13 @@ export function Crecimiento() {
 
   return (
     <main className="pantalla pantalla--crecimiento">
-      <Encabezado
-        etiqueta={
-          datos.fechaDeLaUltimaVuelta === null
-            ? 'ÚLTIMA VUELTA'
-            : `ÚLTIMA VUELTA · ${diaDeVuelta(datos.fechaDeLaUltimaVuelta)}`
-        }
+      <EncabezadoDelRancho
         titulo="Crecimiento"
+        subtitulo={
+          datos.fechaDeLaUltimaVuelta === null
+            ? 'Todavía no hay una vuelta de pesaje'
+            : `Última vuelta: ${diaDeVuelta(datos.fechaDeLaUltimaVuelta)}`
+        }
       />
 
       {ordenadas.length === 0 ? (

@@ -53,14 +53,24 @@ import { GraficaDePesos } from './GraficaDePesos'
  * Corregir un peso desde aquí y desde la sesión es lo mismo: el mismo comando y
  * la misma historia. Lo que estaba no se borra.
  */
-export function Ficha({ animalId }: { readonly animalId: string }) {
+export function Ficha({
+  animalId,
+  abrirSalida = false,
+}: {
+  readonly animalId: string
+  /**
+   * Llega desde «Salida» de Inicio con la baja ya desplegada. Es la misma
+   * ficha y el mismo comando: solo se ahorra buscar el botón.
+   */
+  readonly abrirSalida?: boolean
+}) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
   const observacion = useUltimaObservacion(animalId)
   const historia = usePesosConHistoria(animalId)
   const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
-  const [dandoDeBaja, setDandoDeBaja] = useState(false)
+  const [dandoDeBaja, setDandoDeBaja] = useState(abrirSalida)
   const [anotandoSanidad, setAnotandoSanidad] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [salidaGuardada, setSalidaGuardada] = useState(false)

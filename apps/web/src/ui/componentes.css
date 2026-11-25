@@ -980,12 +980,17 @@
   padding-bottom: calc(var(--alto-barra) + 88px + env(safe-area-inset-bottom));
 }
 
-.hato__encabezado {
+/* Una pestaña sin botón flotante: solo deja aire para la barra de abajo. */
+.pantalla--pestana {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.encabezado-rancho {
   position: relative;
   margin-bottom: 14px;
 }
 
-.hato__menu {
+.encabezado-rancho__menu {
   position: absolute;
   z-index: 30;
   top: calc(100% - 4px);
@@ -998,7 +1003,7 @@
   box-shadow: 0 8px 20px rgba(28, 31, 26, 0.14);
 }
 
-.hato__menu-opcion {
+.encabezado-rancho__opcion {
   width: 100%;
   min-height: 44px;
   padding: 0 12px;
@@ -1012,8 +1017,42 @@
   cursor: pointer;
 }
 
-.hato__menu-opcion:hover {
+.encabezado-rancho__opcion:hover {
   background: var(--fondo);
+}
+
+.encabezado-rancho__opcion:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+/* Accesos directos de Inicio: cuatro capturas, sin pasar por el hato. */
+.inicio__accesos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-tarjetas);
+  margin: 0 0 var(--espacio-secciones);
+}
+
+.inicio__acceso {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.inicio__acceso:hover {
+  color: var(--texto);
+  border-color: var(--borde-campo);
 }
 
 .hato__filtros {
@@ -1082,11 +1121,6 @@
 }
 
 .ui-buscador:has(.ui-buscador__entrada:focus-visible) {
-  outline: 3px solid var(--texto);
-  outline-offset: 2px;
-}
-
-.hato__menu-opcion:focus-visible {
   outline: 3px solid var(--texto);
   outline-offset: 2px;
 }

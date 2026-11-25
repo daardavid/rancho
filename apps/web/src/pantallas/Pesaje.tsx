@@ -26,11 +26,12 @@ import { BarraDeAvance } from '../ui/BarraDeAvance'
 import { BotonPrincipal } from '../ui/Botones'
 import { CampoDeArea, CampoDeTexto, Seccion } from '../ui/Campos'
 import { CampoDeKilos } from '../ui/CampoDeKilos'
-import { Encabezado } from '../ui/Encabezado'
 import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
 import { IconoAbajo, IconoCerrar, IconoMas, IconoPalomita, IconoReloj } from '../ui/iconos'
 import { Segmentado } from '../ui/Segmentado'
 import { Tarjeta } from '../ui/Tarjeta'
+import { EncabezadoDelRancho } from './EncabezadoDelRancho'
+import { TarjetaDelPrimerAnimal } from './TarjetaDelPrimerAnimal'
 
 /**
  * Una vuelta por la báscula, de un animal a la vez
@@ -155,6 +156,19 @@ export function Pesaje() {
 
   const animales = hato.data?.animales ?? []
   const porAnimal = new Map(animales.map((animal) => [animal.id, animal]))
+
+  // Con el hato vacío no hay nada que pesar: se manda a dar de alta primero, en
+  // vez de ofrecer «Agregar otro animal» y un «Guardar pesaje (0)» que no
+  // guardaría nada. Lo que hubiera en el borrador no se toca: si el hato se
+  // vació a media captura, lo escrito sigue en este celular.
+  if (hato.isSuccess && animales.length === 0) {
+    return (
+      <main className="pantalla pantalla--hato">
+        <EncabezadoDelRancho titulo="Pesaje" subtitulo="Todavía no hay animales en el hato" />
+        <TarjetaDelPrimerAnimal />
+      </main>
+    )
+  }
 
   // Una fila esperada cuyo animal ya no está en el hato no se propone, pero
   // tampoco se borra a escondidas: se enseña sin nombre para que el dueño
@@ -368,12 +382,8 @@ function EditorDeSesion({
   return (
     <main className="pantalla pantalla--pesaje">
       <form className="pesaje__cuerpo" onSubmit={enviar} onKeyDown={alTecla}>
-        <Encabezado
+        <EncabezadoDelRancho
           titulo="Pesaje"
-          etiquetaRegresar="Regresar al hato"
-          alRegresar={() => {
-            irA({ nombre: 'hato' })
-          }}
           subtitulo={
             <FechaDelPesaje
               valor={borrador.fecha}

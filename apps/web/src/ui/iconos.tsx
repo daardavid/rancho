@@ -135,6 +135,33 @@ export function IconoReloj({ tamano = 16 }: Tamano) {
   )
 }
 
+export function IconoNacimiento({ tamano = 22 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" />
+    </Icono>
+  )
+}
+
+export function IconoSanidad({ tamano = 22 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </Icono>
+  )
+}
+
+export function IconoSalida({ tamano = 22 }: Tamano) {
+  return (
+    <Icono tamano={tamano}>
+      <path d="M10 5H5v14h5" />
+      <path d="M14 8l4 4-4 4M9 12h9" />
+    </Icono>
+  )
+}
+
 export function IconoCamara({ tamano = 24 }: Tamano) {
   return (
     <Icono tamano={tamano}>
