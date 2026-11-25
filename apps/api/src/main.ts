@@ -38,8 +38,8 @@ export async function arrancar(): Promise<FastifyInstance> {
   const configuracion = cargarConfiguracion()
 
   const cliente = abrirCliente(configuracion.databaseUrl, configuracion.maxConexiones)
-  const herd = crearHerd(cliente.db)
   const evidencia = crearPuertoDeEvidencia(cliente.db, carpetaDeEvidencia())
+  const herd = crearHerd(cliente.db, evidencia)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db, configuracion.secretoDeSesion),
     herd,

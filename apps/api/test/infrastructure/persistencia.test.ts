@@ -61,6 +61,7 @@ describe('migración inicial', () => {
     expect(tablasHerd.map((fila) => fila.table_name).sort()).toEqual([
       'animal',
       'animal_correction',
+      'animal_exit_correction',
       'animal_mark',
       'parentage_correction',
       'parentage_record',

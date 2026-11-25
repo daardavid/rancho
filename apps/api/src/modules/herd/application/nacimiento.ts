@@ -183,7 +183,7 @@ export async function registrarNacimiento(
       await deps.filiacion.insertar(filiacion)
 
       return {
-        animal: { ...publicarAnimal(animal, marcas), correcciones: [] },
+        animal: { ...publicarAnimal(animal, marcas), correcciones: [], correccionesDeSalida: [] },
         filiacion: publicarFiliacion(filiacion),
       }
     },

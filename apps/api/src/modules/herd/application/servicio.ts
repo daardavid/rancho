@@ -8,8 +8,10 @@ import { z } from 'zod'
 import { corregirFicha, registrarAnimal, type Animal, type CambiosDeFicha } from '../domain/animal'
 import { crearMarca, perderMarca, reemplazarMarca, type Marca } from '../domain/marca'
 import { RechazoDeHerd } from '../domain/errores'
+import { corregirSalida, registrarSalida, type CambiosDeSalida } from '../domain/salida'
 import type {
   Categoria,
+  MotivoDeSalida,
   ParticipacionEconomica,
   Sexo,
   Tenencia,
@@ -20,6 +22,7 @@ import type { RepositorioDeAnimales } from './repositorio'
 import {
   publicarAnimal,
   publicarCorreccion,
+  publicarCorreccionDeSalida,
   publicarMarca,
   type CorreccionPublica,
   type FichaAnimal,
@@ -27,10 +30,19 @@ import {
   type MarcaPublica,
 } from './publicar'
 
+/**
+ * Herd no escribe la tabla de evidencia. Solo pregunta si el id es de este
+ * rancho antes de guardarlo en la salida.
+ */
+export type ConsultaDeEvidencia = {
+  perteneceAlRancho(ranchId: RanchId, evidenciaId: string): Promise<boolean>
+}
+
 export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
   readonly filiacion: RepositorioDeFiliacion
   readonly idempotencia: AlmacenDeIdempotencia
+  readonly evidencia: ConsultaDeEvidencia | null
 }
 
 export type EntradaRegistrar = {
@@ -80,6 +92,28 @@ export type EntradaReemplazarMarca = {
   readonly valor: string
   readonly desde?: string | null
   readonly cambiadaEl?: string | null
+}
+
+export type EntradaRegistrarSalida = {
+  readonly commandId: string
+  readonly ranchId: RanchId
+  readonly recordedBy: RecordedBy
+  readonly animalId: string
+  readonly version: number
+  readonly motivo: MotivoDeSalida
+  readonly fecha: string
+  readonly nota?: string
+  readonly evidenciaId?: string | null
+}
+
+export type EntradaCorregirSalida = {
+  readonly commandId: string
+  readonly ranchId: RanchId
+  readonly recordedBy: RecordedBy
+  readonly animalId: string
+  readonly version: number
+  readonly motivo: string
+  readonly cambios: CambiosDeSalida
 }
 
 export type EntradaMarcarPerdida = {
@@ -144,7 +178,7 @@ export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Pr
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
       })
       await deps.animales.insertar(animal)
-      return { ...publicarAnimal(animal, []), correcciones: [] }
+      return { ...publicarAnimal(animal, []), correcciones: [], correccionesDeSalida: [] }
     },
   )
 }
@@ -189,10 +223,115 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
       })
       const marcas = await deps.animales.marcasDe(ranchId, [animalId])
       const correcciones = await deps.animales.correccionesDe(ranchId, animalId)
+      const correccionesDeSalida = await deps.animales.correccionesDeSalida(ranchId, animalId)
       return {
         ...publicarAnimal(corregida.animal, marcas),
         correcciones: correcciones.map(publicarCorreccion),
+        correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
       }
+    },
+  )
+}
+
+/**
+ * Da de baja. El mismo comando con el mismo contenido devuelve la ficha ya
+ * guardada. Una versión vieja no cambia nada. La ficha, los aretes y las
+ * correcciones se quedan.
+ */
+export async function registrarSalidaDe(
+  deps: DepsDeHerd,
+  entrada: EntradaRegistrarSalida,
+): Promise<FichaConHistoria> {
+  return ejecutarComandoIdempotente(
+    deps.idempotencia,
+    entrada.commandId,
+    {
+      comando: 'registrar_salida',
+      ranchId: entrada.ranchId,
+      recordedBy: entrada.recordedBy,
+      animalId: entrada.animalId,
+      version: entrada.version,
+      motivo: entrada.motivo,
+      fecha: entrada.fecha,
+      nota: entrada.nota ?? null,
+      evidenciaId: entrada.evidenciaId ?? null,
+    },
+    async () => {
+      const ranchId = ranchIdSchema.parse(entrada.ranchId)
+      const animalId = animalIdSchema.parse(entrada.animalId)
+      const actual = await deps.animales.obtener(ranchId, animalId, true)
+      if (actual === null) {
+        throw new RechazoDeHerd('no_encontrado')
+      }
+      if (actual.version !== entrada.version) {
+        throw new ConflictoDeVersion()
+      }
+
+      const siguiente = registrarSalida(actual, {
+        motivo: entrada.motivo,
+        fecha: entrada.fecha,
+        ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
+        ...(entrada.evidenciaId !== undefined ? { evidenciaId: entrada.evidenciaId } : {}),
+      })
+      await exigirEvidencia(deps.evidencia, ranchId, siguiente.salida?.evidenciaId ?? null)
+      await deps.animales.guardarSalida({
+        animal: siguiente,
+        versionLeida: entrada.version,
+        anterior: null,
+        motivo: null,
+        correctedBy: entrada.recordedBy,
+        correctedAt: new Date(),
+      })
+      return await fichaDe(deps, siguiente)
+    },
+  )
+}
+
+/**
+ * Corrige la salida, o la deshace y el animal vuelve a activo. Lo que estaba
+ * queda en la historia. No se anota precio ni reposición.
+ */
+export async function corregirSalidaDe(
+  deps: DepsDeHerd,
+  entrada: EntradaCorregirSalida,
+): Promise<FichaConHistoria> {
+  return ejecutarComandoIdempotente(
+    deps.idempotencia,
+    entrada.commandId,
+    {
+      comando: 'corregir_salida',
+      ranchId: entrada.ranchId,
+      recordedBy: entrada.recordedBy,
+      animalId: entrada.animalId,
+      version: entrada.version,
+      motivo: entrada.motivo,
+      cambios: entrada.cambios,
+    },
+    async () => {
+      const ranchId = ranchIdSchema.parse(entrada.ranchId)
+      const animalId = animalIdSchema.parse(entrada.animalId)
+      const actual = await deps.animales.obtener(ranchId, animalId, true)
+      if (actual === null) {
+        throw new RechazoDeHerd('no_encontrado')
+      }
+      if (actual.version !== entrada.version) {
+        throw new ConflictoDeVersion()
+      }
+
+      const corregida = corregirSalida(actual, entrada.cambios, entrada.motivo)
+      const evidenciaNueva = corregida.animal.salida?.evidenciaId ?? null
+      if (evidenciaNueva !== null && evidenciaNueva !== corregida.anterior.evidenciaId) {
+        await exigirEvidencia(deps.evidencia, ranchId, evidenciaNueva)
+      }
+      await deps.animales.guardarSalida({
+        animal: corregida.animal,
+        versionLeida: entrada.version,
+        anterior: corregida.anterior,
+        motivo: corregida.motivo,
+        correctedBy: entrada.recordedBy,
+        correctedAt: new Date(),
+      })
+      return await fichaDe(deps, corregida.animal)
     },
   )
 }
@@ -342,6 +481,14 @@ export async function listarActivos(
   return conMarcas(animales, ranchId, lista)
 }
 
+export async function listarSalidas(
+  animales: RepositorioDeAnimales,
+  ranchId: RanchId,
+): Promise<FichaAnimal[]> {
+  const lista = await animales.listarInactivos(ranchIdSchema.parse(ranchId))
+  return conMarcas(animales, ranchId, lista)
+}
+
 export async function obtenerFicha(
   animales: RepositorioDeAnimales,
   ranchId: RanchId,
@@ -354,9 +501,39 @@ export async function obtenerFicha(
   }
   const marcas = await animales.marcasDe(animal.ranchId, [animal.id])
   const correcciones = await animales.correccionesDe(animal.ranchId, animal.id)
+  const correccionesDeSalida = await animales.correccionesDeSalida(animal.ranchId, animal.id)
   return {
     ...publicarAnimal(animal, marcas),
     correcciones: correcciones.map(publicarCorreccion),
+    correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
+  }
+}
+
+async function fichaDe(deps: DepsDeHerd, animal: Animal): Promise<FichaConHistoria> {
+  const marcas = await deps.animales.marcasDe(animal.ranchId, [animal.id])
+  const correcciones = await deps.animales.correccionesDe(animal.ranchId, animal.id)
+  const correccionesDeSalida = await deps.animales.correccionesDeSalida(animal.ranchId, animal.id)
+  return {
+    ...publicarAnimal(animal, marcas),
+    correcciones: correcciones.map(publicarCorreccion),
+    correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
+  }
+}
+
+async function exigirEvidencia(
+  consulta: ConsultaDeEvidencia | null,
+  ranchId: RanchId,
+  evidenciaId: string | null,
+): Promise<void> {
+  if (evidenciaId === null) {
+    return
+  }
+  if (consulta === null) {
+    throw new RechazoDeHerd('evidencia_ajena')
+  }
+  const pertenece = await consulta.perteneceAlRancho(ranchId, evidenciaId)
+  if (!pertenece) {
+    throw new RechazoDeHerd('evidencia_ajena')
   }
 }
 

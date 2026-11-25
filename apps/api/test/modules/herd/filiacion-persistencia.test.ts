@@ -253,7 +253,11 @@ describe('nacimiento y filiación', () => {
       expect(ficha?.correcciones).toEqual([])
 
       // La madre ya no está activa y aun así la historia puede decir su nombre.
-      await db.execute(sql`UPDATE herd.animal SET active = false WHERE id = ${madreId}`)
+      await db.execute(sql`
+        UPDATE herd.animal
+        SET active = false, exit_reason = 'unknown', exit_known_on = '2026-01-15'
+        WHERE id = ${madreId}
+      `)
       const activos = await herd.listarActivos(ranchId)
       expect(activos.some((animal) => animal.id === madreId)).toBe(false)
       const familia = await herd.familia(ranchId, criaId)

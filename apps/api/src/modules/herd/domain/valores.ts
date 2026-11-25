@@ -24,6 +24,15 @@ export type TipoDeMarca = (typeof TIPOS_DE_MARCA)[number]
 export const ESTADOS_DE_MARCA = ['active', 'replaced', 'lost'] as const
 export type EstadoDeMarca = (typeof ESTADOS_DE_MARCA)[number]
 
+/**
+ * Por qué un animal dejó de estar activo.
+ *
+ * `unknown` es válido: a veces se sabe que ya no está y no se sabe por qué.
+ * No hay precio, reposición ni reparto.
+ */
+export const MOTIVOS_DE_SALIDA = ['sale', 'death', 'confirmed_missing', 'other', 'unknown'] as const
+export type MotivoDeSalida = (typeof MOTIVOS_DE_SALIDA)[number]
+
 /** Campos que una corrección de ficha puede cambiar. El id no está. */
 export const CAMPOS_DE_FICHA = [
   'nombre',
@@ -69,6 +78,10 @@ export function esTipoDeMarca(valor: string): valor is TipoDeMarca {
 
 export function esEstadoDeMarca(valor: string): valor is EstadoDeMarca {
   return (ESTADOS_DE_MARCA as readonly string[]).includes(valor)
+}
+
+export function esMotivoDeSalida(valor: string): valor is MotivoDeSalida {
+  return (MOTIVOS_DE_SALIDA as readonly string[]).includes(valor)
 }
 
 export function esCampoDeFicha(valor: string): valor is CampoDeFicha {

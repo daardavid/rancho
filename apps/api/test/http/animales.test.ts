@@ -86,7 +86,18 @@ describe('ficha por HTTP', () => {
         url: `/api/animals/${animalId}/marks/${marcaId}/lost`,
         payload: { commandId: nuevoId() },
       },
+      {
+        method: 'POST' as const,
+        url: `/api/animals/${animalId}/exit`,
+        payload: { commandId: nuevoId(), version: 1, motivo: 'unknown', fecha: '2026-04-02' },
+      },
+      {
+        method: 'POST' as const,
+        url: `/api/animals/${animalId}/exit/corrections`,
+        payload: { commandId: nuevoId(), version: 1, motivo: 'no', activo: true },
+      },
       { method: 'GET' as const, url: '/api/animals' },
+      { method: 'GET' as const, url: '/api/animals?estado=salidas' },
       { method: 'GET' as const, url: '/api/animals?mark=PRUEBA' },
       { method: 'GET' as const, url: `/api/animals/${animalId}` },
     ]

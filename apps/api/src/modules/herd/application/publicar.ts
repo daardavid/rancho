@@ -9,9 +9,11 @@ import type {
   PrecisionDeFecha,
 } from '../domain/filiacion'
 import type { Marca } from '../domain/marca'
+import type { CorreccionDeSalida, Salida } from '../domain/salida'
 import type {
   Categoria,
   EstadoDeMarca,
+  MotivoDeSalida,
   ParticipacionEconomica,
   Sexo,
   Tenencia,
@@ -42,6 +44,7 @@ export type FichaAnimal = {
   readonly notaDelArreglo: string | null
   readonly nota: string | null
   readonly activo: boolean
+  readonly salida: SalidaPublica | null
   readonly version: number
   readonly recordedBy: string
   readonly recordedAt: string
@@ -56,8 +59,26 @@ export type CorreccionPublica = {
   readonly correctedAt: string
 }
 
+export type SalidaPublica = {
+  readonly motivo: MotivoDeSalida
+  readonly fecha: string
+  readonly nota: string | null
+  readonly evidenciaId: string | null
+}
+
+export type CorreccionDeSalidaPublica = {
+  readonly motivoAnterior: MotivoDeSalida
+  readonly fechaAnterior: string
+  readonly notaAnterior: string | null
+  readonly evidenciaIdAnterior: string | null
+  readonly motivo: string
+  readonly correctedBy: string
+  readonly correctedAt: string
+}
+
 export type FichaConHistoria = FichaAnimal & {
   readonly correcciones: readonly CorreccionPublica[]
+  readonly correccionesDeSalida: readonly CorreccionDeSalidaPublica[]
 }
 
 export function publicarMarca(marca: Marca): MarcaPublica {
@@ -85,10 +106,32 @@ export function publicarAnimal(animal: Animal, marcas: readonly Marca[]): FichaA
     notaDelArreglo: animal.notaDelArreglo,
     nota: animal.nota,
     activo: animal.activo,
+    salida: animal.salida === null ? null : publicarSalida(animal.salida),
     version: animal.version,
     recordedBy: animal.recordedBy,
     recordedAt: animal.recordedAt.toISOString(),
     marcas: marcas.map(publicarMarca),
+  }
+}
+
+export function publicarSalida(salida: Salida): SalidaPublica {
+  return {
+    motivo: salida.motivo,
+    fecha: salida.fecha,
+    nota: salida.nota,
+    evidenciaId: salida.evidenciaId,
+  }
+}
+
+export function publicarCorreccionDeSalida(correccion: CorreccionDeSalida): CorreccionDeSalidaPublica {
+  return {
+    motivoAnterior: correccion.motivoAnterior,
+    fechaAnterior: correccion.fechaAnterior,
+    notaAnterior: correccion.notaAnterior,
+    evidenciaIdAnterior: correccion.evidenciaIdAnterior,
+    motivo: correccion.motivo,
+    correctedBy: correccion.correctedBy,
+    correctedAt: correccion.correctedAt.toISOString(),
   }
 }
 
