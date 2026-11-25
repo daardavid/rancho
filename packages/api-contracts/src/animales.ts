@@ -21,6 +21,13 @@ export const tenenciaSchema = z.enum(['ranch', 'a_la_parte', 'third_party', 'unk
 export const participacionEconomicaSchema = z.enum(['known', 'partially_known', 'unknown'])
 export const tipoDeMarcaSchema = z.enum(['siniiga', 'other'])
 export const estadoDeMarcaSchema = z.enum(['active', 'replaced', 'lost'])
+export const motivoDeSalidaSchema = z.enum([
+  'sale',
+  'death',
+  'confirmed_missing',
+  'other',
+  'unknown',
+])
 export const campoDeFichaSchema = z.enum([
   'nombre',
   'sexo',
@@ -128,6 +135,69 @@ export const marcarPerdidaSchema = z.strictObject({
 
 export const consultaDeAnimalesSchema = z.strictObject({
   mark: valorDeMarcaSchema.optional(),
+  estado: z.enum(['activos', 'salidas']).optional(),
+})
+
+/**
+ * Dar de baja. `motivo` es la razón de la salida, no un precio ni una
+ * reposición. `fecha` es el día en que se supo.
+ */
+export const registrarSalidaSchema = z.strictObject({
+  commandId: z.uuid(),
+  version: z.number().int().nonnegative(),
+  motivo: motivoDeSalidaSchema,
+  fecha: diaSchema,
+  nota: notaSchema.optional(),
+  evidenciaId: z.uuid().nullable().optional(),
+})
+
+/**
+ * Corregir la salida. `motivo` es por qué se corrige. `activo: true` vuelve
+ * a dejarlo en el hato y no se combina con un cambio de la salida.
+ */
+export const corregirSalidaSchema = z
+  .strictObject({
+    commandId: z.uuid(),
+    version: z.number().int().nonnegative(),
+    motivo: motivoSchema,
+    motivoDeSalida: motivoDeSalidaSchema.optional(),
+    fecha: diaSchema.optional(),
+    nota: notaSchema.nullable().optional(),
+    evidenciaId: z.uuid().nullable().optional(),
+    activo: z.literal(true).optional(),
+  })
+  .superRefine((valor, ctx) => {
+    if (valor.activo === true) {
+      const mezcla =
+        valor.motivoDeSalida !== undefined ||
+        valor.fecha !== undefined ||
+        valor.nota !== undefined ||
+        valor.evidenciaId !== undefined
+      if (mezcla) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['activo'],
+          message: 'Volver a activo no cambia la salida: la salida queda en la historia.',
+        })
+      }
+    }
+  })
+
+export const salidaSchema = z.strictObject({
+  motivo: motivoDeSalidaSchema,
+  fecha: diaSchema,
+  nota: notaSchema.nullable(),
+  evidenciaId: z.uuid().nullable(),
+})
+
+export const correccionDeSalidaSchema = z.strictObject({
+  motivoAnterior: motivoDeSalidaSchema,
+  fechaAnterior: diaSchema,
+  notaAnterior: notaSchema.nullable(),
+  evidenciaIdAnterior: z.uuid().nullable(),
+  motivo: motivoSchema,
+  correctedBy: registradoPorSchema,
+  correctedAt: instanteSchema,
 })
 
 export const marcaSchema = z.strictObject({
@@ -152,6 +222,7 @@ export const fichaAnimalSchema = z.strictObject({
   notaDelArreglo: notaSchema.nullable(),
   nota: notaSchema.nullable(),
   activo: z.boolean(),
+  salida: salidaSchema.nullable(),
   version: z.number().int().nonnegative(),
   recordedBy: registradoPorSchema,
   recordedAt: instanteSchema,
@@ -168,6 +239,7 @@ export const correccionSchema = z.strictObject({
 
 export const fichaConHistoriaSchema = fichaAnimalSchema.extend({
   correcciones: z.array(correccionSchema),
+  correccionesDeSalida: z.array(correccionDeSalidaSchema),
 })
 
 export const listaDeAnimalesSchema = z.strictObject({
@@ -194,6 +266,10 @@ export const codigoDeErrorDeAnimalSchema = z.enum([
   'motivo_vacio',
   'dia_invalido',
   'texto_invalido',
+  'ya_inactivo',
+  'sin_salida',
+  'salida_incoherente',
+  'evidencia_ajena',
 ])
 
 export const errorDeAnimalSchema = z.strictObject({
@@ -202,6 +278,8 @@ export const errorDeAnimalSchema = z.strictObject({
 
 export type RegistrarAnimal = z.infer<typeof registrarAnimalSchema>
 export type CorregirAnimal = z.infer<typeof corregirAnimalSchema>
+export type RegistrarSalida = z.infer<typeof registrarSalidaSchema>
+export type CorregirSalida = z.infer<typeof corregirSalidaSchema>
 export type AgregarMarca = z.infer<typeof agregarMarcaSchema>
 export type ReemplazarMarca = z.infer<typeof reemplazarMarcaSchema>
 export type MarcarPerdida = z.infer<typeof marcarPerdidaSchema>

@@ -214,3 +214,62 @@ describe('Ficha: corregir', () => {
     expect(screen.getByText('Medido en la báscula')).toBeDefined()
   })
 })
+
+describe('Ficha: salida', () => {
+  it('al volver a dejarlo activo avisa que regresó al hato, no que salió', async () => {
+    const usuario = userEvent.setup()
+    let activo = false
+    const inactiva = fichaDeAnimal({
+      nombre: 'Canelo',
+      activo: false,
+      version: 2,
+      salida: {
+        motivo: 'death',
+        fecha: '2026-04-02',
+        nota: null,
+        evidenciaId: null,
+      },
+    })
+    const activa = fichaDeAnimal({
+      nombre: 'Canelo',
+      activo: true,
+      version: 3,
+      salida: null,
+      correccionesDeSalida: [
+        {
+          motivoAnterior: 'death',
+          fechaAnterior: '2026-04-02',
+          notaAnterior: null,
+          evidenciaIdAnterior: null,
+          motivo: 'se había equivocado',
+          correctedBy: CUENTA,
+          correctedAt: CUANDO,
+        },
+      ],
+    })
+
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: activo ? activa : inactiva }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo },
+      }),
+      [`POST /api/animals/${ANIMAL}/exit/corrections`]: () => {
+        activo = true
+        return { estado: 200, cuerpo: activa }
+      },
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    await usuario.click(await screen.findByRole('button', { name: 'Corregir la salida' }))
+    await usuario.click(screen.getByRole('button', { name: 'Volver a dejarlo activo' }))
+    await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'se había equivocado')
+    await usuario.click(screen.getByRole('button', { name: 'Volver al hato' }))
+
+    expect(await screen.findByText(/volvió al hato activo/)).toBeDefined()
+    expect(screen.getByText(/La salida anterior quedó en la historia/)).toBeDefined()
+    expect(screen.queryByText(/Salida guardada/)).toBeNull()
+  })
+})

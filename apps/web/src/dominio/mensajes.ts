@@ -155,8 +155,20 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     queHacer: 'Abre la sesión guardada para revisarla.',
   },
   evidencia_ajena: {
-    quePaso: 'Esa foto no se puede usar en este peso.',
+    quePaso: 'Esa foto no se puede usar aquí.',
     queHacer: 'Tómala otra vez desde esta pantalla.',
+  },
+  ya_inactivo: {
+    quePaso: 'Este animal ya está dado de baja.',
+    queHacer: 'Si la salida está mal, corrígela. No se anota otra encima.',
+  },
+  sin_salida: {
+    quePaso: 'Este animal sigue en el hato.',
+    queHacer: 'La salida se corrige cuando ya se dio de baja.',
+  },
+  salida_incoherente: {
+    quePaso: 'Volver al hato no cambia a la vez el motivo de la salida.',
+    queHacer: 'Elige una sola cosa: corregir la salida, o dejarlo activo otra vez.',
   },
   foto_no_es_imagen: {
     quePaso: 'Eso no es una foto JPEG, PNG o WebP.',

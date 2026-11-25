@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { recordedBySchema } from '../../../src/shared-kernel/actores'
 import { animalIdSchema, ranchIdSchema } from '../../../src/shared-kernel/ids'
 import { corregirFicha, registrarAnimal } from '../../../src/modules/herd/domain/animal'
+import { corregirSalida, registrarSalida } from '../../../src/modules/herd/domain/salida'
 import { RechazoDeHerd } from '../../../src/modules/herd/domain/errores'
 import { crearMarca, perderMarca, reemplazarMarca } from '../../../src/modules/herd/domain/marca'
 
@@ -27,6 +28,7 @@ describe('registrar un animal', () => {
       notaDelArreglo: null,
       nota: null,
       activo: true,
+      salida: null,
       version: 1,
       recordedBy,
       recordedAt: cuando,
@@ -189,5 +191,47 @@ describe('marcas', () => {
     expect(marca.estado).toBe('lost')
     expect(marca.cambiadaEl).toBeNull()
     expect(() => reemplazarMarca(marca, null)).toThrow(expect.objectContaining({ codigo: 'marca_no_activa' }))
+  })
+})
+
+describe('salida del activo', () => {
+  const animal = registrarAnimal({ id, ranchId, recordedBy, recordedAt: cuando, nombre: 'Seña' })
+
+  it('acepta el motivo desconocido y deja la ficha', () => {
+    const baja = registrarSalida(animal, { motivo: 'unknown', fecha: '2026-04-02' })
+
+    expect(baja.activo).toBe(false)
+    expect(baja.salida).toEqual({
+      motivo: 'unknown',
+      fecha: '2026-04-02',
+      nota: null,
+      evidenciaId: null,
+    })
+    expect(baja.nombre).toBe('Seña')
+    expect(baja.id).toBe(animal.id)
+    expect(baja.version).toBe(2)
+  })
+
+  it('corregir la salida lo devuelve a activo y conserva la salida anterior', () => {
+    const baja = registrarSalida(animal, { motivo: 'death', fecha: '2026-04-02', nota: 'lo encontraron' })
+    const vuelta = corregirSalida(baja, { activo: true }, 'seguía en el potrero')
+
+    expect(vuelta.animal.activo).toBe(true)
+    expect(vuelta.animal.salida).toBeNull()
+    expect(vuelta.anterior).toEqual({
+      motivo: 'death',
+      fecha: '2026-04-02',
+      nota: 'lo encontraron',
+      evidenciaId: null,
+    })
+    expect(vuelta.motivo).toBe('seguía en el potrero')
+    expect(vuelta.animal.version).toBe(3)
+  })
+
+  it('no mezcla volver a activo con un cambio de la salida', () => {
+    const baja = registrarSalida(animal, { motivo: 'death', fecha: '2026-04-02' })
+    expect(() => corregirSalida(baja, { activo: true, motivo: 'sale' }, 'no')).toThrow(
+      expect.objectContaining({ codigo: 'salida_incoherente' }),
+    )
   })
 })

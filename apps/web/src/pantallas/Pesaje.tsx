@@ -75,12 +75,18 @@ export function Pesaje() {
   /** Lo que el dueño ha tocado en esta visita. `null` es «todavía no toca nada». */
   const [cambiado, setCambiado] = useState<BorradorDePesaje | null>(null)
 
+  const idsActivos = useMemo(
+    () => new Set((hato.data?.animales ?? []).map((animal) => animal.id)),
+    [hato.data],
+  )
+
   const esperados = useMemo(() => {
     if (ultima.data === null || ultima.data === undefined) {
       return []
     }
-    return ultima.data.filas.map((fila) => fila.animalId)
-  }, [ultima.data])
+    // Quien ya salió del hato no entra a la vuelta nueva.
+    return ultima.data.filas.map((fila) => fila.animalId).filter((id) => idsActivos.has(id))
+  }, [ultima.data, idsActivos])
 
   const anteriores = useMemo(() => pesosAnteriores(ultima.data), [ultima.data])
 

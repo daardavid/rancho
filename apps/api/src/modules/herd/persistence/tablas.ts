@@ -32,6 +32,10 @@ export const animal = esquemaHerd.table(
     notaDelArreglo: text('arrangement_note'),
     nota: text('note'),
     activo: boolean('active').notNull(),
+    motivoSalida: text('exit_reason'),
+    fechaSalida: date('exit_known_on', { mode: 'string' }),
+    notaSalida: text('exit_note'),
+    evidenciaSalida: uuid('exit_evidence_id'),
     version: integer('version').notNull(),
     recordedBy: text('recorded_by').notNull(),
     recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
@@ -69,6 +73,28 @@ export const animal = esquemaHerd.table(
       sql`${tabla.notaDelArreglo} is null or length(btrim(${tabla.notaDelArreglo})) > 0`,
     ),
     check('animal_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
+    check(
+      'animal_motivo_salida',
+      sql`${tabla.motivoSalida} is null or ${tabla.motivoSalida} in ('sale', 'death', 'confirmed_missing', 'other', 'unknown')`,
+    ),
+    check(
+      'animal_nota_salida_presente',
+      sql`${tabla.notaSalida} is null or length(btrim(${tabla.notaSalida})) > 0`,
+    ),
+    check(
+      'animal_salida_coherente',
+      sql`(
+        ${tabla.activo} = true
+        and ${tabla.motivoSalida} is null
+        and ${tabla.fechaSalida} is null
+        and ${tabla.notaSalida} is null
+        and ${tabla.evidenciaSalida} is null
+      ) or (
+        ${tabla.activo} = false
+        and ${tabla.motivoSalida} is not null
+        and ${tabla.fechaSalida} is not null
+      )`,
+    ),
   ],
 )
 
@@ -98,6 +124,41 @@ export const correccionDeAnimal = esquemaHerd.table(
       sql`${tabla.campo} in ('nombre', 'sexo', 'categoria', 'detalleCategoria', 'tenencia', 'participacionEconomica', 'notaDelArreglo', 'nota')`,
     ),
     check('animal_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
+  ],
+)
+
+/**
+ * Salida anterior, cuando se corrige. Una fila por corrección, con el motivo
+ * que tenía, el día en que se supo, la nota, la foto, quién corrigió, cuándo
+ * y por qué. No se borra al volver a activo.
+ */
+export const correccionDeSalida = esquemaHerd.table(
+  'animal_exit_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    motivoAnterior: text('previous_reason').notNull(),
+    fechaAnterior: date('previous_known_on', { mode: 'string' }).notNull(),
+    notaAnterior: text('previous_note'),
+    evidenciaAnterior: uuid('previous_evidence_id'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('animal_exit_correction_animal').on(tabla.animalId, tabla.correctedAt),
+    check(
+      'animal_exit_correction_motivo_anterior',
+      sql`${tabla.motivoAnterior} in ('sale', 'death', 'confirmed_missing', 'other', 'unknown')`,
+    ),
+    check('animal_exit_correction_motivo', sql`length(btrim(${tabla.motivo})) > 0`),
+    check(
+      'animal_exit_correction_nota',
+      sql`${tabla.notaAnterior} is null or length(btrim(${tabla.notaAnterior})) > 0`,
+    ),
   ],
 )
 

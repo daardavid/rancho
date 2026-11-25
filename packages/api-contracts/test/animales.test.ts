@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { corregirAnimalSchema, fichaAnimalSchema, fichaConHistoriaSchema, registrarAnimalSchema } from '../src/index'
+import {
+  corregirAnimalSchema,
+  corregirSalidaSchema,
+  fichaAnimalSchema,
+  fichaConHistoriaSchema,
+  registrarAnimalSchema,
+  registrarSalidaSchema,
+} from '../src/index'
 
 const commandId = '33333333-3333-4333-8333-333333333333'
 const animalId = '44444444-4444-4444-8444-444444444444'
@@ -44,6 +51,45 @@ describe('registrarAnimalSchema', () => {
   })
 })
 
+describe('registrarSalidaSchema', () => {
+  it('acepta el motivo desconocido y rechaza precio, reposición y parte', () => {
+    expect(
+      registrarSalidaSchema.parse({
+        commandId,
+        version: 1,
+        motivo: 'unknown',
+        fecha: '2026-04-02',
+      }).motivo,
+    ).toBe('unknown')
+
+    for (const deMas of [{ precio: '10.00' }, { reposicion: 1 }, { parte: 'a_la_parte' }]) {
+      expect(
+        registrarSalidaSchema.safeParse({
+          commandId,
+          version: 1,
+          motivo: 'sale',
+          fecha: '2026-04-02',
+          ...deMas,
+        }).success,
+      ).toBe(false)
+    }
+  })
+})
+
+describe('corregirSalidaSchema', () => {
+  it('volver a activo no se mezcla con un cambio de la salida', () => {
+    expect(
+      corregirSalidaSchema.safeParse({
+        commandId,
+        version: 2,
+        motivo: 'seguía aquí',
+        activo: true,
+        motivoDeSalida: 'sale',
+      }).success,
+    ).toBe(false)
+  })
+})
+
 describe('corregirAnimalSchema', () => {
   it('pide versión y motivo, y no acepta cambiar el id', () => {
     expect(
@@ -78,6 +124,7 @@ describe('quién registró en la salida', () => {
     notaDelArreglo: null,
     nota: null,
     activo: true,
+    salida: null,
     version: 1,
     recordedAt: '2026-03-15T18:00:00.000Z',
     marcas: [],
@@ -102,6 +149,7 @@ describe('quién registró en la salida', () => {
     const leida = fichaConHistoriaSchema.parse({
       ...base,
       recordedBy: 'propietario',
+      correccionesDeSalida: [],
       correcciones: [
         {
           campo: 'nombre',
@@ -118,6 +166,7 @@ describe('quién registró en la salida', () => {
       fichaConHistoriaSchema.safeParse({
         ...base,
         recordedBy: 'propietario',
+        correccionesDeSalida: [],
         correcciones: [
           {
             campo: 'nombre',

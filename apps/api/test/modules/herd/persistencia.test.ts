@@ -337,7 +337,11 @@ describe('consulta para Growth', () => {
     const deOtroRancho = nuevoId()
     await herd.registrar({ commandId: nuevoId(), ranchId, recordedBy, id: activo })
     await herd.registrar({ commandId: nuevoId(), ranchId, recordedBy, id: inactivo })
-    await db.execute(sql`UPDATE herd.animal SET active = false WHERE id = ${inactivo}`)
+    await db.execute(sql`
+      UPDATE herd.animal
+      SET active = false, exit_reason = 'unknown', exit_known_on = '2026-01-15'
+      WHERE id = ${inactivo}
+    `)
     await herd.registrar({
       commandId: nuevoId(),
       ranchId: ranchIdSchema.parse('99999999-9999-4999-8999-999999999999'),

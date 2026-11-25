@@ -22,6 +22,7 @@ function pestanaDe(ruta: Ruta): Pestana | null {
     case 'alta':
     case 'nacimiento':
     case 'ficha':
+    case 'salidas':
       return 'hato'
     case 'pesaje':
     case 'sesion':

@@ -20,6 +20,10 @@ export const CODIGOS_DE_RECHAZO = [
   'progenitor_ausente',
   'tenencia_de_cria',
   'unico_toro_no_aplica',
+  'ya_inactivo',
+  'sin_salida',
+  'salida_incoherente',
+  'evidencia_ajena',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]

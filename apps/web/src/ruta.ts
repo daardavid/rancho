@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 
 export type Ruta =
   | { readonly nombre: 'hato' }
+  | { readonly nombre: 'salidas' }
   | { readonly nombre: 'alta' }
   | { readonly nombre: 'nacimiento'; readonly madreId: string | null }
   | { readonly nombre: 'ficha'; readonly animalId: string }
@@ -24,6 +25,9 @@ export const RUTA_DEL_HATO: Ruta = { nombre: 'hato' }
 
 export function leerRuta(hash: string): Ruta {
   const limpio = hash.replace(/^#/, '')
+  if (limpio === '/salidas') {
+    return { nombre: 'salidas' }
+  }
   if (limpio === '/alta') {
     return { nombre: 'alta' }
   }
@@ -59,6 +63,8 @@ export function rutaAHash(ruta: Ruta): string {
   switch (ruta.nombre) {
     case 'hato':
       return '#/'
+    case 'salidas':
+      return '#/salidas'
     case 'alta':
       return '#/alta'
     case 'nacimiento':
