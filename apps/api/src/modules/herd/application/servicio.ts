@@ -18,6 +18,7 @@ import type {
   TipoDeMarca,
 } from '../domain/valores'
 import type { RepositorioDeFiliacion } from './repositorio-filiacion'
+import type { RepositorioDeLugar } from './repositorio-lugar'
 import type { RepositorioDeAnimales } from './repositorio'
 import {
   publicarAnimal,
@@ -41,6 +42,7 @@ export type ConsultaDeEvidencia = {
 export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
   readonly filiacion: RepositorioDeFiliacion
+  readonly lugar: RepositorioDeLugar
   readonly idempotencia: AlmacenDeIdempotencia
   readonly evidencia: ConsultaDeEvidencia | null
 }

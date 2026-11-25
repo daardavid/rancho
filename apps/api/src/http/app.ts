@@ -8,6 +8,7 @@ import type { ModelosDeCrecimiento } from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
+import { registrarRutasDeLugar } from './routes/lugar'
 import { registrarRutasDeNacimientos } from './routes/nacimientos'
 import { registrarRutasDeCrecimiento } from './routes/crecimiento'
 import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
@@ -91,6 +92,7 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   if (opciones.herd !== undefined) {
     registrarRutasDeAnimales(app, opciones.herd)
     registrarRutasDeNacimientos(app, opciones.herd)
+    registrarRutasDeLugar(app, opciones.herd)
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)

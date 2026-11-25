@@ -1,5 +1,8 @@
 import type { Animal } from '../domain/animal'
 import type { Correccion } from '../domain/correccion'
+import type { AsignacionDeLugar } from '../domain/lugar'
+import type { CampoDePotrero, Potrero } from '../domain/potrero'
+import type { CorreccionDePotreroGuardada } from './repositorio-lugar'
 import type {
   CertezaDeFiliacion,
   Filiacion,
@@ -142,6 +145,114 @@ export function publicarCorreccion(correccion: Correccion): CorreccionPublica {
     motivo: correccion.motivo,
     correctedBy: correccion.correctedBy,
     correctedAt: correccion.correctedAt.toISOString(),
+  }
+}
+
+/**
+ * Un potrero tal como sale del módulo. `nombre` puede ser `null`: el potrero
+ * existe aunque el rancho todavía no le ponga nombre.
+ */
+export type PotreroPublico = {
+  readonly id: string
+  readonly nombre: string | null
+  readonly nota: string | null
+  readonly version: number
+  readonly recordedBy: string
+  readonly recordedAt: string
+}
+
+export type CorreccionDePotreroPublica = {
+  readonly campo: CampoDePotrero
+  readonly valorAnterior: string | null
+  readonly motivo: string
+  readonly correctedBy: string
+  readonly correctedAt: string
+}
+
+export type PotreroConHistoria = PotreroPublico & {
+  readonly correcciones: readonly CorreccionDePotreroPublica[]
+}
+
+/**
+ * Dónde se espera a un animal desde un día. `potreroId: null` es «no sé».
+ * No es una observación: no trae calidad de dato ni última observación.
+ */
+export type AsignacionPublica = {
+  readonly id: string
+  readonly potreroId: string | null
+  readonly desde: string
+  readonly nota: string | null
+  readonly recordedBy: string
+  readonly recordedAt: string
+}
+
+export type LugarDelAnimal = {
+  /** La última asignación, o `null` si nunca se le asignó un lugar. */
+  readonly vigente: AsignacionPublica | null
+  /** De la más vieja a la más nueva. */
+  readonly historia: readonly AsignacionPublica[]
+}
+
+/** El lugar vigente de un animal activo. Los que no tienen ninguno no salen. */
+export type LugarEnElHato = {
+  readonly animalId: string
+  readonly potreroId: string | null
+  readonly desde: string
+}
+
+export type LugaresDelHato = {
+  readonly animales: readonly LugarEnElHato[]
+}
+
+/**
+ * Los potreros con cuántos animales activos se esperan en cada uno, y cuántos
+ * activos están sin asignación o con lugar desconocido.
+ *
+ * `sinAsignacion` son los activos que nunca se movieron en la app;
+ * `desconocidos`, los que tienen una asignación «no sé». Son dos huecos
+ * distintos y se ven distintos.
+ */
+export type PotreroEnLaLista = PotreroConHistoria & {
+  readonly esperados: number
+}
+
+export type PotrerosDelRancho = {
+  readonly potreros: readonly PotreroEnLaLista[]
+  readonly sinAsignacion: number
+  readonly desconocidos: number
+}
+
+export function publicarPotrero(potrero: Potrero): PotreroPublico {
+  return {
+    id: potrero.id,
+    nombre: potrero.nombre,
+    nota: potrero.nota,
+    version: potrero.version,
+    recordedBy: potrero.recordedBy,
+    recordedAt: potrero.recordedAt.toISOString(),
+  }
+}
+
+export function publicarCorreccionDePotrero(
+  correccion: CorreccionDePotreroGuardada,
+): CorreccionDePotreroPublica {
+  return {
+    campo: correccion.campo,
+    valorAnterior: correccion.valorAnterior,
+    motivo: correccion.motivo,
+    correctedBy: correccion.correctedBy,
+    correctedAt: correccion.correctedAt.toISOString(),
+  }
+}
+
+export function publicarAsignacion(asignacion: AsignacionDeLugar): AsignacionPublica {
+  return {
+    id: asignacion.id,
+    potreroId: asignacion.potreroId,
+    desde: asignacion.desde,
+    nota: asignacion.nota,
+    recordedBy: asignacion.recordedBy,
+    recordedAt: asignacion.recordedAt.toISOString(),
   }
 }
 
