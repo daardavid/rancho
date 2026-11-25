@@ -70,6 +70,14 @@ export const CALIDADES: readonly Etiquetado[] = [
   { codigo: 'declared', texto: 'Me lo dijeron' },
 ]
 
+export const MOTIVOS_DE_SALIDA: readonly Etiquetado[] = [
+  { codigo: 'sale', texto: 'Venta' },
+  { codigo: 'death', texto: 'Muerte' },
+  { codigo: 'confirmed_missing', texto: 'Faltante confirmado' },
+  { codigo: 'other', texto: 'Otra' },
+  { codigo: 'unknown', texto: 'No sé' },
+]
+
 export const CAMPOS_DE_FICHA: readonly Etiquetado[] = [
   { codigo: 'nombre', texto: 'Nombre o seña' },
   { codigo: 'sexo', texto: 'Sexo' },
@@ -89,6 +97,7 @@ export const tipoDeMarca = (codigo: string): string => textoDe(TIPOS_DE_MARCA, c
 export const estadoDeMarca = (codigo: string): string => textoDe(ESTADOS_DE_MARCA, codigo)
 export const calidad = (codigo: string): string => textoDe(CALIDADES, codigo)
 export const campoDeFicha = (codigo: string): string => textoDe(CAMPOS_DE_FICHA, codigo)
+export const motivoDeSalida = (codigo: string): string => textoDe(MOTIVOS_DE_SALIDA, codigo)
 
 export const CERTEZAS_DE_FILIACION: readonly Etiquetado[] = [
   { codigo: 'observed', texto: 'La vi' },

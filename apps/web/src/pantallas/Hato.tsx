@@ -1,12 +1,17 @@
 import type { FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { useHato, useResumenDelHato } from '../api/hato'
+import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
 import { useUltimaSesion } from '../api/pesajes'
 import { useSalir } from '../api/sesion'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
 import { diaLegible, diasLegibles, kilosLegibles } from '../dominio/fechas'
-import { CATEGORIAS, categoria as nombreDeCategoria, tipoDeMarca } from '../dominio/etiquetas'
+import {
+  CATEGORIAS,
+  categoria as nombreDeCategoria,
+  motivoDeSalida,
+  tipoDeMarca,
+} from '../dominio/etiquetas'
 import { etiquetaDeGanancia, type TonoDeGanancia } from '../dominio/revision'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
@@ -45,6 +50,11 @@ export function Hato() {
   const resumen = useResumenDelHato()
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState('todos')
+  const buscando = normalizar(busqueda) !== ''
+  // Sin activos hay que saber si alguien ya salió: «no hay animales» sería
+  // mentira, y la búsqueda es la forma de encontrarlo desde esta pantalla.
+  const sinActivos = hato.isSuccess && (hato.data?.animales.length ?? 0) === 0
+  const salidas = useSalidas(buscando || sinActivos)
 
   const porAnimal = useMemo(() => {
     const mapa = new Map<string, FilaDeCrecimiento>()
@@ -75,6 +85,14 @@ export function Hato() {
     })
   }, [animales, busqueda, filtro])
 
+  const salidasVisibles = useMemo(() => {
+    const limpio = normalizar(busqueda)
+    if (limpio === '') {
+      return []
+    }
+    return (salidas.data?.animales ?? []).filter((animal) => coincide(animal, limpio))
+  }, [salidas.data, busqueda])
+
   if (hato.isPending) {
     return (
       <main className="pantalla">
@@ -94,21 +112,33 @@ export function Hato() {
 
   const total = animales.length
   const vacio = total === 0
+  const haySalidas = (salidas.data?.animales.length ?? 0) > 0
+  const mirandoSalidas = sinActivos && salidas.isLoading
+  const subtituloVacio = mirandoSalidas
+    ? 'Viendo el hato…'
+    : haySalidas
+      ? 'En el hato activo no queda nadie'
+      : 'Todavía no hay animales'
 
   return (
     <main className="pantalla pantalla--hato">
       <MenuYEncabezado
         total={total}
+        subtituloVacio={subtituloVacio}
         // Mientras el resumen no llegó (cargando o error) no se afirma nada del
         // último pesaje: una consulta que falló no es «no hay pesajes».
         ultimoPesaje={
           resumen.data === undefined ? null : textoDelUltimoPesaje(resumen.data.animales)
         }
-        // En el hato vacío el alta se ofrece una sola vez, en la tarjeta.
-        conAlta={!vacio}
+        // En el hato vacío de verdad el alta se ofrece una sola vez, en la tarjeta.
+        // Si ya hubo salidas, el «+» sigue siendo el alta y la búsqueda encuentra
+        // a quien salió.
+        conAlta={!vacio || haySalidas}
       />
 
-      {vacio ? (
+      {mirandoSalidas ? (
+        <Cargando que="Viendo el hato…" />
+      ) : vacio && !haySalidas ? (
         <Tarjeta>
           <h2 className="hato__vacio-titulo">Empieza con el primer animal</h2>
           <p className="hato__vacio-texto">
@@ -141,16 +171,23 @@ export function Hato() {
             />
           </div>
 
-          <div className="hato__filtros">
-            <Filtros
-              etiqueta="Filtrar el hato"
-              opciones={filtros}
-              valor={filtro}
-              alElegir={setFiltro}
-            />
-          </div>
+          {vacio ? (
+            <p className="campo__ayuda">
+              En el hato activo no queda nadie. Escribe un nombre para encontrarlo entre las
+              salidas.
+            </p>
+          ) : (
+            <div className="hato__filtros">
+              <Filtros
+                etiqueta="Filtrar el hato"
+                opciones={filtros}
+                valor={filtro}
+                alElegir={setFiltro}
+              />
+            </div>
+          )}
 
-          {huecos.length === 0 ? null : (
+          {vacio || huecos.length === 0 ? null : (
             <div className="hato__aviso">
               <Aviso
                 titulo={
@@ -173,12 +210,16 @@ export function Hato() {
             </p>
           ) : null}
 
-          {visibles.length === 0 ? (
+          {(buscando || filtro !== 'todos') &&
+          visibles.length === 0 &&
+          salidasVisibles.length === 0 ? (
             <section className="vacio">
               <h2 className="vacio__titulo">Ningún animal coincide</h2>
               <p>Revisa cómo se escribe o cambia el filtro.</p>
             </section>
-          ) : (
+          ) : null}
+
+          {visibles.length === 0 ? null : (
             <ul className="hato__lista">
               {visibles.map((animal) => (
                 <li key={animal.id}>
@@ -188,9 +229,24 @@ export function Hato() {
             </ul>
           )}
 
-          <BotonFlotante icono={<IconoBascula />} href="#/pesaje">
-            Registrar pesaje
-          </BotonFlotante>
+          {salidasVisibles.length === 0 ? null : (
+            <section className="ficha__seccion">
+              <h2 className="ficha__titulo">Salidas</h2>
+              <ul className="hato__lista">
+                {salidasVisibles.map((animal) => (
+                  <li key={animal.id}>
+                    <FilaDeSalidaEnElHato animal={animal} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {vacio ? null : (
+            <BotonFlotante icono={<IconoBascula />} href="#/pesaje">
+              Registrar pesaje
+            </BotonFlotante>
+          )}
         </>
       )}
     </main>
@@ -203,10 +259,12 @@ export function Hato() {
  */
 function MenuYEncabezado({
   total,
+  subtituloVacio,
   ultimoPesaje,
   conAlta,
 }: {
   readonly total: number
+  readonly subtituloVacio: string
   readonly ultimoPesaje: string | null
   readonly conAlta: boolean
 }) {
@@ -242,7 +300,7 @@ function MenuYEncabezado({
   const conUltimoPesaje = ultimoPesaje === null ? '' : ` · ${ultimoPesaje}`
   const subtitulo =
     total === 0
-      ? 'Todavía no hay animales'
+      ? subtituloVacio
       : `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'}${conUltimoPesaje}`
 
   return (
@@ -287,6 +345,16 @@ function MenuYEncabezado({
           <button
             type="button"
             className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'salidas' })
+            }}
+          >
+            Salidas
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
             disabled={salir.isPending}
             onClick={() => {
               setAbierto(false)
@@ -325,6 +393,27 @@ function FilaDeHato({
       peso={ultimo === null ? '—' : kilosLegibles(ultimo.kilos)}
       ganancia={ganancia.texto}
       tono={ganancia.tono}
+      categoria={categoriaVisual(animal.categoria)}
+      alTocar={() => {
+        irA({ nombre: 'ficha', animalId: animal.id })
+      }}
+    />
+  )
+}
+
+/** Un animal dado de baja que la búsqueda del hato sí puede encontrar. */
+function FilaDeSalidaEnElHato({ animal }: { readonly animal: Animal }) {
+  const salida = animal.salida
+  const motivo = salida === null ? 'Salió' : motivoDeSalida(salida.motivo)
+  const fecha = salida === null ? '' : ` · ${diaLegible(salida.fecha)}`
+
+  return (
+    <FilaDeAnimal
+      nombre={nombreVisible(animal)}
+      detalle={`${motivo}${fecha}`}
+      peso="—"
+      ganancia="Salió"
+      tono="revisar"
       categoria={categoriaVisual(animal.categoria)}
       alTocar={() => {
         irA({ nombre: 'ficha', animalId: animal.id })

@@ -79,7 +79,7 @@ export function sesionAbierta(): RutaFalsa {
 export function fichaDeAnimal(
   cambios: Record<string, unknown> = {},
 ): Record<string, unknown> {
-  return { ...animalBase(), correcciones: [], ...cambios }
+  return { ...animalBase(), correcciones: [], correccionesDeSalida: [], ...cambios }
 }
 
 /**
@@ -104,6 +104,7 @@ function animalBase(): Record<string, unknown> {
     notaDelArreglo: null,
     nota: null,
     activo: true,
+    salida: null,
     version: 1,
     recordedBy: CUENTA,
     recordedAt: CUANDO,

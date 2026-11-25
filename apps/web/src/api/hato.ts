@@ -7,13 +7,17 @@ import {
   listaDeAnimalesSchema,
   marcaSchema,
   marcarPerdidaSchema,
+  corregirSalidaSchema,
   registrarAnimalSchema,
+  registrarSalidaSchema,
   reemplazarMarcaSchema,
   reemplazoDeMarcaSchema,
   type AgregarMarca,
   type CorregirAnimal,
   type MarcarPerdida,
+  type CorregirSalida,
   type RegistrarAnimal,
+  type RegistrarSalida,
   type ReemplazarMarca,
 } from '@rancho/api-contracts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,6 +26,7 @@ import { pedir } from './http'
 
 export const LLAVE_DEL_HATO = ['hato'] as const
 export const LLAVE_DEL_RESUMEN = ['hato', 'crecimiento'] as const
+export const LLAVE_DE_SALIDAS = ['hato', 'salidas'] as const
 
 /** Los animales activos con sus aretes, tal como los devuelve la API. */
 export function useHato() {
@@ -40,6 +45,46 @@ export function useResumenDelHato() {
     queryKey: LLAVE_DEL_RESUMEN,
     queryFn: () => pedir(crecimientoDelHatoSchema, '/api/read-models/growth-overview'),
   })
+}
+
+/** Animales dados de baja, con motivo y fecha. La lista del hato no los trae. */
+export function useSalidas(habilitada = true) {
+  return useQuery({
+    queryKey: LLAVE_DE_SALIDAS,
+    queryFn: () => pedir(listaDeAnimalesSchema, '/api/animals?estado=salidas'),
+    enabled: habilitada,
+  })
+}
+
+export function useRegistrarSalida(animalId: string) {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: (cuerpo: RegistrarSalida) =>
+      pedir(fichaConHistoriaSchema, `/api/animals/${animalId}/exit`, { metodo: 'POST', cuerpo }),
+    onSuccess: () => {
+      invalidarHato(cache, animalId)
+    },
+  })
+}
+
+export function useCorregirSalida(animalId: string) {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: (cuerpo: CorregirSalida) =>
+      pedir(fichaConHistoriaSchema, `/api/animals/${animalId}/exit/corrections`, {
+        metodo: 'POST',
+        cuerpo,
+      }),
+    onSuccess: () => {
+      invalidarHato(cache, animalId)
+    },
+  })
+}
+
+function invalidarHato(cache: ReturnType<typeof useQueryClient>, animalId: string): void {
+  void cache.invalidateQueries({ queryKey: ['ficha', animalId] })
+  void cache.invalidateQueries({ queryKey: LLAVE_DEL_HATO })
+  void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
 }
 
 /** La ficha con sus marcas y la historia de correcciones. */
@@ -163,4 +208,12 @@ export function useMarcarPerdida(animalId: string) {
   })
 }
 
-export { agregarMarcaSchema, corregirAnimalSchema, marcarPerdidaSchema, reemplazarMarcaSchema, registrarAnimalSchema }
+export {
+  agregarMarcaSchema,
+  corregirAnimalSchema,
+  corregirSalidaSchema,
+  marcarPerdidaSchema,
+  reemplazarMarcaSchema,
+  registrarAnimalSchema,
+  registrarSalidaSchema,
+}

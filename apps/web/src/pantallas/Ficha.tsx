@@ -9,6 +9,7 @@ import {
   campoDeFicha,
   categoria,
   calidad,
+  motivoDeSalida,
   participacion,
   sexo,
   tenencia,
@@ -18,6 +19,7 @@ import {
 import type { FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
+import { Aviso } from '../ui/Aviso'
 import { BotonSecundario } from '../ui/Botones'
 import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
@@ -27,6 +29,7 @@ import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
 import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
+import { FormularioDeSalida } from './Salida'
 import { GraficaDePesos } from './GraficaDePesos'
 
 /**
@@ -50,7 +53,9 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
   const pesos = usePesos(animalId)
   const historia = usePesosConHistoria(animalId)
   const [corrigiendo, setCorrigiendo] = useState(false)
+  const [dandoDeBaja, setDandoDeBaja] = useState(false)
   const [guardado, setGuardado] = useState(false)
+  const [salidaGuardada, setSalidaGuardada] = useState(false)
   const [pesoACorregir, setPesoACorregir] = useState<string | null>(null)
   const [pesoGuardado, setPesoGuardado] = useState(false)
 
@@ -94,9 +99,9 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             : `Último peso: ${kilosLegibles(ultimoPeso.kilos)} el ${diaLegible(ultimoPeso.fecha)}`
         }
         alRegresar={() => {
-          irA({ nombre: 'hato' })
+          irA(animal.activo ? { nombre: 'hato' } : { nombre: 'salidas' })
         }}
-        etiquetaRegresar="Regresar al hato"
+        etiquetaRegresar={animal.activo ? 'Regresar al hato' : 'Regresar a salidas'}
       />
 
       <div className="ficha__etiquetas">
@@ -111,12 +116,45 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             {tipoDeMarca(arete.tipo)} {arete.valor}
           </Etiqueta>
         )}
-        {animal.activo ? null : <Etiqueta tono="revisar">Inactivo</Etiqueta>}
+        {animal.activo ? null : <Etiqueta tono="revisar">Dado de baja</Etiqueta>}
       </div>
+
+      {animal.salida === null ? null : (
+        <section className="ficha__seccion">
+          <Aviso
+            titulo="Ya no está en el hato"
+            detalle={`${motivoDeSalida(animal.salida.motivo)}. Se supo el ${diaLegible(animal.salida.fecha)}. No se puede pesar.`}
+          />
+          {animal.salida.nota === null ? null : <p className="campo__ayuda">{animal.salida.nota}</p>}
+          <FotoVisible evidenciaId={animal.salida.evidenciaId} alt="Foto de la salida" />
+        </section>
+      )}
 
       <Familia animal={animal} />
 
-      {corrigiendo ? (
+      {dandoDeBaja ? (
+        <section className="ficha__seccion">
+          <h2 className="ficha__titulo">
+            {animal.salida === null ? 'Dar de baja' : 'Corregir la salida'}
+          </h2>
+          <FormularioDeSalida
+            ficha={animal}
+            alRecargar={() => {
+              setDandoDeBaja(false)
+              void ficha.refetch()
+            }}
+            alGuardar={() => {
+              setDandoDeBaja(false)
+              setSalidaGuardada(true)
+              void ficha.refetch()
+              void pesos.refetch()
+            }}
+            alCancelar={() => {
+              setDandoDeBaja(false)
+            }}
+          />
+        </section>
+      ) : corrigiendo ? (
         <section className="ficha__seccion">
           <h2 className="ficha__titulo">Corregir la ficha</h2>
           <FormularioDeCorreccion
@@ -142,6 +180,11 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               Corrección guardada. El valor anterior quedó en la historia.
             </p>
           ) : null}
+          {salidaGuardada ? (
+            <p className="aviso aviso--bien" role="status">
+              Salida guardada. La ficha y la historia se quedan.
+            </p>
+          ) : null}
 
           <section className="ficha__seccion">
             <h2 className="ficha__titulo">Pesos</h2>
@@ -149,9 +192,14 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             {pesos.isError ? (
               <p className="campo__ayuda">No se pudieron traer los pesos. Vuelve a abrir la ficha.</p>
             ) : null}
+            {animal.activo ? null : (
+              <p className="campo__ayuda">Ya no se pesa. Los pesos de antes se quedan.</p>
+            )}
             {pesos.data !== undefined && pesos.data.pesos.length === 0 ? (
               <p className="campo__ayuda">
-                Todavía no tiene ningún peso. En la siguiente vuelta por la báscula se registra.
+                {animal.activo
+                  ? 'Todavía no tiene ningún peso. En la siguiente vuelta por la báscula se registra.'
+                  : 'No tiene pesos guardados.'}
               </p>
             ) : null}
             {pesos.data !== undefined && pesos.data.pesos.length > 0 ? (
@@ -213,10 +261,20 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               tono="tinta"
               alTocar={() => {
                 setGuardado(false)
+                setSalidaGuardada(false)
                 setCorrigiendo(true)
               }}
             >
               Corregir la ficha
+            </BotonSecundario>
+            <BotonSecundario
+              alTocar={() => {
+                setGuardado(false)
+                setSalidaGuardada(false)
+                setDandoDeBaja(true)
+              }}
+            >
+              {animal.activo ? 'Dar de baja' : 'Corregir la salida'}
             </BotonSecundario>
           </section>
 
@@ -256,6 +314,36 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
                 </ul>
               )}
             </Desplegable>
+
+            {animal.correccionesDeSalida.length === 0 ? null : (
+              <Desplegable
+                titulo="Historia de la salida"
+                resumen={`${String(animal.correccionesDeSalida.length)} ${
+                  animal.correccionesDeSalida.length === 1 ? 'corrección' : 'correcciones'
+                }`}
+              >
+                <ul className="lista lista--planas">
+                  {animal.correccionesDeSalida.map((correccion, indice) => (
+                    <li
+                      key={`${correccion.correctedAt}-${indice}`}
+                      className="correccion"
+                    >
+                      <p className="correccion__campo">
+                        Antes: {motivoDeSalida(correccion.motivoAnterior)}, se supo el{' '}
+                        {diaLegible(correccion.fechaAnterior)}
+                        {correccion.notaAnterior === null ? '' : `. Nota: ${correccion.notaAnterior}`}
+                      </p>
+                      <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
+                      <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
+                      <FotoVisible
+                        evidenciaId={correccion.evidenciaIdAnterior}
+                        alt="Foto anterior de la salida"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </Desplegable>
+            )}
 
             <Desplegable
               titulo="Huecos de pesaje"
