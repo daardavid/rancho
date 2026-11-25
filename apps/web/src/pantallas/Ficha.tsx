@@ -2,6 +2,7 @@ import { AUSENCIA_DE_FOTO, type Peso } from '@rancho/api-contracts'
 import { useState } from 'react'
 
 import { useFicha, usePesos } from '../api/hato'
+import { usePotreros } from '../api/lugar'
 import { usePesosConHistoria } from '../api/pesajes'
 import { areteVigente, nombreVisible } from '../dominio/animal'
 import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
@@ -29,6 +30,7 @@ import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
 import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
+import { LugarDelAnimalEnLaFicha } from './LugarDelAnimal'
 import { FormularioDeSalida } from './Salida'
 import { GraficaDePesos } from './GraficaDePesos'
 
@@ -52,6 +54,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
   const historia = usePesosConHistoria(animalId)
+  const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
   const [dandoDeBaja, setDandoDeBaja] = useState(false)
   const [guardado, setGuardado] = useState(false)
@@ -254,6 +257,14 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
                 Corrección del peso guardada. Lo anterior quedó en la historia.
               </p>
             ) : null}
+          </section>
+
+          <section className="ficha__seccion">
+            <h2 className="ficha__titulo">Dónde se le espera</h2>
+            <LugarDelAnimalEnLaFicha
+              animalId={animal.id}
+              potreros={potreros.data?.potreros ?? []}
+            />
           </section>
 
           <section className="ficha__seccion">

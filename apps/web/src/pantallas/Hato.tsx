@@ -2,10 +2,11 @@ import type { FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
+import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
 import { useUltimaSesion } from '../api/pesajes'
 import { useSalir } from '../api/sesion'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
-import { diaLegible, diasLegibles, kilosLegibles } from '../dominio/fechas'
+import { diaLegible, diasLegibles, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
 import {
   CATEGORIAS,
   categoria as nombreDeCategoria,
@@ -17,12 +18,25 @@ import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { Aviso } from '../ui/Aviso'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
-import { BotonFlotante, BotonPrincipal } from '../ui/Botones'
+import { BotonFlotante, BotonPrincipal, BotonSecundario } from '../ui/Botones'
+import { CampoDeArea, CampoDeFecha } from '../ui/Campos'
+import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
 import { FilaDeAnimal, type CategoriaVisual } from '../ui/FilaDeAnimal'
 import { Filtros } from '../ui/Filtros'
 import { IconoBascula, IconoBuscar, IconoMas, IconoMenu } from '../ui/iconos'
+import { Mosaicos } from '../ui/Mosaicos'
 import { Tarjeta } from '../ui/Tarjeta'
+
+/**
+ * Valores del filtro de lugar que no son ids de potrero. Van con prefijo para
+ * que no puedan chocar con un id de verdad.
+ */
+const SIN_FILTRO_DE_POTRERO = 'cualquiera'
+const SIN_LUGAR = 'sin-lugar'
+const LUGAR_DESCONOCIDO = 'no-se'
+/** En «Mover a…», el destino «No sé». */
+const SIN_POTRERO = 'no-se'
 
 /**
  * El hato: cuántos animales hay, quién va bien, a quién revisar y quién no se
@@ -48,8 +62,13 @@ import { Tarjeta } from '../ui/Tarjeta'
 export function Hato() {
   const hato = useHato()
   const resumen = useResumenDelHato()
+  const todosLosPotreros = usePotreros()
+  const lugares = useLugares()
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState('todos')
+  const [filtroDePotrero, setFiltroDePotrero] = useState(SIN_FILTRO_DE_POTRERO)
+  const [moviendo, setMoviendo] = useState(false)
+  const [elegidos, setElegidos] = useState<readonly string[]>([])
   const buscando = normalizar(busqueda) !== ''
   // Sin activos hay que saber si alguien ya salió: «no hay animales» sería
   // mentira, y la búsqueda es la forma de encontrarlo desde esta pantalla.
@@ -75,15 +94,35 @@ export function Hato() {
   const conteos = useMemo(() => contarPorCategoria(animales), [animales])
   const filtros = useMemo(() => opcionesDeFiltro(conteos), [conteos])
 
+  /**
+   * El potrero vigente de cada animal. Los que no tienen asignación no aparecen
+   * en el mapa: su filtro es «Sin lugar», no un potrero inventado.
+   */
+  const porAnimalPotrero = useMemo(() => {
+    const mapa = new Map<string, string | null>()
+    for (const fila of lugares.data?.animales ?? []) {
+      mapa.set(fila.animalId, fila.potreroId)
+    }
+    return mapa
+  }, [lugares.data])
+
+  const opcionesDePotrero = useMemo(
+    () => opcionesDeFiltroPorPotrero(todosLosPotreros.data?.potreros ?? [], animales.length),
+    [todosLosPotreros.data, animales.length],
+  )
+
   const visibles = useMemo(() => {
     const limpio = normalizar(busqueda)
     return animales.filter((animal) => {
       if (!pasaElFiltro(animal, filtro)) {
         return false
       }
+      if (!pasaElFiltroDePotrero(animal.id, filtroDePotrero, porAnimalPotrero)) {
+        return false
+      }
       return limpio === '' || coincide(animal, limpio)
     })
-  }, [animales, busqueda, filtro])
+  }, [animales, busqueda, filtro, filtroDePotrero, porAnimalPotrero])
 
   const salidasVisibles = useMemo(() => {
     const limpio = normalizar(busqueda)
@@ -186,14 +225,27 @@ export function Hato() {
               salidas.
             </p>
           ) : (
-            <div className="hato__filtros">
-              <Filtros
-                etiqueta="Filtrar el hato"
-                opciones={filtros}
-                valor={filtro}
-                alElegir={setFiltro}
-              />
-            </div>
+            <>
+              <div className="hato__filtros">
+                <Filtros
+                  etiqueta="Filtrar el hato"
+                  opciones={filtros}
+                  valor={filtro}
+                  alElegir={setFiltro}
+                />
+              </div>
+
+              {opcionesDePotrero.length <= 1 ? null : (
+                <div className="hato__filtros">
+                  <Filtros
+                    etiqueta="Filtrar por potrero"
+                    opciones={opcionesDePotrero}
+                    valor={filtroDePotrero}
+                    alElegir={setFiltroDePotrero}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {vacio || huecos.length === 0 ? null : (
@@ -225,7 +277,7 @@ export function Hato() {
             </p>
           ) : null}
 
-          {(buscando || filtro !== 'todos') &&
+          {(buscando || filtro !== 'todos' || filtroDePotrero !== SIN_FILTRO_DE_POTRERO) &&
           visibles.length === 0 &&
           salidasVisibles.length === 0 &&
           !buscandoSalidas ? (
@@ -235,15 +287,72 @@ export function Hato() {
             </section>
           ) : null}
 
+          {vacio ? null : (
+            <div className="hato__modo">
+              {moviendo ? (
+                <p className="campo__ayuda" role="status">
+                  Elige los animales y toca «Mover a…». La lista deja de abrir fichas mientras
+                  eliges.
+                </p>
+              ) : (
+                <BotonSecundario
+                  tono="tinta"
+                  alTocar={() => {
+                    setElegidos([])
+                    setMoviendo(true)
+                  }}
+                >
+                  Mover animales a un potrero
+                </BotonSecundario>
+              )}
+            </div>
+          )}
+
           {visibles.length === 0 ? null : (
             <ul className="hato__lista">
               {visibles.map((animal) => (
                 <li key={animal.id}>
-                  <FilaDeHato animal={animal} fila={porAnimal.get(animal.id)} />
+                  <FilaDeHato
+                    animal={animal}
+                    fila={porAnimal.get(animal.id)}
+                    {...(moviendo
+                      ? {
+                          seleccion: {
+                            marcado: elegidos.includes(animal.id),
+                            nombreAccesible: `Elegir a ${nombreVisible(animal)}`,
+                            alCambiar: (marcado: boolean) => {
+                              setElegidos((actuales) =>
+                                marcado
+                                  ? [...actuales, animal.id]
+                                  : actuales.filter((id) => id !== animal.id),
+                              )
+                            },
+                          },
+                        }
+                      : {})}
+                  />
                 </li>
               ))}
             </ul>
           )}
+
+          {moviendo && !vacio ? (
+            <MoverA
+              potreros={todosLosPotreros.data?.potreros ?? []}
+              elegidos={elegidos}
+              alCerrar={() => {
+                setMoviendo(false)
+                setElegidos([])
+              }}
+              alGuardar={() => {
+                setMoviendo(false)
+                setElegidos([])
+                void hato.refetch()
+                void lugares.refetch()
+                void todosLosPotreros.refetch()
+              }}
+            />
+          ) : null}
 
           {salidasVisibles.length === 0 ? null : (
             <section className="ficha__seccion">
@@ -265,7 +374,110 @@ export function Hato() {
           )}
         </>
       )}
+
+      {/* «Mover a…» desde el hato, con varios animales elegidos a la vez. */}
     </main>
+  )
+}
+
+/**
+ * «Mover a…»: el potrero de destino y el día desde el que vale.
+ *
+ * Es una captura que escribe una asignación por animal, no una observación.
+ * «No sé» es un destino válido y viene como opción, no escondido. El día se
+ * propone con el de hoy en el rancho y se puede cambiar: un movimiento anotado
+ * tarde no es un movimiento de hoy.
+ */
+function MoverA({
+  potreros,
+  elegidos,
+  alGuardar,
+  alCerrar,
+}: {
+  readonly potreros: readonly { readonly id: string; readonly nombre: string | null }[]
+  readonly elegidos: readonly string[]
+  readonly alGuardar: () => void
+  readonly alCerrar: () => void
+}) {
+  const [destino, setDestino] = useState<string>(SIN_POTRERO)
+  const [desde, setDesde] = useState(hoyEnElRancho())
+  const [nota, setNota] = useState('')
+  const mover = useAsignarLugar()
+  const faltanAnimales = elegidos.length === 0
+
+  const guardar = (): void => {
+    if (faltanAnimales || mover.isPending) {
+      return
+    }
+    const limpio = nota.trim()
+    mover.mutate(
+      {
+        commandId: crypto.randomUUID(),
+        potreroId: destino === SIN_POTRERO ? null : destino,
+        desde,
+        ...(limpio === '' ? {} : { nota: limpio }),
+        animales: elegidos.map((animalId) => ({
+          animalId,
+          asignacionId: crypto.randomUUID(),
+        })),
+      },
+      { onSuccess: alGuardar },
+    )
+  }
+
+  return (
+    <section className="mover">
+      <h2 className="ficha__titulo">
+        {faltanAnimales
+          ? 'Mover a…'
+          : elegidos.length === 1
+            ? 'Mover 1 animal a…'
+            : `Mover ${String(elegidos.length)} animales a…`}
+      </h2>
+      <p className="campo__ayuda">
+        Se anota dónde se les espera desde ese día. No quiere decir que alguien los haya visto:
+        no cambia su último pesaje.
+      </p>
+
+      {potreros.length === 0 ? (
+        <p className="campo__ayuda" role="status">
+          Todavía no hay potreros anotados. Se puede dejar en «No sé» o agregarlos en Potreros.
+        </p>
+      ) : null}
+
+      <Mosaicos
+        etiqueta="¿A qué potrero?"
+        opciones={[
+          ...potreros.map((potrero) => ({
+            valor: potrero.id,
+            texto: potrero.nombre ?? 'Sin nombre',
+          })),
+          { valor: SIN_POTRERO, texto: 'No sé' },
+        ]}
+        valor={destino}
+        alElegir={setDestino}
+      />
+
+      <CampoDeFecha etiqueta="¿Desde cuándo?" valor={desde} alCambiar={setDesde} />
+
+      <Desplegable titulo="Más datos" resumen="nota">
+        <CampoDeArea
+          etiqueta="Nota"
+          valor={nota}
+          alCambiar={setNota}
+          ayuda="Opcional. Por ejemplo, quién lo dijo."
+        />
+      </Desplegable>
+
+      {mover.isError ? <AvisoDeError error={mover.error} /> : null}
+
+      <BotonPrincipal alTocar={guardar} deshabilitado={faltanAnimales || mover.isPending}>
+        {mover.isPending ? 'Guardando…' : 'Mover a…'}
+      </BotonPrincipal>
+      <BotonSecundario alTocar={alCerrar} deshabilitado={mover.isPending}>
+        Cancelar
+      </BotonSecundario>
+    </section>
   )
 }
 
@@ -363,6 +575,16 @@ function MenuYEncabezado({
             className="hato__menu-opcion"
             onClick={() => {
               setAbierto(false)
+              irA({ nombre: 'potreros' })
+            }}
+          >
+            Potreros
+          </button>
+          <button
+            type="button"
+            className="hato__menu-opcion"
+            onClick={() => {
+              setAbierto(false)
               irA({ nombre: 'salidas' })
             }}
           >
@@ -389,9 +611,16 @@ function MenuYEncabezado({
 function FilaDeHato({
   animal,
   fila,
+  seleccion,
 }: {
   readonly animal: Animal
   readonly fila: FilaDeCrecimiento | undefined
+  /** En modo de mover varios: la fila se toca entera y deja de abrir la ficha. */
+  readonly seleccion?: {
+    readonly marcado: boolean
+    readonly nombreAccesible: string
+    readonly alCambiar: (marcado: boolean) => void
+  }
 }) {
   const arete = areteVigente(animal)
   const ultimo = fila?.ultimoPeso ?? null
@@ -410,9 +639,14 @@ function FilaDeHato({
       ganancia={ganancia.texto}
       tono={ganancia.tono}
       categoria={categoriaVisual(animal.categoria)}
-      alTocar={() => {
-        irA({ nombre: 'ficha', animalId: animal.id })
-      }}
+      {...(seleccion === undefined ? {} : { seleccion })}
+      {...(seleccion === undefined
+        ? {
+            alTocar: () => {
+              irA({ nombre: 'ficha', animalId: animal.id })
+            },
+          }
+        : {})}
     />
   )
 }
@@ -488,6 +722,52 @@ function sumar(conteos: ReadonlyMap<string, number>): number {
 
 function pasaElFiltro(animal: Animal, filtro: string): boolean {
   return filtro === 'todos' || animal.categoria === filtro
+}
+
+/** «Todos», «Sin lugar» y un botón por potrero con cuántos animales se esperan. */
+function opcionesDeFiltroPorPotrero(
+  potreros: readonly {
+    readonly id: string
+    readonly nombre: string | null
+    readonly esperados: number
+  }[],
+  total: number,
+): readonly { readonly valor: string; readonly texto: string }[] {
+  if (potreros.length === 0) {
+    return []
+  }
+  return [
+    { valor: SIN_FILTRO_DE_POTRERO, texto: `Cualquier lugar ${String(total)}` },
+    ...potreros.map((potrero) => ({
+      valor: potrero.id,
+      texto: `${potrero.nombre ?? 'Sin nombre'} ${String(potrero.esperados)}`,
+    })),
+    { valor: SIN_LUGAR, texto: 'Sin lugar' },
+    { valor: LUGAR_DESCONOCIDO, texto: 'No sé' },
+  ]
+}
+
+/**
+ * El filtro por potrero usa la asignación vigente. Un animal sin asignación es
+ * «Sin lugar»: no se le inventa un potrero. Una asignación «No sé» es otra
+ * cosa y se filtra aparte.
+ */
+function pasaElFiltroDePotrero(
+  animalId: string,
+  filtro: string,
+  vigentes: ReadonlyMap<string, string | null>,
+): boolean {
+  if (filtro === SIN_FILTRO_DE_POTRERO) {
+    return true
+  }
+  const vigente = vigentes.get(animalId)
+  if (filtro === SIN_LUGAR) {
+    return vigente === undefined
+  }
+  if (filtro === LUGAR_DESCONOCIDO) {
+    return vigente === null
+  }
+  return vigente === filtro
 }
 
 function categoriaVisual(categoria: string): CategoriaVisual {

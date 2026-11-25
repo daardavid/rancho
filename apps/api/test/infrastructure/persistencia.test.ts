@@ -63,6 +63,9 @@ describe('migración inicial', () => {
       'animal_correction',
       'animal_exit_correction',
       'animal_mark',
+      'location_assignment',
+      'paddock',
+      'paddock_correction',
       'parentage_correction',
       'parentage_record',
     ])
