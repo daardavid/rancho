@@ -10,7 +10,8 @@ export type CambioConVersion = {
   readonly tabla: string
   readonly id: string
   readonly version: number
-  readonly cambios: Readonly<Record<string, string | number | null>>
+  /** El valor nuevo de cada columna. `boolean` entra por las banderas de la ficha. */
+  readonly cambios: Readonly<Record<string, string | number | boolean | null>>
 }
 
 /**

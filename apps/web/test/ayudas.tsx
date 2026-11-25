@@ -59,6 +59,11 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
           { status: 200 },
         )
       }
+      // La ficha también pide las notas de sanidad. Sin notas anotadas la API
+      // responde una lista vacía; una prueba que quiera notas las registra.
+      if (metodo === 'GET' && /^\/api\/animals\/[^/]+\/health-notes$/.test(ruta)) {
+        return Response.json({ animalId: ruta.split('/')[3], notas: [] }, { status: 200 })
+      }
       return Response.json({ codigo: 'no_encontrado' }, { status: 404 })
     }
 

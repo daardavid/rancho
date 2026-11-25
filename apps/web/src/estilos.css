@@ -627,6 +627,30 @@ label.ui-fila {
   margin: 12px 0 16px;
 }
 
+/* Sanidad -------------------------------------------------------------- */
+
+.nota-sanidad {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nota-sanidad__tipo {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.nota-sanidad__detalle {
+  margin: 0;
+}
+
+.nota-sanidad__cuando {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
 /* Una tarjeta con su propia sección de formulario adentro: el aire de arriba
    separa el título del contenido. */
 .tarjeta-seccion .formulario {

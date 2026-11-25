@@ -382,8 +382,7 @@ export const asignacionDeLugar = esquemaHerd.table(
 /**
  * Certeza anterior de una corrección de filiación. Una fila por corrección,
  * con quién, cuándo y por qué. La ficha del animal no se toca.
- */
-export const correccionDeFiliacion = esquemaHerd.table(
+ */export const correccionDeFiliacion = esquemaHerd.table(
   'parentage_correction',
   {
     id: uuid('id').primaryKey(),
@@ -418,5 +417,79 @@ export const correccionDeFiliacion = esquemaHerd.table(
       'parentage_correction_sire_certainty',
       sql`${tabla.certezaPadre} in ('observed', 'inferred', 'unknown')`,
     ),
+  ],
+)
+
+/**
+ * Nota de sanidad de un animal. Hermana de la ficha: no hay nota en columnas de
+ * `Animal`, y una nota a un grupo es una fila por animal, no un tipo «grupo».
+ *
+ * No hay calendario, dosis, retiro ni veterinario: eso no está aceptado
+ * (`OQ-HEALTH-001`, [domain-boundaries](../../../../../../docs/architecture/domain-boundaries.md),
+ * «Health, inside Herd»). `saw_animal` es explícito y por omisión falso: una
+ * nota no es un avistamiento salvo que lo diga.
+ *
+ * `evidence_id` es el id de `evidence.file`, sin llave foránea: Herd no escribe
+ * esa tabla y no guarda una ruta.
+ */
+export const notaDeSalud = esquemaHerd.table(
+  'health_event',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    tipo: text('type').notNull(),
+    detalle: text('detail').notNull(),
+    fecha: date('occurred_on', { mode: 'string' }).notNull(),
+    producto: text('product'),
+    evidenciaId: uuid('evidence_id'),
+    vioAlAnimal: boolean('saw_animal').notNull(),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('health_event_animal').on(tabla.animalId, tabla.fecha),
+    index('health_event_ranch_fecha').on(tabla.ranchId, tabla.fecha),
+    check(
+      'health_event_tipo_valido',
+      sql`${tabla.tipo} in ('vacuna', 'medicamento', 'bano', 'problema', 'otro')`,
+    ),
+    check('health_event_detalle_presente', sql`length(btrim(${tabla.detalle})) > 0`),
+    check(
+      'health_event_producto_presente',
+      sql`${tabla.producto} is null or length(btrim(${tabla.producto})) > 0`,
+    ),
+    check('health_event_version_positiva', sql`${tabla.version} >= 1`),
+  ],
+)
+
+/**
+ * Valor anterior de una corrección de nota. Una fila por campo que cambió, con
+ * quién, cuándo y por qué. Corregir no borra la nota: agrega historia.
+ */
+export const correccionDeNotaDeSalud = esquemaHerd.table(
+  'health_event_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    notaId: uuid('health_event_id')
+      .notNull()
+      .references(() => notaDeSalud.id, { onDelete: 'restrict' }),
+    campo: text('field').notNull(),
+    valorAnterior: text('previous_value'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('health_event_correction_nota').on(tabla.notaId, tabla.correctedAt),
+    check(
+      'health_event_correction_campo_valido',
+      sql`${tabla.campo} in ('tipo', 'detalle', 'fecha', 'producto', 'evidencia', 'vioAlAnimal')`,
+    ),
+    check('health_event_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
   ],
 )

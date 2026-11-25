@@ -31,6 +31,7 @@ import { CorreccionDePeso } from './CorreccionDePeso'
 import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
 import { LugarDelAnimalEnLaFicha } from './LugarDelAnimal'
+import { FormularioDeSanidad, SanidadDelAnimal } from './Sanidad'
 import { FormularioDeSalida } from './Salida'
 import { GraficaDePesos } from './GraficaDePesos'
 
@@ -57,8 +58,10 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
   const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
   const [dandoDeBaja, setDandoDeBaja] = useState(false)
+  const [anotandoSanidad, setAnotandoSanidad] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [salidaGuardada, setSalidaGuardada] = useState(false)
+  const [sanidadGuardada, setSanidadGuardada] = useState(false)
   const [pesoACorregir, setPesoACorregir] = useState<string | null>(null)
   const [pesoGuardado, setPesoGuardado] = useState(false)
 
@@ -157,6 +160,19 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
             }}
           />
         </section>
+      ) : anotandoSanidad ? (
+        <FormularioDeSanidad
+          animales={[animal.id]}
+          nombreDelGrupo={nombreVisible(animal)}
+          alGuardar={() => {
+            setAnotandoSanidad(false)
+            setSanidadGuardada(true)
+          }}
+          alCancelar={() => {
+            setAnotandoSanidad(false)
+            setSanidadGuardada(false)
+          }}
+        />
       ) : corrigiendo ? (
         <section className="ficha__seccion">
           <h2 className="ficha__titulo">Corregir la ficha</h2>
@@ -188,6 +204,11 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               {animal.activo
                 ? 'El animal volvió al hato activo. La salida anterior quedó en la historia.'
                 : 'Salida guardada. La ficha y la historia se quedan.'}
+            </p>
+          ) : null}
+          {sanidadGuardada ? (
+            <p className="aviso aviso--bien" role="status">
+              Nota de sanidad guardada.
             </p>
           ) : null}
 
@@ -269,6 +290,20 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               }
               alRecargarPotreros={() => void potreros.refetch()}
             />
+          </section>
+
+          <SanidadDelAnimal animalId={animal.id} />
+
+          <section className="ficha__seccion">
+            <BotonSecundario
+              tono="tinta"
+              alTocar={() => {
+                setSanidadGuardada(false)
+                setAnotandoSanidad(true)
+              }}
+            >
+              Anotar sanidad
+            </BotonSecundario>
           </section>
 
           <section className="ficha__seccion">

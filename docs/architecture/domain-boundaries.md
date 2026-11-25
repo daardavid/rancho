@@ -94,6 +94,8 @@ Reconsider a Reproduction module only if independent rules appear, for example m
 
 A health note may say the animal was seen. Only then may the observation projection treat it as a sighting. A problem reported without a sighting does not become one.
 
+A health note about a group is one `HealthEvent` per animal, written in one capture. The group is the capture, not a record: each animal's note is corrected on its own, and no `Group` type is introduced.
+
 Medicine stock, if the ranch later tracks it, stays in Inventory. While the first inventory scope is ingredients, the health note stands without a movement id (`TGT-HEALTH-001`). A later capture that both writes a health note and issues medicine would be an orchestrator over Herd and Inventory. It is not built now.
 
 Reconsider a Health module if independent rules appear, for example a vaccination calendar, withdrawal periods, significant treatment protocols, or a veterinarian workflow of its own. A longer list of notes does not, by itself, extract the module.

@@ -19,6 +19,7 @@ import type {
 } from '../domain/valores'
 import type { RepositorioDeFiliacion } from './repositorio-filiacion'
 import type { RepositorioDeLugar } from './repositorio-lugar'
+import type { RepositorioDeSalud } from './repositorio-salud'
 import type { RepositorioDeAnimales } from './repositorio'
 import {
   publicarAnimal,
@@ -43,6 +44,7 @@ export type DepsDeHerd = {
   readonly animales: RepositorioDeAnimales
   readonly filiacion: RepositorioDeFiliacion
   readonly lugar: RepositorioDeLugar
+  readonly salud: RepositorioDeSalud
   readonly idempotencia: AlmacenDeIdempotencia
   readonly evidencia: ConsultaDeEvidencia | null
 }
