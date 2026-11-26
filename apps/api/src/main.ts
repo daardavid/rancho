@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { pathToFileURL } from 'node:url'
 
+import { crearCapturaDeDestete } from './application/destete'
 import { construirApp } from './http/app'
 import { carpetaDeLaWeb } from './http/estaticos'
 import { servirLaWeb } from './http/servir-web'
@@ -54,6 +55,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     presencia: crearModelosDePresencia(cliente.db),
     tendencias: crearModelosDeTendencias(cliente.db),
     cria: crearModelosDeCria(cliente.db),
+    destete: crearCapturaDeDestete(cliente.db, evidencia),
     base: comprobacionDeBase(cliente.db),
     produccion: configuracion.cookieSegura,
   })

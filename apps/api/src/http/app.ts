@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 
 import type { PuertoDeEvidencia } from '../infrastructure/evidence/puerto'
+import type { CapturaDeDestete } from '../application/destete'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
@@ -21,6 +22,7 @@ import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evid
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDePresencia } from './routes/presencia'
 import { registrarRutasDeCria, registrarRutasDePrenez } from './routes/cria'
+import { registrarRutasDeDestete } from './routes/destete'
 import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
 import { registrarRutasDeTendencias } from './routes/tendencias'
@@ -46,6 +48,8 @@ export type OpcionesApp = {
   readonly tendencias?: ModelosDeTendencias
   /** Si falta, el historial de cría y la lista de vacas no se montan. */
   readonly cria?: ModelosDeCria
+  /** Si falta, anotar un destete no se monta. Corregirlo también pide Herd. */
+  readonly destete?: CapturaDeDestete
   /**
    * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
    * base corren así; el proceso de verdad siempre la monta.
@@ -110,6 +114,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
     registrarRutasDeLugar(app, opciones.herd)
     registrarRutasDeSalud(app, opciones.herd)
     registrarRutasDePrenez(app, opciones.herd)
+    if (opciones.destete !== undefined) {
+      registrarRutasDeDestete(app, opciones.destete, opciones.herd)
+    }
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)

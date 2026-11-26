@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { historialDeCriaSchema, listaDeVacasSchema, ultimaObservacionSchema } from '@rancho/api-contracts'
 
+import { crearCapturaDeDestete } from '../../src/application/destete'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearHerd } from '../../src/modules/herd'
 import { crearModelosDeCria, crearModelosDePresencia } from '../../src/read-models'
@@ -26,6 +27,7 @@ let cerrar: () => Promise<void> = async () => {}
 let ranchId: RanchId
 let herd: ReturnType<typeof crearHerd>
 let modelos: ReturnType<typeof crearModelosDeCria>
+let captura: ReturnType<typeof crearCapturaDeDestete>
 
 const ids = {
   vieja: nuevoId(),
@@ -51,6 +53,7 @@ beforeAll(async () => {
   ranchId = ranchIdSchema.parse(sembrado.id)
   herd = crearHerd(db)
   modelos = crearModelosDeCria(db)
+  captura = crearCapturaDeDestete(db)
 
   await vaca(ids.vieja, 'Vieja', 'cow', 'female')
   await vaca(ids.reciente, 'Reciente', 'cow', 'female')
@@ -64,7 +67,7 @@ beforeAll(async () => {
   await parto(ids.criaMedia, 'Cría media', ids.vieja, 'inferred', 'dicho_de_trabajador', '2025-01-01')
   await parto(ids.criaSinFecha, 'Cría sin fecha', ids.vieja, 'observed', null, null)
   await parto(ids.criaReciente, 'Cría reciente', ids.reciente, 'observed', null, '2026-10-01')
-  await parto(ids.criaDeLaBaja, 'Cría de la baja', ids.baja, 'observed', null, '2024-06-01')
+  await parto(ids.criaDeLaBaja, 'Cría de la baja', ids.baja, 'observed', null, '2024-06-01', 'approximate')
   await parto(ids.criaSoloSinFecha, 'Cría sin día', ids.sinFecha, 'inferred', 'parto_visto', null)
 
   await herd.registrarSalida({
@@ -104,6 +107,57 @@ beforeAll(async () => {
     resultado: 'no_se',
     vioAlAnimal: null,
     animales: [{ animalId: ids.sinParto, diagnosticoId: nuevoId() }],
+  })
+
+  await captura.registrar({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    precisionFecha: 'exact',
+    fecha: '2024-08-01',
+    animales: [
+      {
+        animalId: ids.criaVieja,
+        desteteId: nuevoId(),
+        peso: { id: nuevoId(), kilos: '200.000', calidad: 'measured' },
+      },
+    ],
+  })
+  await captura.registrar({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    precisionFecha: 'exact',
+    fecha: '2025-07-01',
+    animales: [
+      {
+        animalId: ids.criaMedia,
+        desteteId: nuevoId(),
+        peso: { id: nuevoId(), kilos: '180.000', calidad: 'declared' },
+      },
+    ],
+  })
+  await captura.registrar({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    precisionFecha: 'no_se',
+    fecha: null,
+    animales: [{ animalId: ids.criaSinFecha, desteteId: nuevoId() }],
+  })
+  await captura.registrar({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    precisionFecha: 'exact',
+    fecha: '2024-12-01',
+    animales: [
+      {
+        animalId: ids.criaDeLaBaja,
+        desteteId: nuevoId(),
+        peso: { id: nuevoId(), kilos: '150.000', calidad: 'observed' },
+      },
+    ],
   })
 }, 60_000)
 
@@ -176,6 +230,48 @@ describe('historial de cría', () => {
     expect(lista.sinPartoRegistrado.map((fila) => fila.animalId)).toEqual([ids.sinParto])
   })
 
+  it('los kilos destetados se calculan al consultar y la vaca dada de baja conserva los suyos', async () => {
+    const vista = await modelos.historial(ranchId, ids.vieja, HOY)
+    expect(vista?.partos.find((parto) => parto.criaId === ids.criaVieja)?.destete).toMatchObject({
+      fecha: '2024-08-01',
+      precisionFecha: 'exact',
+      peso: { kilos: '200.000', calidad: 'measured' },
+      edad: { clase: 'dias', dias: 213 },
+    })
+    expect(vista?.partos.find((parto) => parto.criaId === ids.criaMedia)?.destete).toMatchObject({
+      peso: { kilos: '180.000', calidad: 'declared' },
+    })
+    expect(vista?.partos.find((parto) => parto.criaId === ids.criaSinFecha)?.destete).toMatchObject({
+      fecha: null,
+      peso: null,
+      edad: { clase: 'sin_nacimiento' },
+    })
+    expect(vista?.kilosDestetados).toMatchObject({
+      observadas: { conPeso: 1, sinPeso: 1, total: '200.000', promedio: '200.000' },
+      inferidas: { conPeso: 1, sinPeso: 0, total: '180.000', promedio: '180.000' },
+    })
+    expect(vista?.kilosDestetados.sinPeso.map((cria) => cria.criaId)).toEqual([ids.criaSinFecha])
+
+    const reciente = await modelos.historial(ranchId, ids.reciente, HOY)
+    expect(reciente?.partos[0]?.destete).toBeNull()
+
+    const deLaBaja = await modelos.historial(ranchId, ids.baja, HOY)
+    expect(deLaBaja?.partos[0]?.destete).toMatchObject({
+      peso: { kilos: '150.000', calidad: 'observed' },
+      edad: { clase: 'nacimiento_aproximado' },
+    })
+    expect(deLaBaja?.kilosDestetados.observadas).toMatchObject({
+      conPeso: 1,
+      total: '150.000',
+      promedio: '150.000',
+    })
+
+    const lista = await modelos.kilosDestetados(ranchId)
+    expect(lista.porPromedio.map((fila) => fila.animalId)).toEqual([ids.vieja, ids.baja])
+    expect(lista.porPromedio[1]).toMatchObject({ activo: false })
+    expect(lista.porPromedio.map((fila) => fila.animalId)).not.toContain(ids.reciente)
+  })
+
   it('un diagnóstico solo es observación cuando dice que se vio al animal', async () => {
     const presencia = crearModelosDePresencia(db)
     const vista = await presencia.ultimaObservacion(ranchId, ids.reciente, HOY)
@@ -212,6 +308,7 @@ async function parto(
   certeza: 'observed' | 'inferred',
   motivo: 'parto_visto' | 'dicho_de_trabajador' | null,
   fecha: string | null,
+  precision: 'exact' | 'approximate' = 'exact',
 ): Promise<void> {
   await herd.registrarNacimiento({
     commandId: nuevoId(),
@@ -221,7 +318,7 @@ async function parto(
     filiacionId: nuevoId(),
     nombre,
     fechaNacimiento: fecha,
-    precisionFecha: fecha === null ? null : 'exact',
+    precisionFecha: fecha === null ? null : precision,
     madre: { certeza, animalId: madreId, motivo },
     padre: DESCONOCIDO,
   })

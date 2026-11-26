@@ -6,6 +6,7 @@ import {
   categoriaSchema,
   diaSchema,
 } from './animales'
+import { desteteDeCriaSchema, kilosDestetadosDeLaVacaSchema } from './destete'
 import { LARGO_MAXIMO_REPORTED_BY } from './pesajes'
 
 /**
@@ -34,6 +35,8 @@ export const partoDeCriaSchema = z.strictObject({
   precisionFecha: z.enum(['exact', 'approximate']).nullable(),
   certezaMadre: z.enum(['observed', 'inferred']),
   motivo: z.enum(['parto_visto', 'dicho_de_trabajador', 'otro']).nullable(),
+  /** `null` cuando esa cría no tiene destete anotado. */
+  destete: desteteDeCriaSchema.nullable(),
 })
 
 export const intervaloEntrePartosSchema = z.strictObject({
@@ -76,6 +79,8 @@ export const historialDeCriaSchema = z.strictObject({
   partosSinFecha: z.number().int().nonnegative(),
   diasDesdeElUltimoParto: z.number().int().nullable(),
   diagnosticos: z.array(diagnosticoConHistoriaSchema),
+  /** Madre vista e inferida, por separado. Se calcula al leer. */
+  kilosDestetados: kilosDestetadosDeLaVacaSchema,
 })
 
 export const diagnosticoEnLaListaSchema = z.strictObject({
