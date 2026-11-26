@@ -97,7 +97,7 @@ export async function anotarDiagnostico(
     const diagnosticos: DiagnosticoConHistoria[] = []
     for (const animal of animales) {
       const diagnostico = abrirDiagnostico({
-        id: exigirId(animal.diagnosticoId),
+        id: exigirId(animal.diagnosticoId, 'diagnostico_ya_existe'),
         ranchId,
         animalId: animalIdSchema.parse(animal.animalId),
         fecha: entrada.fecha,
@@ -135,7 +135,7 @@ export async function corregirDiagnosticoDe(
 
   return ejecutarComandoIdempotente(deps.idempotencia, entrada.commandId, contenido, async () => {
     const ranchId = ranchIdSchema.parse(entrada.ranchId)
-    const id = exigirId(entrada.diagnosticoId)
+    const id = exigirId(entrada.diagnosticoId, 'no_encontrado')
     const actual = await deps.prenez.obtener(ranchId, id, true)
     if (actual === null) {
       throw new RechazoDeHerd('no_encontrado')
@@ -205,10 +205,10 @@ async function exigirHembras(
   }
 }
 
-function exigirId(valor: string): string {
+function exigirId(valor: string, codigo: 'no_encontrado' | 'diagnostico_ya_existe'): string {
   const leido = z.uuid().safeParse(valor)
   if (!leido.success) {
-    throw new RechazoDeHerd('diagnostico_ya_existe')
+    throw new RechazoDeHerd(codigo)
   }
   return leido.data
 }
