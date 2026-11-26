@@ -142,10 +142,15 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     potreroAceptado: null,
   })
   const [aviso, setAviso] = useState<string | null>(null)
+  // El texto del aviso no cambia si se vuelve a enviar el mismo error. El
+  // contador sí, y así el foco regresa al aviso aunque la cadena sea la misma.
+  const [intentosDeValidacion, setIntentosDeValidacion] = useState(0)
   const formulario = useRef<HTMLFormElement>(null)
+  const señalDeAviso =
+    aviso ?? (registrar.isError ? 'registrar' : asignar.isError ? 'lugar' : null)
   useEnfocarAviso(
     formulario,
-    aviso ?? (registrar.isError ? 'registrar' : asignar.isError ? 'lugar' : null),
+    señalDeAviso === null ? null : `${señalDeAviso}:${String(intentosDeValidacion)}`,
   )
   const envio = useRef<Envio | null>(null)
   const lugarEnvio = useRef<{ contenido: string; commandId: string; asignacionId: string } | null>(null)
@@ -237,6 +242,7 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     const armado = armar(borrador, toroUnico, aLaParte === true)
     if (armado.aviso !== null) {
       setAviso(armado.aviso)
+      setIntentosDeValidacion((actual) => actual + 1)
       return
     }
     if (criaRegistrada.current !== null) {

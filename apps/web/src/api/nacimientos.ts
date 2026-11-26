@@ -29,6 +29,9 @@ export function useRegistrarNacimiento() {
       void cache.invalidateQueries({ queryKey: LLAVE_DEL_RESUMEN })
       void cache.invalidateQueries({ queryKey: ['familia'] })
       void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
+      // Un parto con fecha y madre «La vi» es observación de la madre. Sin
+      // esto, volver a su ficha antes de 30 s seguiría diciendo «Sin observación».
+      void cache.invalidateQueries({ queryKey: ['observacion'] })
     },
   })
 }
@@ -45,6 +48,7 @@ export function useCorregirFiliacion(animalId: string) {
     onSuccess: () => {
       void cache.invalidateQueries({ queryKey: ['familia'] })
       void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
+      void cache.invalidateQueries({ queryKey: ['observacion'] })
     },
   })
 }
