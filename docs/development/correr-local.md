@@ -316,9 +316,9 @@ secretos.
 
 La base de `npm run local` vive en `.datos/`. Eso no es un respaldo: es la
 base en uso. El respaldo es un archivo SQL, el de `pg_dump`, en `respaldos/`
-(git la ignora). Trae los esquemas `herd`, `growth`, `identity` y `drizzle`,
-con sus datos, y la tabla `public.command_idempotency`. No borra el esquema
-`public`.
+(git la ignora). Trae los esquemas `herd`, `growth`, `identity`, `evidence`,
+`journal` y `drizzle`, con sus datos, y la tabla `public.command_idempotency`.
+No borra el esquema `public`.
 
 Los dos comandos usan esa base embebida, no el `DATABASE_URL` del `.env`. Se
 niegan cuando `NODE_ENV=production`, en el proceso o en el `.env`.
@@ -340,7 +340,7 @@ npm run restaurar -- respaldos/rancho-2026-11-23-223045-123.sql
 Avisa que **reemplaza** lo que hay en `.datos/` y pide que escribas
 `RESTAURAR`. Otra respuesta no cambia nada. Si ya había base, primero guarda
 una copia en `respaldos/` y después carga el archivo. Antes de cargarlo borra
-los esquemas `herd`, `growth`, `identity` y `drizzle` (aunque tengan tablas
+los esquemas `herd`, `growth`, `identity`, `evidence`, `journal` y `drizzle` (aunque tengan tablas
 que el archivo no trae) y la tabla `public.command_idempotency`, en la misma
 transacción: si algo falla, la base queda como estaba. Así un respaldo
 anterior entra en una base local que ya migró a tablas nuevas. La ruta del
@@ -380,6 +380,13 @@ crear lo que ya está. Lo mismo pasa al restaurar en `.datos/`: el siguiente
 
 Después apunta `DATABASE_URL` a esa base y arranca con `npm start`, no con
 `npm run local`. `npm run local` sigue usando `.datos/`.
+
+Las fotos no van en ese archivo. El SQL trae qué foto es de qué animal o de
+qué peso (`evidence` y la fila del animal), pero no los bytes. Esos se quedan
+en la carpeta de evidencia de la laptop. Restaurar el SQL en otra máquina no
+trae las imágenes; en la misma laptop se vuelven a abrir si esa carpeta sigue
+en su sitio. La foto del animal es para reconocerlo: no cambia sus datos ni
+convierte nada en medido.
 
 ## Datos
 
