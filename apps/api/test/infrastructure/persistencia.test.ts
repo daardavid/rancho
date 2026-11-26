@@ -72,6 +72,8 @@ describe('migración inicial', () => {
       'parentage_record',
       'pregnancy_check',
       'pregnancy_check_correction',
+      'weaning',
+      'weaning_correction',
     ])
     expect(tablasGrowth.map((fila) => fila.table_name).sort()).toEqual([
       'weighing_line',

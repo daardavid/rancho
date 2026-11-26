@@ -37,6 +37,11 @@ export const CODIGOS_DE_RECHAZO = [
   'diagnostico_vacio',
   'resultado_invalido',
   'no_es_hembra',
+  'destete_ya_existe',
+  'destete_vacio',
+  'fecha_sin_elegir',
+  'fecha_incoherente',
+  'peso_sin_fecha',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]

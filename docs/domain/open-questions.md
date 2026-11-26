@@ -52,6 +52,7 @@ Conteo de esta versión: P0 = 7, P1 = 14, P2 = 9.
 | OQ-REPRO-001 | ¿Se contempla más de un toro o inseminación? Mientras haya un solo toro, la paternidad sigue siendo relativamente simple y aun así no está registrada. |
 | OQ-REPRO-002 | ¿El toro está siempre con las vacas o entra por temporadas? |
 | OQ-REPRO-003 | ¿Viene alguien a revisar si las vacas están preñadas (palpación, ultrasonido)? ¿Cada cuándo? |
+| OQ-WEAN-001 | ¿A qué edad o en qué temporada se desteta? ¿Se pesa al destetar? |
 
 ## Ambigüedades que se dejan abiertas a propósito
 
@@ -64,8 +65,8 @@ Conteo de esta versión: P0 = 7, P1 = 14, P2 = 9.
 
 ## Estado del documento
 
-- Versión: 0.3
+- Versión: 0.4
 - Estado: Descubrimiento
 - Última actualización: 2026-11-26
-- Fuente: Entrevistas iniciales de descubrimiento del rancho. La v0.2 agrega `OQ-DATA-001`, `OQ-WEIGH-001`, `OQ-AGE-001` y `OQ-REPRO-002`: preguntas de la segunda ronda del chat de descubrimiento que no se contestaron y no habían entrado al registro. La v0.3 agrega `OQ-REPRO-003`: no se sabe si alguien revisa preñez, y el registro no lo supone.
+- Fuente: Entrevistas iniciales de descubrimiento del rancho. La v0.2 agrega `OQ-DATA-001`, `OQ-WEIGH-001`, `OQ-AGE-001` y `OQ-REPRO-002`: preguntas de la segunda ronda del chat de descubrimiento que no se contestaron y no habían entrado al registro. La v0.3 agrega `OQ-REPRO-003`: no se sabe si alguien revisa preñez, y el registro no lo supone. La v0.4 agrega `OQ-WEAN-001`: no se sabe cómo ni cuándo se desteta, ni si se pesa, y el registro no lo supone.
 - Validación: Pendiente de validación iterativa con el propietario del rancho
