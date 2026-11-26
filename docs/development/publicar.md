@@ -43,21 +43,32 @@ npm run respaldo
 
 Escribe `respaldos/rancho-….sql`. Esa carpeta no se sube a git.
 
-Abre PowerShell en la raíz. La cadena vale solo en esa ventana:
+Abre PowerShell en la raíz. La cadena vale solo en esa ventana.
+
+Si vas a llevar los animales de la laptop, carga el archivo y después migra.
+`cargar-respaldo` reemplaza el diario `drizzle.__drizzle_migrations` con el
+del archivo. `db:migrate` a continuación aplica las migraciones que ese
+diario todavía no tiene.
+
+```powershell
+$env:DATABASE_URL = "pega-aqui-la-cadena-de-neon"
+npm run cargar-respaldo -- respaldos\rancho-AAAA-MM-DD-HHMMSS-mmm.sql
+npm run db:migrate -w @rancho/api
+```
+
+`cargar-respaldo` pide que escribas `CARGAR` y reemplaza los esquemas
+`herd`, `growth`, `identity`, `evidence` y `drizzle` con el archivo. Otra
+respuesta no cambia nada. Hay que correrlo en una terminal. `db:migrate` no
+lo hace el proceso que después atiende el celular.
+
+Si Neon va a empezar vacío, sin los animales de la laptop, no corras
+`cargar-respaldo`. Corre solo la migración; el rancho y la cuenta van en la
+sección 3:
 
 ```powershell
 $env:DATABASE_URL = "pega-aqui-la-cadena-de-neon"
 npm run db:migrate -w @rancho/api
-npm run cargar-respaldo -- respaldos\rancho-AAAA-MM-DD-HHMMSS-mmm.sql
 ```
-
-`db:migrate` crea las tablas. No lo hace el proceso que después atiende el
-celular. `cargar-respaldo` pide que escribas `CARGAR` y reemplaza esas
-tablas con el archivo. Otra respuesta no cambia nada. Hay que correrlo en
-una terminal.
-
-Si Neon va a empezar vacío, sin los animales de la laptop, no corras
-`cargar-respaldo`. Con `db:migrate` basta.
 
 Las fotos no van en el archivo. En el celular no se van a abrir. El disco
 del servicio gratis se borra cuando la app se duerme.
@@ -67,23 +78,39 @@ anote en el celular no vuelve solo a la laptop.
 
 ## 3. La cuenta del dueño
 
-Si el respaldo ya trae tu usuario, entra con ese usuario y esa contraseña.
-No crees otra.
-
-Si la base está vacía, con la misma ventana y la misma `DATABASE_URL`:
+`npm run local` crea la primera cuenta con rol `support`. Un respaldo de
+esa laptop trae esa cuenta. El familiar entra con rol `owner`
+([ADR-010](../architecture/adr/ADR-010-authentication.md)). Con la misma
+ventana y la misma `DATABASE_URL`, crea esa cuenta, salvo que en el
+respaldo ya exista una cuenta `owner` (porque ya la habías creado con
+`cuenta:crear` en la laptop):
 
 ```bash
 npm run cuenta:crear -w @rancho/api -- --rol owner --usuario propietario
 ```
 
 Pide la contraseña y no la muestra. El rol `owner` es el del rancho. El
-rol `support` es el de quien mantiene la app; no hace falta para el
-familiar.
+rol `support` es el de quien mantiene la app. Si el respaldo ya trae la
+cuenta `owner`, entra con ese usuario y esa contraseña.
 
-Al terminar, quita la cadena de la ventana para no tocar Neon sin querer:
+Si la base está vacía, la cuenta no inventa el rancho. Después de
+`db:migrate` y antes de `cuenta:crear`, en la misma ventana:
+
+```powershell
+$env:RANCH_NAME = "Nombre del rancho"
+npm run db:seed -w @rancho/api
+npm run cuenta:crear -w @rancho/api -- --rol owner --usuario propietario
+```
+
+`db:seed` usa `RANCH_NAME`. Si falta, se niega. Si el rancho ya existe, no
+crea otro.
+
+Al terminar, quita la cadena y el nombre de la ventana para no tocar Neon
+sin querer. `RANCH_NAME` solo está si sembraste el rancho vacío:
 
 ```powershell
 Remove-Item Env:DATABASE_URL
+if (Test-Path Env:RANCH_NAME) { Remove-Item Env:RANCH_NAME }
 ```
 
 ## 4. La app en Render
