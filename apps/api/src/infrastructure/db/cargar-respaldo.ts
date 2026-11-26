@@ -48,10 +48,14 @@ export function describirDestino(url: string): string {
 /**
  * Carga el SQL del respaldo en un PostgreSQL de servidor.
  *
- * La misma secuencia que la prueba que ya mete el archivo en la base de CI:
- * una transacción, y si una sentencia falla no queda a medias. El archivo
- * de `npm run respaldo` trae sus propios `BEGIN`/`COMMIT`; envolverlo otra
- * vez es lo que esa prueba ya ejecuta contra este SQL.
+ * En la misma transacción, antes del archivo, se tiran los esquemas de la
+ * app y la tabla de recibos. `pg_dump --clean` emite `DROP SCHEMA` sin
+ * `CASCADE`: una tabla que el archivo no trae —una migración posterior—
+ * impediría borrar el esquema. El archivo vuelve a crearlos, diario de
+ * `drizzle` incluido. Si una sentencia falla, la base queda como estaba.
+ *
+ * El archivo de `npm run respaldo` trae sus propios `BEGIN`/`COMMIT`;
+ * envolverlo otra vez es lo que la prueba ya ejecuta contra este SQL.
  *
  * No toca `.datos/`. No migra: el archivo ya trae el diario de `drizzle`.
  */
@@ -73,6 +77,10 @@ export async function cargarRespaldoEnPostgres(url: string, sqlTexto: string): P
 
   try {
     await cliente.query('BEGIN')
+    await cliente.query(
+      'DROP SCHEMA IF EXISTS herd, growth, identity, evidence, drizzle CASCADE',
+    )
+    await cliente.query('DROP TABLE IF EXISTS public.command_idempotency')
     await cliente.query(sqlTexto)
     await cliente.query('COMMIT')
   } catch (error) {

@@ -364,13 +364,37 @@ describe('ida y vuelta del respaldo', () => {
       await cargarRespaldoEnPostgres(socket.url, sqlTexto)
       const restaurada = drizzlePglite(vacia)
       expect(await fotoDe(restaurada)).toEqual(fotoOriginal)
-      const notas = filasDe<{ nota: string }>(
-        await restaurada.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
-      )
-      expect(notas).toEqual([{ nota: 'manga de prueba' }])
+      await comprobarAnimalesPesosYNotas(restaurada)
     } finally {
       await socket.cerrar()
       await vacia.close()
+    }
+  }, 120_000)
+
+  it('cargarRespaldoEnPostgres reemplaza una base ya migrada con una tabla extra en herd', async () => {
+    const ocupada = new PGlite()
+    await ocupada.waitReady
+    try {
+      await aplicarMigraciones(drizzlePglite(ocupada))
+      await ocupada.exec('CREATE TABLE herd.tabla_de_mas (id integer PRIMARY KEY)')
+      await ocupada.exec('INSERT INTO herd.tabla_de_mas (id) VALUES (1)')
+      const socket = await exponerBaseLocal(ocupada)
+      try {
+        await cargarRespaldoEnPostgres(socket.url, sqlTexto)
+      } finally {
+        await socket.cerrar()
+      }
+      expect(await fotoDe(drizzlePglite(ocupada))).toEqual(fotoOriginal)
+      const sobra = filasDe<{ nombre: string }>(
+        await ocupada.query(
+          `SELECT table_name AS nombre
+           FROM information_schema.tables
+           WHERE table_schema = 'herd' AND table_name = 'tabla_de_mas'`,
+        ),
+      )
+      expect(sobra).toEqual([])
+    } finally {
+      await ocupada.close()
     }
   }, 120_000)
 
@@ -399,34 +423,7 @@ describe('ida y vuelta del respaldo', () => {
     const servidor = await cargarEnServidor(url, sqlTexto)
     try {
       expect(await fotoDe(servidor.db)).toEqual(fotoOriginal)
-      const animales = filasDe<{ total: string }>(
-        await servidor.db.execute(sql`SELECT count(*)::text AS total FROM herd.animal`),
-      )
-      expect(animales).toEqual([{ total: '2' }])
-      const ficha = filasDe<{ nombre: string; nota: string }>(
-        await servidor.db.execute(sql`
-          SELECT nombre, arrangement_note AS nota
-          FROM herd.animal
-          WHERE nombre = 'Becerro corregido'
-        `),
-      )
-      expect(ficha).toEqual([
-        { nombre: 'Becerro corregido', nota: 'acuerdo de palabra, sin porcentaje' },
-      ])
-      const pesos = filasDe<{ kilos: string; calidad: string }>(
-        await servidor.db.execute(sql`
-          SELECT kilos::text AS kilos, quality AS calidad
-          FROM growth.weighing_line
-          WHERE result = 'weighed'
-        `),
-      )
-      expect(
-        pesos.map((fila) => ({ kilos: canonico(fila.kilos), calidad: fila.calidad })),
-      ).toEqual([{ kilos: '350', calidad: 'measured' }])
-      const notas = filasDe<{ nota: string }>(
-        await servidor.db.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
-      )
-      expect(notas).toEqual([{ nota: 'manga de prueba' }])
+      await comprobarAnimalesPesosYNotas(servidor.db)
     } finally {
       await servidor.cerrar()
     }
@@ -559,6 +556,38 @@ describe('respaldo y restauración sobre la carpeta', () => {
     expect(existsSync(datos)).toBe(false)
   })
 })
+
+/** Animales, pesos y notas que el respaldo de esta prueba tiene que dejar. */
+async function comprobarAnimalesPesosYNotas(db: EjecutorSql): Promise<void> {
+  const animales = filasDe<{ total: string }>(
+    await db.execute(sql`SELECT count(*)::text AS total FROM herd.animal`),
+  )
+  expect(animales).toEqual([{ total: '2' }])
+  const ficha = filasDe<{ nombre: string; nota: string }>(
+    await db.execute(sql`
+      SELECT name AS nombre, arrangement_note AS nota
+      FROM herd.animal
+      WHERE name = 'Becerro corregido'
+    `),
+  )
+  expect(ficha).toEqual([
+    { nombre: 'Becerro corregido', nota: 'acuerdo de palabra, sin porcentaje' },
+  ])
+  const pesos = filasDe<{ kilos: string; calidad: string }>(
+    await db.execute(sql`
+      SELECT kilos::text AS kilos, quality AS calidad
+      FROM growth.weighing_line
+      WHERE result = 'weighed'
+    `),
+  )
+  expect(pesos.map((fila) => ({ kilos: canonico(fila.kilos), calidad: fila.calidad }))).toEqual([
+    { kilos: '350', calidad: 'measured' },
+  ])
+  const notas = filasDe<{ nota: string }>(
+    await db.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
+  )
+  expect(notas).toEqual([{ nota: 'manga de prueba' }])
+}
 
 async function fotoDe(db: EjecutorSql): Promise<Foto> {
   const salida: Foto = {}
