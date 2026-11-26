@@ -18,6 +18,7 @@ import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { Encabezado } from '../ui/Encabezado'
 import { Pildoras } from '../ui/Pildoras'
+import { Tarjeta } from '../ui/Tarjeta'
 
 /**
  * Pendientes que el dueño se pone a sí mismo.
@@ -32,7 +33,7 @@ export function Pendientes() {
 
   if (pendientes.isPending) {
     return (
-      <main className="pantalla">
+      <main className="pantalla pantalla--pestana">
         <Cargando que="Trayendo los pendientes…" />
       </main>
     )
@@ -40,7 +41,7 @@ export function Pendientes() {
 
   if (pendientes.isError) {
     return (
-      <main className="pantalla">
+      <main className="pantalla pantalla--pestana">
         <AvisoDeError error={pendientes.error} />
         <BotonPrincipal alTocar={() => void pendientes.refetch()}>Volver a intentar</BotonPrincipal>
       </main>
@@ -52,7 +53,7 @@ export function Pendientes() {
   const otros = lista.filter((pendiente) => pendiente.estado !== 'pendiente')
 
   return (
-    <main className="pantalla">
+    <main className="pantalla pantalla--pestana">
       <Encabezado
         etiqueta="MI RANCHO"
         titulo="Pendientes"
@@ -98,10 +99,12 @@ export function Pendientes() {
         {porHacer.length === 0 ? (
           <p className="inicio__vacio">No hay pendientes abiertos.</p>
         ) : (
-          <ul className="inicio__lista">
+          <ul className="lista lista--planas">
             {porHacer.map((pendiente) => (
               <li key={pendiente.id}>
-                <FichaDePendiente pendiente={pendiente} />
+                <Tarjeta>
+                  <FichaDePendiente pendiente={pendiente} />
+                </Tarjeta>
               </li>
             ))}
           </ul>
@@ -111,10 +114,12 @@ export function Pendientes() {
       {otros.length === 0 ? null : (
         <section aria-label="Ya no están pendientes">
           <h2 className="ficha__titulo">Ya no están pendientes</h2>
-          <ul className="inicio__lista">
+          <ul className="lista lista--planas">
             {otros.map((pendiente) => (
               <li key={pendiente.id}>
-                <FichaDePendiente pendiente={pendiente} />
+                <Tarjeta>
+                  <FichaDePendiente pendiente={pendiente} />
+                </Tarjeta>
               </li>
             ))}
           </ul>
@@ -127,21 +132,29 @@ export function Pendientes() {
 function FichaDePendiente({ pendiente }: { readonly pendiente: PendienteConHistoria }) {
   const sesion = useSesion()
   const cambiar = useCambiarEstadoDePendiente(pendiente.id)
-  const comando = useRef(crypto.randomUUID())
+  /**
+   * Mismo estado ⇒ mismo comando. «Ya no aplica» después de un «Hecho» que
+   * falló es otro envío: el servidor rechaza el mismo comando con otro cuerpo.
+   */
+  const envio = useRef<{ contenido: string; commandId: string } | null>(null)
   const quien =
     pendiente.estadoPor === sesion.data?.cuentaId ? 'Tú' : 'Otra cuenta de este rancho'
   const atajo = atajoDeSanidad(pendiente.sujeto)
 
   async function marcar(estado: 'hecho' | 'ya_no_aplica' | 'pendiente') {
+    const contenido = JSON.stringify({ version: pendiente.version, estado })
+    if (envio.current === null || envio.current.contenido !== contenido) {
+      envio.current = { contenido, commandId: crypto.randomUUID() }
+    }
     try {
       await cambiar.mutateAsync({
-        commandId: comando.current,
+        commandId: envio.current.commandId,
         version: pendiente.version,
         estado,
       })
-      comando.current = crypto.randomUUID()
+      envio.current = null
     } catch {
-      // El aviso de la mutación se pinta abajo.
+      // El aviso de la mutación se pinta abajo. El comando se queda para el reintento.
     }
   }
 
@@ -150,11 +163,11 @@ function FichaDePendiente({ pendiente }: { readonly pendiente: PendienteConHisto
       <p>
         <strong>{pendiente.texto}</strong>
       </p>
-      <p className="inicio__meta">
+      <p className="campo__ayuda">
         {textoDeEstado(pendiente.estado)} · {diaLegible(pendiente.fecha)} · {quien},{' '}
         {instanteLegible(pendiente.estadoEn)}
       </p>
-      <p className="inicio__meta">{textoDeSujeto(pendiente.sujeto)}</p>
+      <p className="campo__ayuda">{textoDeSujeto(pendiente.sujeto)}</p>
       {pendiente.estado === 'hecho' ? (
         <p className="campo__ayuda">
           Marcarlo hecho no anota la vacuna ni el medicamento.{' '}
@@ -162,7 +175,7 @@ function FichaDePendiente({ pendiente }: { readonly pendiente: PendienteConHisto
         </p>
       ) : null}
       {cambiar.isError ? <AvisoDeError error={cambiar.error} /> : null}
-      <div className="ui-botones">
+      <div className="formulario">
         {pendiente.estado === 'pendiente' ? (
           <>
             <BotonPrincipal
@@ -207,8 +220,11 @@ function Formulario({
   const anotar = useAnotarPendiente()
   const hato = useHato()
   const potreros = usePotreros()
-  const comando = useRef(crypto.randomUUID())
-  const pendienteId = useRef(crypto.randomUUID())
+  /**
+   * Mismo contenido ⇒ mismo comando y mismo id. Si se cambia el texto, el día
+   * o de quién es, el reintento lleva otro comando.
+   */
+  const alta = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
   const [texto, setTexto] = useState('')
   const [fecha, setFecha] = useState('')
   const [clase, setClase] = useState<'ninguno' | 'animal' | 'grupo' | 'potrero'>('ninguno')
@@ -238,24 +254,31 @@ function Formulario({
       return
     }
     setAviso(null)
+    const cuerpo = { texto: texto.trim(), fecha, sujeto }
+    const contenido = JSON.stringify(cuerpo)
+    if (alta.current === null || alta.current.contenido !== contenido) {
+      alta.current = {
+        contenido,
+        commandId: crypto.randomUUID(),
+        id: crypto.randomUUID(),
+      }
+    }
     try {
       await anotar.mutateAsync({
-        commandId: comando.current,
-        id: pendienteId.current,
-        texto: texto.trim(),
-        fecha,
-        sujeto,
+        commandId: alta.current.commandId,
+        id: alta.current.id,
+        ...cuerpo,
       })
-      comando.current = crypto.randomUUID()
-      pendienteId.current = crypto.randomUUID()
+      alta.current = null
       alGuardar()
     } catch {
-      // El aviso de la mutación se pinta abajo.
+      // El aviso de la mutación se pinta abajo. El comando se queda para el reintento.
     }
   }
 
   return (
     <form
+      className="formulario"
       onSubmit={(evento) => {
         evento.preventDefault()
         void guardar()
@@ -303,7 +326,7 @@ function Formulario({
         </label>
       ) : null}
       {clase === 'grupo' ? (
-        <div className="ui-grupo" role="group" aria-label="Animales del grupo">
+        <div className="ui-pildoras" role="group" aria-label="Animales del grupo">
           {animales.map((animal) => {
             const activo = grupo.includes(animal.id)
             return (

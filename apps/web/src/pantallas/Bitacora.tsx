@@ -19,6 +19,7 @@ import { Encabezado } from '../ui/Encabezado'
 import { FotoDeLaBascula, FotoVisible } from '../ui/FotoDeLaBascula'
 import { Mosaicos } from '../ui/Mosaicos'
 import { Pildoras } from '../ui/Pildoras'
+import { Tarjeta } from '../ui/Tarjeta'
 
 /**
  * Notas con fecha que no son de un animal: lluvia, quema, agua, una cerca.
@@ -30,12 +31,13 @@ import { Pildoras } from '../ui/Pildoras'
  */
 export function Bitacora() {
   const notas = useNotasDeBitacora()
+  const potreros = usePotreros()
   const [anotando, setAnotando] = useState(false)
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null)
 
   if (notas.isPending) {
     return (
-      <main className="pantalla">
+      <main className="pantalla pantalla--pestana">
         <Cargando que="Trayendo la bitácora…" />
       </main>
     )
@@ -43,7 +45,7 @@ export function Bitacora() {
 
   if (notas.isError) {
     return (
-      <main className="pantalla">
+      <main className="pantalla pantalla--pestana">
         <AvisoDeError error={notas.error} />
         <BotonPrincipal alTocar={() => void notas.refetch()}>Volver a intentar</BotonPrincipal>
       </main>
@@ -51,9 +53,10 @@ export function Bitacora() {
   }
 
   const lista = notas.data.notas
+  const listaDePotreros = potreros.data?.potreros
 
   return (
-    <main className="pantalla">
+    <main className="pantalla pantalla--pestana">
       <Encabezado
         etiqueta="MI RANCHO"
         titulo="Bitácora"
@@ -96,10 +99,17 @@ export function Bitacora() {
       {lista.length === 0 ? (
         <p className="inicio__vacio">Cuando pase algo que no es de un animal, se anota aquí.</p>
       ) : (
-        <ul className="inicio__lista">
+        <ul className="lista lista--planas">
           {lista.map((nota) => (
             <li key={nota.id}>
-              <Nota nota={nota} corrigiendo={corrigiendo === nota.id} alCorregir={setCorrigiendo} />
+              <Tarjeta>
+                <Nota
+                  nota={nota}
+                  potreros={listaDePotreros}
+                  corrigiendo={corrigiendo === nota.id}
+                  alCorregir={setCorrigiendo}
+                />
+              </Tarjeta>
             </li>
           ))}
         </ul>
@@ -110,15 +120,19 @@ export function Bitacora() {
 
 function Nota({
   nota,
+  potreros,
   corrigiendo,
   alCorregir,
 }: {
   readonly nota: NotaDeBitacoraConHistoria
+  readonly potreros: readonly PotreroConNombre[] | undefined
   readonly corrigiendo: boolean
   readonly alCorregir: (id: string | null) => void
 }) {
   const dia = diaLegible(nota.fecha)
   const precision = textoDePrecision(nota.precision)
+  const nombreDelPotrero =
+    nota.potreroId === null ? null : nombreDePotrero(potreros, nota.potreroId)
   return (
     <article>
       <p>
@@ -128,7 +142,12 @@ function Nota({
         {nota.precision === 'approximate' ? ', aproximada' : `, ${precision}`}
       </p>
       <p>{nota.texto}</p>
-      {nota.reportedBy === null ? null : <p className="inicio__meta">Lo dijo {nota.reportedBy}</p>}
+      {nombreDelPotrero === null ? null : (
+        <p className="campo__ayuda">Potrero: {nombreDelPotrero}</p>
+      )}
+      {nota.reportedBy === null ? null : (
+        <p className="campo__ayuda">Lo dijo {nota.reportedBy}</p>
+      )}
       <FotoVisible evidenciaId={nota.evidenciaId} alt="Foto de la nota" />
       {corrigiendo ? (
         <Correccion
@@ -153,8 +172,7 @@ function Nota({
           {nota.correcciones.map((correccion, indice) => (
             <li key={`${correccion.campo}-${correccion.correctedAt}-${String(indice)}`}>
               <p className="correccion__campo">
-                Antes, {correccion.campo}:{' '}
-                {correccion.valorAnterior === null ? 'no había' : `«${correccion.valorAnterior}»`}
+                {`${campoDeBitacora(correccion.campo)}: antes decía «${textoAnteriorDeBitacora(correccion.campo, correccion.valorAnterior, potreros)}»`}
               </p>
               <p className="correccion__motivo">Por qué: {correccion.motivo}</p>
               <p className="correccion__cuando">{instanteLegible(correccion.correctedAt)}</p>
@@ -175,8 +193,12 @@ function Formulario({
 }) {
   const anotar = useAnotarBitacora()
   const potreros = usePotreros()
-  const comando = useRef(crypto.randomUUID())
-  const notaId = useRef(crypto.randomUUID())
+  /**
+   * Mismo contenido ⇒ mismo comando y mismo id de nota. Si el dato cambia
+   * antes de reintentar, se acuñan otros: el servidor no acepta el mismo
+   * comando con otro cuerpo.
+   */
+  const alta = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
   const [tipo, setTipo] = useState('')
   const [precision, setPrecision] = useState('')
   const [fecha, setFecha] = useState('')
@@ -210,24 +232,42 @@ function Formulario({
       setAviso('Escribe qué pasó.')
       return
     }
+    const tipoElegido = tipo
+    const precisionElegida = precision
     setAviso(null)
+    const cuerpo = {
+      tipo: tipoElegido,
+      precision: precisionElegida,
+      fecha,
+      texto: texto.trim(),
+      reportedBy: quien.trim() === '' ? null : quien.trim(),
+      potreroId: potreroId === '' ? null : potreroId,
+      evidenciaId,
+    }
+    const contenido = JSON.stringify(cuerpo)
+    if (alta.current === null || alta.current.contenido !== contenido) {
+      alta.current = {
+        contenido,
+        commandId: crypto.randomUUID(),
+        id: crypto.randomUUID(),
+      }
+    }
     try {
       await anotar.mutateAsync({
-        commandId: comando.current,
-        id: notaId.current,
-        tipo,
-        precision,
+        commandId: alta.current.commandId,
+        id: alta.current.id,
+        tipo: tipoElegido,
+        precision: precisionElegida,
         fecha,
-        texto: texto.trim(),
-        ...(quien.trim() === '' ? { reportedBy: null } : { reportedBy: quien.trim() }),
-        ...(potreroId === '' ? { potreroId: null } : { potreroId }),
-        ...(evidenciaId === null ? { evidenciaId: null } : { evidenciaId }),
+        texto: cuerpo.texto,
+        reportedBy: cuerpo.reportedBy,
+        potreroId: cuerpo.potreroId,
+        evidenciaId,
       })
-      comando.current = crypto.randomUUID()
-      notaId.current = crypto.randomUUID()
+      alta.current = null
       alGuardar()
     } catch {
-      // El aviso de la mutación se pinta abajo.
+      // El aviso de la mutación se pinta abajo. El comando se queda para el reintento.
     }
   }
 
@@ -235,6 +275,7 @@ function Formulario({
 
   return (
     <form
+      className="formulario"
       onSubmit={(evento) => {
         evento.preventDefault()
         void guardar()
@@ -323,7 +364,8 @@ function Correccion({
   readonly alCerrar: () => void
 }) {
   const corregir = useCorregirBitacora(nota.id)
-  const comando = useRef(crypto.randomUUID())
+  /** Mismo contenido ⇒ mismo comando. Si se cambia un dato, el reintento es otro. */
+  const envio = useRef<{ contenido: string; commandId: string } | null>(null)
   const [tipo, setTipo] = useState<string>(nota.tipo)
   const [precision, setPrecision] = useState<string>(nota.precision)
   const [fecha, setFecha] = useState(nota.fecha)
@@ -354,10 +396,12 @@ function Correccion({
       setAviso('El día y el texto no pueden quedar vacíos.')
       return
     }
+    const tipoElegido = tipo
+    const precisionElegida = precision
     const textoNuevo = texto.trim()
     const hayCambio =
-      tipo !== nota.tipo ||
-      precision !== nota.precision ||
+      tipoElegido !== nota.tipo ||
+      precisionElegida !== nota.precision ||
       fecha !== nota.fecha ||
       textoNuevo !== nota.texto
     if (!hayCambio) {
@@ -365,24 +409,38 @@ function Correccion({
       return
     }
     setAviso(null)
+    const cuerpo = {
+      version: nota.version,
+      motivo: motivo.trim(),
+      ...(tipoElegido === nota.tipo ? {} : { tipo: tipoElegido }),
+      ...(precisionElegida === nota.precision ? {} : { precision: precisionElegida }),
+      ...(fecha === nota.fecha ? {} : { fecha }),
+      ...(textoNuevo === nota.texto ? {} : { texto: textoNuevo }),
+    }
+    const contenido = JSON.stringify(cuerpo)
+    if (envio.current === null || envio.current.contenido !== contenido) {
+      envio.current = { contenido, commandId: crypto.randomUUID() }
+    }
     try {
       await corregir.mutateAsync({
-        commandId: comando.current,
+        commandId: envio.current.commandId,
         version: nota.version,
-        motivo: motivo.trim(),
-        ...(tipo === nota.tipo ? {} : { tipo }),
-        ...(precision === nota.precision ? {} : { precision }),
+        motivo: cuerpo.motivo,
+        ...(tipoElegido === nota.tipo ? {} : { tipo: tipoElegido }),
+        ...(precisionElegida === nota.precision ? {} : { precision: precisionElegida }),
         ...(fecha === nota.fecha ? {} : { fecha }),
         ...(textoNuevo === nota.texto ? {} : { texto: textoNuevo }),
       })
+      envio.current = null
       alCerrar()
     } catch {
-      // El aviso de la mutación se pinta abajo.
+      // El aviso de la mutación se pinta abajo. El comando se queda para el reintento.
     }
   }
 
   return (
     <form
+      className="formulario"
       onSubmit={(evento) => {
         evento.preventDefault()
         void guardar()
@@ -427,4 +485,70 @@ function Correccion({
       <BotonSecundario alTocar={alCerrar}>Cancelar</BotonSecundario>
     </form>
   )
+}
+
+type PotreroConNombre = { readonly id: string; readonly nombre: string | null }
+
+/** El nombre que el rancho le dice al potrero. Sin la lista todavía, no se inventa. */
+function nombreDePotrero(
+  potreros: readonly PotreroConNombre[] | undefined,
+  id: string,
+): string | null {
+  if (potreros === undefined) {
+    return null
+  }
+  const potrero = potreros.find((item) => item.id === id)
+  if (potrero === undefined || potrero.nombre === null) {
+    return 'Sin nombre'
+  }
+  return potrero.nombre
+}
+
+/** El campo de la historia, en palabras del rancho. El código no se muestra. */
+function campoDeBitacora(campo: string): string {
+  switch (campo) {
+    case 'tipo':
+      return 'Tipo'
+    case 'texto':
+      return 'Qué pasó'
+    case 'fecha':
+      return 'Día'
+    case 'precision':
+      return 'Precisión'
+    case 'potrero':
+      return 'Potrero'
+    case 'reportedBy':
+      return 'Quién lo dijo'
+    case 'evidencia':
+      return 'Foto'
+    default:
+      return campo
+  }
+}
+
+/** El valor anterior, sin códigos ni el id de una foto o de un potrero. */
+function textoAnteriorDeBitacora(
+  campo: string,
+  valorAnterior: string | null,
+  potreros: readonly PotreroConNombre[] | undefined,
+): string {
+  if (valorAnterior === null) {
+    return 'no había'
+  }
+  if (campo === 'tipo') {
+    return textoDeTipo(valorAnterior)
+  }
+  if (campo === 'precision') {
+    return textoDePrecision(valorAnterior)
+  }
+  if (campo === 'fecha') {
+    return diaLegible(valorAnterior)
+  }
+  if (campo === 'potrero') {
+    return nombreDePotrero(potreros, valorAnterior) ?? 'Sin nombre'
+  }
+  if (campo === 'evidencia') {
+    return 'tenía una foto'
+  }
+  return valorAnterior
 }
