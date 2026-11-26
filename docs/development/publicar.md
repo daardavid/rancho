@@ -163,7 +163,43 @@ la hayas integrado, `main`).
 En el celular, abre esa misma dirección `https`. La cookie de sesión solo
 viaja por HTTPS. Puedes dejar el acceso en la pantalla de inicio.
 
-## 5. Volver a lo local
+## 5. Que no se duerma
+
+El plan gratis de Render duerme el servicio a los 15 minutos sin visitas. La
+primera vez del día, el celular espera como un minuto con una página de
+espera. Hay una manera de evitarlo sin pagar.
+
+Un aviso automático cada 10 minutos a `GET /api/health` cuenta como visita y
+el servicio no se duerme. `/api/health` **no toca la base**, así que Neon sí
+puede dormirse y no gasta las horas del plan gratis.
+
+La cuenta del plan gratis de Render son 750 horas al mes. Un mes tiene unas
+744 horas, y un servicio despierto todo el mes consume las 744. Cabe, pero no
+sobra: un mes con dos servicios despiertos, o con el mes largo, se pasa.
+
+**Por confirmar:** que las reglas de Render permitan este uso. Un aviso cada
+10 minutos es tráfico mínimo, pero conviene leer los términos del plan antes
+de dejarlo encendido. [ADR-016](../architecture/adr/ADR-016-publicacion.md) ya
+dejó «por confirmar» si las revisiones del propio Render cuentan como el
+tráfico que evita que se duerma; esto es la misma duda por otro camino.
+Mientras no se confirme, esto es una decisión tuya, no un paso obligatorio.
+
+Dos maneras, cualquiera de las dos gratuita:
+
+| Manera | Cómo | Límites |
+| --- | --- | --- |
+| Servicio externo de avisos | Un servicio como cron-job.org o UptimeRobot apunta a `https://….onrender.com/api/health` cada 10 minutos. | Hay que crear otra cuenta. El plan gratis suele tener un número máximo de avisos y una frecuencia mínima (a veces 5 o 10 minutos); se revisa antes de configurarlo. Si el servicio externo se cae, la app se duerme otra vez sin avisar. |
+| Flujo programado de GitHub Actions | Un flujo con `schedule: cron` llama a `curl` contra la misma dirección. | GitHub no garantiza la hora exacta y a veces retrasa o salta corridas. En repositorios públicos los minutos son gratis; en privados descuentan de la cuota mensual. Un flujo que falla manda correo cada vez. |
+
+**No hay flujo de estos en el repo todavía**, y es a propósito: la dirección
+`….onrender.com` no existe hasta que publiques, y un flujo con una dirección
+inventada solo produce correos de error. Cuando la app esté publicada, se
+agrega.
+
+Si decides no hacerlo, no pasa nada más que la primera espera del día. Todo lo
+demás de esta guía sigue igual.
+
+## 6. Volver a lo local
 
 En la laptop:
 
@@ -187,6 +223,6 @@ modo local se niega a arrancar.
 | Qué ves | Qué hacer |
 | --- | --- |
 | `Falta DATABASE_URL` o `Falta SESSION_SECRET` | Faltan en el panel de Render. El proceso no inventa un secreto y no arranca. |
-| La página tarda un minuto | El servicio estaba dormido. Espera. |
+| La página tarda un minuto | El servicio estaba dormido. Espera. Si no quieres que se duerma, mira la sección 5. |
 | `base` dice `no_responde` | Revisa la cadena de Neon. Si Neon avisa que se acabaron las horas del mes, hay que esperar al siguiente periodo o cambiar de plan. Los datos no se borran por eso. |
 | Pide `CARGAR` y no estás seguro del host | El comando imprime el host y el nombre de la base, sin la contraseña. Si no es Neon, no confirmes. |

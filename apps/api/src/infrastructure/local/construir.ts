@@ -10,6 +10,7 @@ const VIGILADOS = [
   'apps/api/build.mjs',
   'apps/api/package.json',
   'apps/web/src',
+  'apps/web/scripts',
   'apps/web/index.html',
   'apps/web/vite.config.ts',
   'apps/web/package.json',

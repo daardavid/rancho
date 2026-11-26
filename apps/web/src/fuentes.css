@@ -1,0 +1,42 @@
+/*
+ * Las dos familias de la guía visual, servidas desde la app y nunca desde
+ * Google: en la red de la casa la app tiene que abrir sin internet
+ * (docs/design/guia-visual.md).
+ *
+ * Aquí se elige por peso real, no por gusto, porque cada archivo lo paga el
+ * celular con señal débil (INC-006). Solo dos familias y tres archivos:
+ *
+ * - **Archivo 700 y 800**, estáticas. Son los únicos dos pesos que usa la
+ *   `--fuente-titulo` en toda la app, y dos estáticas pesan menos que la
+ *   variable (28,924 B contra 34,928 B).
+ * - **Inter variable**, un solo archivo para 400, 500 y 600. Tres estáticas
+ *   pesan 72,388 B; la variable, 48,256 B, y cada peso sale exacto.
+ *
+ * La cara de Inter se declara aquí y no importando `index.css` del paquete para
+ * que el build no emita los subsets cirílico, griego y vietnamita que nadie va
+ * a pedir: el celular solo baja el latino.
+ */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/archivo/files/archivo-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('@fontsource/archivo/files/archivo-latin-800-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2');
+}

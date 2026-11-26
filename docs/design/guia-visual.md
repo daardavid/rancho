@@ -33,9 +33,9 @@ Aprobada por David el 2026-11-24. Es la referencia de cómo se ve y se siente la
 
 ## Tipografía
 
-- Títulos y números: **Archivo** 700–800.
-- Texto: **Inter** 400–600, 16–17 px en campos (evita el zoom de iOS).
-- Las fuentes se sirven desde la app (paquetes `@fontsource/archivo` y `@fontsource/inter`), nunca desde Google: la app debe funcionar sin internet en la red de la casa.
+- Títulos y números: **Archivo** 700–800 (dos archivos estáticos: son los únicos dos pesos que la app usa).
+- Texto: **Inter** 400–600, 16–17 px en campos (evita el zoom de iOS). Un solo archivo variable cubre los tres pesos.
+- Las fuentes se sirven desde la app (paquetes `@fontsource/archivo` y `@fontsource-variable/inter`), nunca desde Google: la app debe funcionar sin internet en la red de la casa. Son tres archivos `.woff2`, solo el subset latino de cada familia.
 
 | Elemento | Tamaño |
 | --- | --- |
