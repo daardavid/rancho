@@ -129,9 +129,7 @@ function Historia({
             : `Hay ${historial.partosSinFecha} partos sin fecha: no entran al cálculo de días.`}
         </p>
       )}
-      {historial.partos.length === 0 ? (
-        <p className="campo__ayuda">Sin parto registrado.</p>
-      ) : (
+      {historial.partos.length === 0 ? null : (
         <ul className="lista lista--planas">
           {historial.partos.map((parto) => (
             <PartoEnLaFicha key={parto.criaId} parto={parto} historial={historial} />
@@ -531,6 +529,9 @@ function resultadoDe(valor: string): 'prenada' | 'vacia' | 'no_se' | null {
 function textoAnterior(campo: string, valor: string | null): string {
   if (valor === null) {
     return 'no se anotó'
+  }
+  if (campo === 'fecha') {
+    return diaLegible(valor)
   }
   if (campo === 'resultado' || campo === 'vioAlAnimal') {
     if (valor === 'si') {

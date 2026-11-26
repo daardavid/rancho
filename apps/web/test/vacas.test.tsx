@@ -2,7 +2,8 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ANIMAL, fichaDeAnimal, montarApi, pintarApp, sesionAbierta } from './ayudas'
+import { diaLegible } from '../src/dominio/fechas'
+import { ANIMAL, CUANDO, CUENTA, fichaDeAnimal, montarApi, pintarApp, sesionAbierta } from './ayudas'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -95,4 +96,90 @@ describe('vacas por último parto', () => {
       true,
     )
   })
+
+  it('una vaca sin partos dice «Sin parto registrado.» una sola vez', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ nombre: 'Luna', sexo: 'female', categoria: 'cow' }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: crecimientoVacio(),
+      }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(await screen.findByRole('heading', { name: 'Cría' })).toBeDefined()
+    expect(await screen.findAllByText('Sin parto registrado.')).toHaveLength(1)
+  })
+
+  it('la corrección de la fecha de un diagnóstico muestra el día anterior con diaLegible', async () => {
+    const anterior = '2024-03-02'
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ nombre: 'Luna', sexo: 'female', categoria: 'cow' }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: crecimientoVacio(),
+      }),
+      [`GET /api/read-models/cria/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          animalId: ANIMAL,
+          partos: [],
+          intervalos: [],
+          partosSinFecha: 0,
+          diasDesdeElUltimoParto: null,
+          diagnosticos: [
+            {
+              id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              animalId: ANIMAL,
+              fecha: '2026-11-01',
+              resultado: 'prenada',
+              reportedBy: null,
+              nota: null,
+              vioAlAnimal: true,
+              version: 2,
+              recordedBy: CUENTA,
+              recordedAt: CUANDO,
+              correcciones: [
+                {
+                  campo: 'fecha',
+                  valorAnterior: anterior,
+                  motivo: 'La fecha del cuaderno era otra',
+                  correctedBy: CUENTA,
+                  correctedAt: CUANDO,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    expect(
+      await screen.findByText((texto) => texto.includes(`antes decía «${diaLegible(anterior)}»`)),
+    ).toBeDefined()
+    expect(screen.queryByText((texto) => texto.includes(anterior))).toBeNull()
+  })
 })
+
+function crecimientoVacio(): Record<string, unknown> {
+  return {
+    animalId: ANIMAL,
+    nombre: 'Luna',
+    categoria: 'cow',
+    activo: true,
+    pesos: [],
+    ultimoPesaje: null,
+    huecos: [],
+  }
+}
