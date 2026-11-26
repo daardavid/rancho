@@ -84,9 +84,9 @@ export function crearCapturaDeDestete(
   return {
     async registrar(entrada) {
       const contenido = contenidoDe(entrada)
-      diaDelPeso(entrada)
-      await exigirEvidencia(evidencia, entrada)
-
+      // El recibo va antes del día y de la foto: un reintento con el mismo id
+      // y otro cuerpo es conflicto, aunque al cuerpo nuevo le falte la fecha
+      // del peso. Un reintento idéntico no vuelve a consultar la evidencia.
       const previo = await db.transaction(async (tx) =>
         repositoriosDeHerd(tx, null).idempotencia.buscar(entrada.commandId),
       )
@@ -96,6 +96,9 @@ export function crearCapturaDeDestete(
         }
         return JSON.parse(previo.resultado) as DesteteAnotado
       }
+
+      diaDelPeso(entrada)
+      await exigirEvidencia(evidencia, entrada)
 
       return db.transaction(async (tx) => {
         const herd = repositoriosDeHerd(tx, null)

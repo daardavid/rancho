@@ -80,6 +80,36 @@ describe('destete con peso', () => {
     expect(salidas).not.toContain(cria)
   })
 
+  it('reusar el comando sin fecha del peso es conflicto de idempotencia, no peso sin fecha', async () => {
+    const cria = await animal('Cría del reintento')
+    const commandId = nuevoId()
+    const entrada = {
+      commandId,
+      ranchId,
+      recordedBy,
+      precisionFecha: 'exact' as const,
+      fecha: '2024-08-01',
+      animales: [
+        {
+          animalId: cria,
+          desteteId: nuevoId(),
+          peso: { id: nuevoId(), kilos: '200.000', calidad: 'measured' },
+        },
+      ],
+    }
+
+    await captura.registrar(entrada)
+
+    await expect(
+      captura.registrar({
+        ...entrada,
+        precisionFecha: 'no_se',
+        fecha: null,
+      }),
+    ).rejects.toBeInstanceOf(ConflictoDeIdempotencia)
+    expect(await contar('herd.weaning', cria)).toBe(1)
+  })
+
   it('si el peso falla después del destete, no queda ninguno de los dos ni el recibo', async () => {
     const cria = await animal('Cría del fallo')
     const commandId = nuevoId()
