@@ -43,6 +43,9 @@ function pestanaDe(ruta: Ruta): Pestana | null {
     case 'resumen':
       // El resumen sale de Inicio y regresa ahí: no es una pestaña propia.
       return 'inicio'
+    case 'bitacora':
+    case 'pendientes':
+      return 'inicio'
     case 'muestra':
       return null
   }

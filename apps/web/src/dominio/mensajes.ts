@@ -247,6 +247,50 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'La foto pesa más de 25 MB.',
     queHacer: 'Toma otra más cerca del indicador.',
   },
+  tipo_de_bitacora_invalido: {
+    quePaso: 'Falta decir de qué es la nota.',
+    queHacer: 'Elige lluvia, quema o fuego, agua, cerca o instalación, u otro.',
+  },
+  precision_sin_elegir: {
+    quePaso: 'Falta decir si el día es exacto o aproximado.',
+    queHacer: 'Elige uno. Si no lo eliges, no se guarda como exacto.',
+  },
+  potrero_ausente: {
+    quePaso: 'Ese potrero no está en el rancho.',
+    queHacer: 'Elige uno de la lista, o deja la nota sin potrero.',
+  },
+  animal_de_pendiente_ausente: {
+    quePaso: 'Un animal de este pendiente no está en el rancho.',
+    queHacer: 'Elige animales de la lista, o deja el pendiente sin animal.',
+  },
+  grupo_de_uno: {
+    quePaso: 'Un grupo es de dos o más animales.',
+    queHacer: 'Si es uno solo, elige «Un animal».',
+  },
+  estado_sin_cambio: {
+    quePaso: 'El pendiente ya estaba en ese estado.',
+    queHacer: 'No hace falta marcarlo otra vez.',
+  },
+  bitacora_ya_existe: {
+    quePaso: 'Esta nota ya se había guardado.',
+    queHacer: 'Vuelve a abrir la bitácora para verla.',
+  },
+  animal_repetido_en_pendiente: {
+    quePaso: 'Un animal está dos veces en el grupo.',
+    queHacer: 'Déjalo una sola vez.',
+  },
+  pendiente_ya_existe: {
+    quePaso: 'Este pendiente ya se había guardado.',
+    queHacer: 'Vuelve a abrir Pendientes para verlo.',
+  },
+  sujeto_incoherente: {
+    quePaso: 'El pendiente no puede ser de un animal y de un potrero a la vez.',
+    queHacer: 'Elige una sola cosa, o ninguna.',
+  },
+  estado_invalido: {
+    quePaso: 'Ese estado no es de un pendiente.',
+    queHacer: 'Elige pendiente, hecho o ya no aplica.',
+  },
   foto_vacia: {
     quePaso: 'La foto llegó vacía.',
     queHacer: 'Tómala otra vez.',

@@ -33,7 +33,9 @@ async function main(): Promise<void> {
   console.log(`  ${destino}`)
   console.log(`  archivo: ${archivo}`)
   console.log('')
-  console.log('Se borran herd, growth, identity, evidence y drizzle, y se ponen los del archivo.')
+  console.log(
+    'Se borran herd, growth, identity, evidence, journal y drizzle, y se ponen los del archivo.',
+  )
   console.log('Las fotos no van en el archivo: solo sus datos. Los bytes se quedan en la laptop.')
   console.log('npm run local no usa esta base. Sigue en .datos/.')
   console.log('')

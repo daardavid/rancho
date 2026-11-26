@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { LARGO_MAXIMO_NOMBRE, categoriaSchema, diaSchema } from './animales'
+import { notaDelPeriodoSchema, pendienteDelInicioSchema } from './bitacora'
 
 /**
  * Lecturas de presencia: la última observación y la pantalla de Inicio.
@@ -79,6 +80,11 @@ export const inicioSchema = z.strictObject({
     salidas: z.array(cambioDelPeriodoSchema),
     pesajes: z.number().int().nonnegative(),
     notasDeSanidad: z.number().int().nonnegative(),
+    /**
+     * Notas de bitácora cuyo día cae en el periodo. No son notas de sanidad
+     * y no se cuentan como observación de un animal.
+     */
+    notasDeBitacora: z.array(notaDelPeriodoSchema).default([]),
   }),
   paraRevisar: z.strictObject({
     /** `null` cuando el rancho no tiene ninguna vuelta. No es «cero huecos». */
@@ -93,6 +99,11 @@ export const inicioSchema = z.strictObject({
     sinObservacion: z.array(animalDelInicioSchema),
     /** Todos los activos con observación, de más días a menos. Sin umbral. */
     porDiasSinVerse: z.array(animalSinVerseSchema),
+    /**
+     * Pendientes que el dueño escribió y que ya vencieron o tocan hoy.
+     * Uno hecho o que todavía no toca no entra: no es un aviso inventado.
+     */
+    pendientes: z.array(pendienteDelInicioSchema).default([]),
   }),
 })
 

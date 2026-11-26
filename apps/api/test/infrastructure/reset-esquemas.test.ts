@@ -68,7 +68,7 @@ describe('db:reset', () => {
       await db.execute(sql`
         SELECT schema_name
         FROM information_schema.schemata
-        WHERE schema_name IN ('herd', 'growth', 'identity', 'evidence')
+        WHERE schema_name IN ('herd', 'growth', 'identity', 'evidence', 'journal')
       `),
     )
     expect(esquemas.map((fila) => fila.schema_name).sort()).toEqual([
@@ -76,6 +76,7 @@ describe('db:reset', () => {
       'growth',
       'herd',
       'identity',
+      'journal',
     ])
   })
 

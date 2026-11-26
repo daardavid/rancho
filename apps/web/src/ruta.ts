@@ -41,6 +41,10 @@ export type Ruta =
    * cuenta, para abrir el mismo periodo que se estaba viendo en Inicio.
    */
   | { readonly nombre: 'resumen'; readonly desde: string | null }
+  /** Notas con fecha que no son de un animal. No es una pestaña. */
+  | { readonly nombre: 'bitacora' }
+  /** Pendientes que el dueño se pone. No es una pestaña. */
+  | { readonly nombre: 'pendientes' }
   | { readonly nombre: 'sesion'; readonly sesionId: string }
   | { readonly nombre: 'muestra' }
 
@@ -92,6 +96,12 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/resumen') {
     return { nombre: 'resumen', desde: null }
+  }
+  if (limpio === '/bitacora') {
+    return { nombre: 'bitacora' }
+  }
+  if (limpio === '/pendientes') {
+    return { nombre: 'pendientes' }
   }
   // El resumen abierto desde Inicio trae el mismo día de arranque del periodo:
   // se comparte lo que se estaba viendo, no otro rango.
@@ -150,6 +160,10 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/salida'
     case 'resumen':
       return ruta.desde === null ? '#/resumen' : `#/resumen/${ruta.desde}`
+    case 'bitacora':
+      return '#/bitacora'
+    case 'pendientes':
+      return '#/pendientes'
     case 'muestra':
       return '#/muestra'
     case 'sesion':

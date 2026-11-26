@@ -42,10 +42,10 @@ Las tareas dicen **qué** se quiere lograr y **cuándo está terminado**. La sec
 ## Arquitectura (resumen de lo aceptado)
 
 - Monolito modular: `apps/api` (Fastify, TypeScript estricto), `apps/web` (React, Vite, TanStack Query), `packages/api-contracts` (Zod). Ver [repository-structure.md](docs/architecture/repository-structure.md).
-- En INC-001 solo existen los módulos `herd` y `growth`, más `identity`, `read-models` y `shared-kernel`. No crees `feeding`, `inventory` ni `finance`.
+- Módulos de dominio en la app: `herd`, `growth` y `journal` (bitácora y pendientes, [ADR-018](docs/architecture/adr/ADR-018-bitacora.md), propuesto hasta que David lo acepte), más `identity`, `read-models` y `shared-kernel`. No crees `feeding`, `inventory` ni `finance`.
 - Cada módulo: `domain/` (sin Fastify, Drizzle, auth ni frontend), `application/` (servicios con interfaces de repositorio, sin transacción de Drizzle), `persistence/` (Drizzle) e `index.ts` (único punto de importación). La prueba de fronteras de importación es obligatoria.
 - Un módulo no escribe en otro. Las capturas que escriben en más de un módulo van en un orquestador de `application/` con una sola transacción.
-- PostgreSQL con un esquema por módulo (`herd`, `growth`, `identity`). `ranch_id` en toda fila de negocio. Ids UUID v4 con `crypto.randomUUID()`. Una sola secuencia de migraciones SQL generadas por Drizzle y revisadas. El servidor nunca aplica migraciones al arrancar.
+- PostgreSQL con un esquema por módulo (`herd`, `growth`, `journal`, `identity`). `ranch_id` en toda fila de negocio. Ids UUID v4 con `crypto.randomUUID()`. Una sola secuencia de migraciones SQL generadas por Drizzle y revisadas. El servidor nunca aplica migraciones al arrancar.
 - Comandos `POST` con id de comando: mismo id y mismo contenido devuelve el resultado guardado; mismo id con contenido distinto devuelve 409 `idempotency_mismatch`. Las correcciones mandan `version`; versión vieja devuelve 409 `version_conflict` y no cambia nada.
 - Kilos `numeric(12,3)`, dinero `numeric(12,2)`. Viajan como texto validado con Zod. JavaScript `number` nunca es el valor autoritativo de un peso o de dinero.
 - Fechas: `timestamptz` para instantes, `date` para días; se muestran en `America/Mexico_City`. `occurred_at` (cuándo pasó) y `recorded_at` (cuándo se registró) son distintos.
