@@ -89,7 +89,7 @@ diff_max_kb = 400              # el diff que leen los revisores se recorta arrib
 motivos = ["preguntas"]
 # Críticas: el modelo de dominio y la seguridad. Con motivos = ["preguntas"] solo eligen el modelo
 # más fuerte de Cursor (modelo_critica); ya no obligan a pasar por Claude.
-tareas_criticas = ["R-02", "R-03", "R-04", "R-05", "R-12", "R-13", "R-14", "R-16", "R-17", "R-19", "R-21", "R-22", "R-23", "R-26", "R-27", "R-28", "R-31", "R-32", "R-34", "R-35"]
+tareas_criticas = ["R-02", "R-03", "R-04", "R-05", "R-12", "R-13", "R-14", "R-16", "R-17", "R-19", "R-21", "R-22", "R-23", "R-26", "R-27", "R-28", "R-31", "R-32", "R-34", "R-35", "R-36", "R-37", "R-39", "R-40", "R-41"]
 ciclos_rojos_para_escalar = 2  # ciclos seguidos con pruebas en rojo
 
 [fila]
