@@ -152,7 +152,24 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   fuera_del_hato: {
     quePaso: 'Este animal ya salió del hato.',
-    queHacer: 'No se le anota sanidad ni se le cambia el potrero. Si la salida está mal, corrígela en la ficha.',
+    queHacer:
+      'No se le anota sanidad, un diagnóstico ni un potrero nuevo. Si la salida está mal, corrígela en la ficha.',
+  },
+  no_es_hembra: {
+    quePaso: 'Este animal es macho.',
+    queHacer: 'El diagnóstico de preñez es de una hembra. Si el sexo está mal, corrígelo en la ficha.',
+  },
+  diagnostico_ya_existe: {
+    quePaso: 'Este diagnóstico ya se había guardado.',
+    queHacer: 'Vuelve a abrir la ficha para verlo antes de anotar otro.',
+  },
+  diagnostico_vacio: {
+    quePaso: 'No hay ninguna hembra en el diagnóstico.',
+    queHacer: 'Elige al menos una y vuelve a anotar.',
+  },
+  resultado_invalido: {
+    quePaso: 'El resultado no es uno de los del rancho.',
+    queHacer: 'Elige Preñada, Vacía o No sé.',
   },
   fila_repetida: {
     quePaso: 'Un renglón de la vuelta se repitió.',

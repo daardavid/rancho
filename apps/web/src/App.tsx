@@ -9,6 +9,7 @@ import { Alta } from './pantallas/Alta'
 import { Inicio } from './pantallas/Inicio'
 import { CargarTendencias } from './pantallas/cargarTendencias'
 import { Crecimiento } from './pantallas/Crecimiento'
+import { Vacas } from './pantallas/Vacas'
 import { Ficha } from './pantallas/Ficha'
 import { Hato } from './pantallas/Hato'
 import { Potreros } from './pantallas/Potreros'
@@ -116,6 +117,7 @@ export function App() {
       {ruta.nombre === 'pesaje' ? <Pesaje /> : null}
       {ruta.nombre === 'sesion' ? <Sesion sesionId={ruta.sesionId} /> : null}
       {ruta.nombre === 'crecimiento' ? <Crecimiento /> : null}
+      {ruta.nombre === 'vacas' ? <Vacas /> : null}
       {ruta.nombre === 'tendencias' ? <CargarTendencias /> : null}
       <BarraInferior ruta={ruta} />
     </div>

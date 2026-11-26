@@ -10,7 +10,7 @@ import { IconoMenu } from '../ui/iconos'
  * Crecimiento.
  *
  * Es el mismo en las cuatro («MI RANCHO» y el título) y lleva el mismo menú ☰:
- * Nacimiento, Potreros, Salidas, Tendencias y Salir. Antes el menú vivía solo en el hato y
+ * Nacimiento, Potreros, Salidas, Tendencias, Vacas por último parto y Salir. Antes el menú vivía solo en el hato y
  * las otras pantallas tenían cada una su encabezado —el pesaje con flecha de
  * regreso y un «Salir» suelto arriba—, así que la misma acción aparecía en
  * lugares distintos según la pestaña.
@@ -122,6 +122,16 @@ export function EncabezadoDelRancho({
             }}
           >
             Ver tendencias
+          </button>
+          <button
+            type="button"
+            className="encabezado-rancho__opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'vacas' })
+            }}
+          >
+            Vacas por último parto
           </button>
           <button
             type="button"

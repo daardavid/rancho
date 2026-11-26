@@ -150,6 +150,12 @@ export function Inicio() {
         </a>
       </section>
 
+      {hayAnimales ? (
+        <p className="campo__ayuda">
+          <a href={rutaAHash({ nombre: 'vacas' })}>Vacas por último parto</a>
+        </p>
+      ) : null}
+
       <section className="ficha__seccion" aria-label="Para revisar">
         <h2 className="ficha__titulo">Para revisar</h2>
 

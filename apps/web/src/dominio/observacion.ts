@@ -40,5 +40,8 @@ export function textoDelOrigen(origen: OrigenDeObservacion, fecha: string): stri
   if (origen === 'nacimiento') {
     return `en el nacimiento del ${dia}`
   }
+  if (origen === 'diagnostico') {
+    return `en el diagnóstico de preñez del ${dia}`
+  }
   return `en la nota de sanidad del ${dia}`
 }

@@ -68,6 +68,7 @@ export function Crecimiento() {
 
       <div className="crecimiento__tendencias">
         <BotonSecundario alTocar={() => irA({ nombre: 'tendencias' })}>Ver tendencias</BotonSecundario>
+        <BotonSecundario alTocar={() => irA({ nombre: 'vacas' })}>Vacas por último parto</BotonSecundario>
       </div>
 
       {ordenadas.length === 0 ? (
