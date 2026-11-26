@@ -40,6 +40,9 @@ function pestanaDe(ruta: Ruta): Pestana | null {
     case 'salida':
       // «Salida» es una captura que se abre desde Inicio y no deja de serlo.
       return 'inicio'
+    case 'resumen':
+      // El resumen sale de Inicio y regresa ahí: no es una pestaña propia.
+      return 'inicio'
     case 'muestra':
       return null
   }

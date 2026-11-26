@@ -289,6 +289,16 @@ export function Inicio() {
             )}
           </section>
         </Desplegable>
+        {/*
+          El resumen de la semana se arma con el mismo periodo que se está
+          viendo: se comparte lo de esta pantalla y no otro rango
+          ([INC-007](../../../../docs/product/increments/INC-007-cria-resumen-y-bitacora.md)).
+        */}
+        <p className="inicio__compartir">
+          <a href={rutaAHash({ nombre: 'resumen', desde: datos.desde })}>
+            Compartir resumen de la semana
+          </a>
+        </p>
       </section>
 
       <section className="ficha__seccion" aria-label="Activos">
@@ -317,7 +327,6 @@ export function Inicio() {
     </main>
   )
 }
-
 function cuenta(etiqueta: string, cantidad: number, detalle: string): TarjetaDeResumen {
   return {
     etiqueta,

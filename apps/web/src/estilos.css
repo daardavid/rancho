@@ -481,6 +481,158 @@ h2.seccion__titulo {
   text-align: right;
 }
 
+/*
+ * El botón para compartir el resumen de la semana. Es un enlace y no la acción
+ * principal de Inicio: primero está capturar y revisar.
+ */
+.inicio__compartir {
+  margin: 16px 0 0;
+}
+
+.inicio__compartir a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--verde);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Resumen de la semana para compartir ---------------------------------- */
+
+.resumen__hoja {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  padding: 16px;
+}
+
+.resumen__rancho {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-weight: 800;
+  font-size: 1.35rem;
+}
+
+.resumen__periodo {
+  margin: 4px 0 16px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.resumen__titulo {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.resumen__titulo:first-of-type {
+  margin-top: 0;
+}
+
+.resumen__subtitulo {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.resumen__dato {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.resumen__detalle {
+  margin: 0 0 6px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.resumen__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.resumen__acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.resumen__aviso {
+  margin: 12px 0 0;
+  color: var(--verde);
+  font-weight: 600;
+}
+
+/*
+ * Impresión: solo el resumen, en tamaño carta.
+ *
+ * El dueño toca «Guardar como PDF» y el navegador abre su diálogo de
+ * impresión. Aquí se esconde lo que no es el documento —la barra inferior, el
+ * encabezado con el menú, los botones y el selector de periodo— para que el
+ * PDF sea el resumen y nada más. No es una vista aparte: es la misma pantalla.
+ */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 1.6cm;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .ui-barra-inferior,
+  .ui-encabezado,
+  .encabezado-rancho,
+  .resumen__acciones,
+  .ui-desplegable,
+  .ui-barra-accion,
+  .ui-barra-inferior--ventana,
+  .ui-boton-principal,
+  .ui-boton-secundario,
+  .ui-boton-flotante {
+    display: none !important;
+  }
+
+  .con-navegacion {
+    padding-bottom: 0;
+  }
+
+  .pantalla,
+  .pantalla--pestana {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    padding-bottom: 0;
+  }
+
+  .resumen__hoja {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .resumen__titulo,
+  .resumen__dato,
+  .resumen__detalle,
+  .resumen__lista,
+  .resumen__rancho,
+  .resumen__periodo,
+  .resumen__aviso {
+    color: #000000;
+  }
+}
+
 .ficha__seccion {
   margin-bottom: var(--espacio-secciones);
 }
