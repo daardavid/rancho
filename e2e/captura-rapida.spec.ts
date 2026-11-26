@@ -38,8 +38,12 @@ async function quitarPropuestas(page: Page): Promise<void> {
  * usar nada de este archivo. La regla es la del navegador, simplificada a lo que
  * hay en estas pantallas: `aria-label`, `aria-labelledby`, el `label` asociado
  * por `for`, el `label` que envuelve, y el texto visible del propio control.
+ *
+ * Devuelve además los controles cuyo nombre es un identificador interno: un
+ * lector que anuncia «3f2c…-…» en vez de «El Zapote» deja al dueño sin saber
+ * qué está eligiendo, que es el mismo problema con otra cara.
  */
-async function controlesSinNombre(page: Page): Promise<string[]> {
+async function controlesMalNombrados(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     function nombreAccesible(nodo: Element): string {
       const aria = nodo.getAttribute('aria-label')
@@ -73,12 +77,15 @@ async function controlesSinNombre(page: Page): Promise<string[]> {
       return (nodo.textContent ?? '').trim()
     }
 
+    const esUnId = (texto: string): boolean =>
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(texto)
+
     const controles = Array.from(
       document.querySelectorAll(
         'button, a[href], input[type="checkbox"], input[type="radio"], input[type="file"]',
       ),
     )
-    const sinNombre: string[] = []
+    const malos: string[] = []
     for (const control of controles) {
       const elemento = control as HTMLElement
       if (elemento.closest('[aria-hidden="true"]') !== null) {
@@ -89,11 +96,12 @@ async function controlesSinNombre(page: Page): Promise<string[]> {
       if (elemento.offsetParent === null) {
         continue
       }
-      if (nombreAccesible(control) === '') {
-        sinNombre.push(control.outerHTML.slice(0, 220))
+      const nombre = nombreAccesible(control)
+      if (nombre === '' || esUnId(nombre)) {
+        malos.push(control.outerHTML.slice(0, 220))
       }
     }
-    return sinNombre
+    return malos
   })
 }
 
@@ -265,29 +273,34 @@ test('en Pesaje y en el hato ningún control queda sin nombre', async ({ page })
 
   // El hato con sus dos filtros.
   await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
-  expect(await controlesSinNombre(page)).toEqual([])
+  expect(await controlesMalNombrados(page)).toEqual([])
 
-  // El modo de mover, con el panel abierto.
+  // El modo de mover, con el panel abierto y sus opciones de potrero.
   await page.getByRole('button', { name: 'Mover animales a un potrero' }).click()
   await page.getByRole('checkbox', { name: `Elegir a ${becerro}` }).check()
-  expect(await controlesSinNombre(page)).toEqual([])
+  expect(await controlesMalNombrados(page)).toEqual([])
   await page.getByRole('button', { name: 'Cancelar' }).click()
 
   // El modo de sanidad, con su formulario abierto.
   await page.getByRole('button', { name: 'Anotar sanidad a varios animales' }).click()
   await page.getByRole('checkbox', { name: `Elegir a ${becerro}` }).check()
-  expect(await controlesSinNombre(page)).toEqual([])
+  expect(await controlesMalNombrados(page)).toEqual([])
   await page.getByRole('button', { name: 'Cancelar' }).click()
 
-  // El pesaje con la lista de «Agregar» abierta.
+  // El pesaje con la lista de «Agregar» abierta y con animales que marcar.
   await irA(page, 'Pesaje')
   await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
   await quitarPropuestas(page)
   await page.getByRole('button', { name: 'Agregar otro animal' }).click()
-  expect(await controlesSinNombre(page)).toEqual([])
+  expect(await controlesMalNombrados(page)).toEqual([])
 
   await page.getByLabel('Buscar', { exact: true }).fill('Nombres')
-  expect(await controlesSinNombre(page)).toEqual([])
+  expect(await controlesMalNombrados(page)).toEqual([])
+
+  // Y la captura abierta, con su campo de kilos y su cámara.
+  await page.getByRole('checkbox', { name: `Elegir a ${becerro}` }).check()
+  await page.getByRole('button', { name: 'Agregar 1 animal' }).click()
+  expect(await controlesMalNombrados(page)).toEqual([])
 })
 
 test('Potreros abre arriba y el botón flotante no tapa la lista', async ({ page }) => {
