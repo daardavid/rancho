@@ -2,14 +2,12 @@ import { useMemo, useState } from 'react'
 
 import { useResumenDelHato } from '../api/hato'
 import { useResumenSemanal } from '../api/resumen'
-import { categoria } from '../dominio/etiquetas'
+import { categoria, motivoDeSalida, resultadoDePrenez } from '../dominio/etiquetas'
 import { diaLegible, diaMas, numeroLegible } from '../dominio/fechas'
 import { haceCuantosDias } from '../dominio/observacion'
 import {
   animalesQueVanAtras,
   frasesDeLoQueNoSeSabe,
-  motivoDeSalida,
-  resultadoDePrenez,
   textoDelResumen,
 } from '../dominio/resumen'
 import { irA } from '../ruta'
@@ -60,6 +58,7 @@ export function ResumenDeLaSemana({ desde }: { readonly desde: string | null }) 
       datos={semana.data}
       crecimiento={crecimiento.data ?? null}
       cargandoPesos={crecimiento.isPending}
+      errorDePesos={crecimiento.isError}
       copiado={copiado}
       alCopiar={setCopiado}
     />
@@ -70,12 +69,14 @@ function Contenido({
   datos,
   crecimiento,
   cargandoPesos,
+  errorDePesos,
   copiado,
   alCopiar,
 }: {
   readonly datos: NonNullable<ReturnType<typeof useResumenSemanal>['data']>
   readonly crecimiento: NonNullable<ReturnType<typeof useResumenDelHato>['data']> | null
   readonly cargandoPesos: boolean
+  readonly errorDePesos: boolean
   readonly copiado: 'nada' | 'copiado' | 'error'
   readonly alCopiar: (estado: 'nada' | 'copiado' | 'error') => void
 }) {
@@ -136,7 +137,11 @@ function Contenido({
         <h2 className="resumen__titulo">Última vuelta de pesaje</h2>
         {cargandoPesos ? (
           <p className="resumen__dato">Trayendo los pesos…</p>
-        ) : crecimiento === null || crecimiento.fechaDeLaUltimaVuelta === null ? (
+        ) : errorDePesos || crecimiento === null ? (
+          <p className="resumen__dato" role="status">
+            No se pudieron traer los pesos.
+          </p>
+        ) : crecimiento.fechaDeLaUltimaVuelta === null ? (
           <p className="resumen__dato">Todavía no hay una vuelta de pesaje.</p>
         ) : (
           <>
@@ -193,6 +198,7 @@ function Contenido({
       <div className="resumen__acciones">
         {compartir === 'compartir' ? (
           <BotonPrincipal
+            deshabilitado={cargandoPesos}
             alTocar={() => {
               void navegadorComparte(texto).then((resultado) => {
                 // Cancelar el diálogo del sistema no es un error: no se avisa nada.
@@ -204,6 +210,7 @@ function Contenido({
           </BotonPrincipal>
         ) : (
           <BotonPrincipal
+            deshabilitado={cargandoPesos}
             alTocar={() => {
               void copiarAlPortapapeles(texto).then((hecho) => {
                 alCopiar(hecho ? 'copiado' : 'error')
@@ -214,6 +221,7 @@ function Contenido({
           </BotonPrincipal>
         )}
         <BotonSecundario
+          deshabilitado={cargandoPesos}
           alTocar={() => {
             window.print()
           }}

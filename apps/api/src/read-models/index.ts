@@ -45,5 +45,5 @@ export {
 export {
   crearModelosDeResumen,
   type ModelosDeResumen,
-  type ResumenSemanalSemanal,
+  type VistaDeResumenSemanal,
 } from './resumen'

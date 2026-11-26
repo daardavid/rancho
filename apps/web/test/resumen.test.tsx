@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { fireEvent, screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { App } from '../src/App'
 import { diaMas, hoyEnElRancho } from '../src/dominio/fechas'
 import { textoDelResumen, type AnimalQueVaAtras } from '../src/dominio/resumen'
 import { montarApi, pintarApp, sesionAbierta } from './ayudas'
@@ -163,6 +165,31 @@ describe('resumen de la semana', () => {
     expect(texto).not.toContain('meta')
   })
 
+  it('sin los pesos no afirma que no hay vuelta de pesaje: dice que no se pudieron traer', () => {
+    const datos = resumen()().cuerpo as Parameters<typeof textoDelResumen>[0]
+    const texto = textoDelResumen(datos, null)
+
+    expect(texto).toContain('Última vuelta de pesaje: no se pudieron traer los pesos.')
+    expect(texto).not.toContain('todavía no hay')
+    // El bloque de «Van atrás» dice lo mismo: el texto no se contradice.
+    expect(texto).toContain('Van atrás: no se pudieron traer los pesos.')
+  })
+
+  it('con los pesos pero sin vuelta sí dice que todavía no hay', () => {
+    const datos = resumen()().cuerpo as Parameters<typeof textoDelResumen>[0]
+    const sinVuelta = crecimiento({
+      animales: [],
+      fechaDeLaUltimaVuelta: null,
+      pesadosEnLaUltimaVuelta: 0,
+      esperadosEnLaUltimaVuelta: 0,
+      gananciaMediaKilosPorDia: null,
+    })().cuerpo as Parameters<typeof textoDelResumen>[1]
+    const texto = textoDelResumen(datos, sinVuelta)
+
+    expect(texto).toContain('Última vuelta de pesaje: todavía no hay.')
+    expect(texto).not.toContain('no se pudieron traer los pesos')
+  })
+
   it('pinta el resumen con el nombre del rancho y lo que no se sabe', async () => {
     montarApi({
       'GET /api/session': sesionAbierta(),
@@ -181,6 +208,38 @@ describe('resumen de la semana', () => {
     // No aparece ningún identificador interno en lo que se comparte.
     expect(container.textContent ?? '').not.toContain('55555555-5555')
     expect(container.textContent ?? '').not.toContain('22222222-2222')
+  })
+
+  it('si no se pueden traer los pesos, lo dice y no afirma que no hay vuelta', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => {} } })
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/read-models/resumen': resumen(),
+      'GET /api/read-models/growth-overview': () => ({ estado: 500, cuerpo: { codigo: 'error' } }),
+    })
+
+    pintarApp('#/resumen')
+
+    expect(await screen.findByText('No se pudieron traer los pesos.')).toBeDefined()
+    expect(screen.queryByText('Todavía no hay una vuelta de pesaje.')).toBeNull()
+  })
+
+  it('mientras se traen los pesos, no deja compartir ni guardar el PDF', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => {} } })
+    // Los pesos nunca contestan: la consulta se queda pendiente.
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/read-models/resumen': resumen(),
+      'GET /api/read-models/growth-overview': () => new Promise<never>(() => {}),
+    })
+
+    pintarApp('#/resumen')
+
+    const copiar = await screen.findByRole('button', { name: 'Copiar texto' })
+    expect((copiar as HTMLButtonElement).disabled).toBe(true)
+    const pdf = screen.getByRole('button', { name: 'Guardar como PDF' })
+    expect((pdf as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText('Trayendo los pesos…')).toBeDefined()
   })
 
   it('sin «Compartir» del navegador, el botón copia el texto', async () => {
@@ -284,6 +343,51 @@ describe('resumen de la semana', () => {
     expect(rutaPedida).toBe(`/api/read-models/inicio?desde=${desde}`)
     expect(enlace.getAttribute('href')).toBe(`#/resumen/${desde}`)
   })
+
+  it('al volver a abrir el resumen cuenta otra vez y no muestra lo de antes', async () => {
+    vi.stubGlobal('navigator', { clipboard: { writeText: async () => {} } })
+    let pedidas = 0
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/read-models/resumen': () => {
+        pedidas += 1
+        // La segunda vez el dueño ya anotó al que faltaba: el resumen lo cuenta.
+        return resumen({
+          activos: { total: pedidas === 1 ? 6 : 7, porCategoria: [{ categoria: 'cow', cantidad: 7 }] },
+        })()
+      },
+      'GET /api/read-models/growth-overview': crecimiento(),
+    })
+
+    // El mismo cliente que usa la app, con sus 30 s de `staleTime`: el resumen
+    // no puede quedarse con la respuesta vieja por eso.
+    const cliente = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 30_000, refetchOnWindowFocus: false },
+        mutations: { retry: false },
+      },
+    })
+    window.location.hash = '#/resumen'
+    render(
+      <QueryClientProvider client={cliente}>
+        <App />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('6 activos')).toBeDefined()
+    expect(pedidas).toBe(1)
+
+    // El dueño sale a Inicio a anotar el dato que faltaba y vuelve al resumen.
+    window.location.hash = '#/hato'
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: 'Resumen para compartir' })).toBeNull()
+    })
+    window.location.hash = '#/resumen'
+
+    expect(await screen.findByText('7 activos')).toBeDefined()
+    expect(pedidas).toBe(2)
+    expect(screen.queryByText('6 activos')).toBeNull()
+  })
 })
 
 describe('hoja de impresión', () => {
@@ -322,5 +426,19 @@ describe('hoja de impresión', () => {
     const bloque = bloqueDeImpresion()
     expect(bloque).toContain('.resumen__hoja')
     expect(bloque).toContain('border: 0')
+  })
+
+  it('no imprime el aviso del portapapeles: es un mensaje de la pantalla, no del documento', () => {
+    const bloque = bloqueDeImpresion()
+    // Se busca la regla cuyo cuerpo oculta, y se lee solo su lista de selectores.
+    const reglaOculta = /([^{}]+)\{\s*display:\s*none\s*!important;/.exec(bloque)
+    expect(reglaOculta).not.toBeNull()
+    const selectores = (reglaOculta?.[1] ?? '').split(',').map((selector) => selector.trim())
+    expect(selectores).toContain('.resumen__aviso')
+
+    // Y ya no se le pinta en negro: no se imprime.
+    const reglaDeColor = /([^{}]+)\{\s*color:\s*#000000;/.exec(bloque)
+    expect(reglaDeColor).not.toBeNull()
+    expect(reglaDeColor?.[1] ?? '').not.toContain('.resumen__aviso')
   })
 })

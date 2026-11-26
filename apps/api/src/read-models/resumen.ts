@@ -22,7 +22,7 @@ import { crearModelosDePresencia, type ModelosDePresencia, type VistaDeInicio } 
  * porcentaje que no salga de un hecho.
  */
 
-export type ResumenSemanalSemanal = {
+export type VistaDeResumenSemanal = {
   readonly rancho: string
   readonly hoy: string
   readonly desde: string
@@ -63,7 +63,7 @@ export type ModelosDeResumen = {
   semanal(
     ranchId: RanchId,
     opciones?: { readonly desde?: string; readonly hoy?: string },
-  ): Promise<ResumenSemanalSemanal>
+  ): Promise<VistaDeResumenSemanal>
 }
 
 type FilaDeMotivo = {
@@ -172,7 +172,7 @@ async function conteoDeDestetes(
   ranchId: RanchId,
   desde: string,
   hoy: string,
-): Promise<ResumenSemanalSemanal['destetes']> {
+): Promise<VistaDeResumenSemanal['destetes']> {
   const filas = filasDe<FilaDeConteo>(
     await db.execute(sql`
       SELECT

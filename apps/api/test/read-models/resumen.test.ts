@@ -9,7 +9,7 @@ import { crearHerd } from '../../src/modules/herd'
 import {
   crearModelosDePresencia,
   crearModelosDeResumen,
-  type ResumenSemanalSemanal,
+  type VistaDeResumenSemanal,
 } from '../../src/read-models'
 import { recordedBySchema } from '../../src/shared-kernel/actores'
 import { nuevoId, ranchIdSchema, type RanchId } from '../../src/shared-kernel/ids'
@@ -51,7 +51,7 @@ const ids = {
   criaDesteteSinFecha: nuevoId(),
 }
 
-let resumen: ResumenSemanalSemanal
+let resumen: VistaDeResumenSemanal
 
 beforeAll(async () => {
   const base = await abrirBaseDePruebas()

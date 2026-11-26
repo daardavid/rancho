@@ -1,7 +1,7 @@
 import type { CrecimientoDelHato, ResumenSemanal } from '@rancho/api-contracts'
 
 import { ordenarCrecimiento } from './crecimiento'
-import { categoria } from './etiquetas'
+import { categoria, motivoDeSalida, resultadoDePrenez } from './etiquetas'
 import { diaLegible, numeroLegible } from './fechas'
 import { haceCuantosDias } from './observacion'
 import { lecturaDeCrecimiento } from './revision'
@@ -102,7 +102,11 @@ function periodo(datos: ResumenSemanal): string {
 }
 
 function ultimaVuelta(crecimiento: CrecimientoDelHato | null): string {
-  if (crecimiento === null || crecimiento.fechaDeLaUltimaVuelta === null) {
+  // Sin pesos no se sabe si hay vuelta o no: no se afirma que no exista.
+  if (crecimiento === null) {
+    return 'Última vuelta de pesaje: no se pudieron traer los pesos.'
+  }
+  if (crecimiento.fechaDeLaUltimaVuelta === null) {
     return 'Última vuelta de pesaje: todavía no hay.'
   }
   const ganancia =
@@ -210,32 +214,6 @@ function loQueNoSeSabe(datos: ResumenSemanal): string {
     return 'Lo que no se sabe: no falta ningún dato en este resumen.'
   }
   return ['Lo que no se sabe:', ...frases.map((frase) => `· ${frase}`)].join('\n')
-}
-
-export function motivoDeSalida(motivo: string): string {
-  switch (motivo) {
-    case 'sale':
-      return 'Venta'
-    case 'death':
-      return 'Muerte'
-    case 'confirmed_missing':
-      return 'Faltante confirmado'
-    case 'other':
-      return 'Otra'
-    default:
-      return 'No sé'
-  }
-}
-
-export function resultadoDePrenez(resultado: string): string {
-  switch (resultado) {
-    case 'prenada':
-      return 'Preñada'
-    case 'vacia':
-      return 'Vacía'
-    default:
-      return 'No sé'
-  }
 }
 
 function cantidad(numero: number, singular: string, plural: string): string {

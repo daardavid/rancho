@@ -30,6 +30,7 @@ export {
   consultaDeAnimalesSchema,
   corregirAnimalSchema,
   corregirSalidaSchema,
+  diaSchema,
   errorDeAnimalSchema,
   fichaAnimalSchema,
   fichaConHistoriaSchema,

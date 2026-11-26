@@ -1,4 +1,4 @@
-import { errorDeResumenSchema, resumenSemanalSchema } from '@rancho/api-contracts'
+import { diaSchema, errorDeResumenSchema, resumenSemanalSchema } from '@rancho/api-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
@@ -7,10 +7,9 @@ import { exigirRol } from '../guardia'
 
 const ROLES = ['owner', 'support'] as const
 const consultaDelResumen = z.strictObject({
-  desde: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  // `diaSchema` no solo mira la forma: el 31 de febrero se rechaza aquí y no
+  // llega a PostgreSQL como un `::date` que revienta con un 500.
+  desde: diaSchema.optional(),
 })
 
 /**
