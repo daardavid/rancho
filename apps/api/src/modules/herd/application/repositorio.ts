@@ -3,6 +3,7 @@ import type { AnimalId, RanchId } from '../../../shared-kernel/ids'
 
 import type { Animal, ValorAnterior } from '../domain/animal'
 import type { Correccion } from '../domain/correccion'
+import type { FotoDeIdentificacion } from '../domain/foto'
 import type { Marca } from '../domain/marca'
 import type { CorreccionDeSalida, Salida } from '../domain/salida'
 
@@ -59,6 +60,24 @@ export type RepositorioDeAnimales = {
   marcasDe(ranchId: RanchId, animalIds: readonly string[]): Promise<Marca[]>
   correccionesDe(ranchId: RanchId, animalId: AnimalId): Promise<Correccion[]>
   correccionesDeSalida(ranchId: RanchId, animalId: AnimalId): Promise<CorreccionDeSalida[]>
+  /** La foto vigente de cada animal. Quien no tiene no aparece. */
+  fotosVigentes(
+    ranchId: RanchId,
+    animalIds: readonly string[],
+  ): Promise<readonly (FotoDeIdentificacion & { readonly animalId: string })[]>
+  fotoVigente(ranchId: RanchId, animalId: AnimalId): Promise<FotoDeIdentificacion | null>
+  /**
+   * Agrega la foto vigente. La anterior, si la había, se queda en la tabla.
+   * No toca la fila del animal.
+   */
+  insertarFoto(entrada: {
+    readonly id: string
+    readonly ranchId: RanchId
+    readonly animalId: AnimalId
+    readonly foto: FotoDeIdentificacion
+    readonly recordedBy: RecordedBy
+    readonly recordedAt: Date
+  }): Promise<void>
   idsPorMarca(ranchId: RanchId, valor: string): Promise<string[]>
   estados(ranchId: RanchId, ids: readonly string[]): Promise<EstadoGuardado[]>
 }

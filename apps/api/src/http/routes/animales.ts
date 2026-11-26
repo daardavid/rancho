@@ -6,9 +6,11 @@ import {
   corregirSalidaSchema,
   errorDeAnimalSchema,
   fichaConHistoriaSchema,
+  fotoPuestaSchema,
   listaDeAnimalesSchema,
   marcarPerdidaSchema,
   marcaSchema,
+  ponerFotoSchema,
   registrarAnimalSchema,
   registrarSalidaSchema,
   reemplazarMarcaSchema,
@@ -212,6 +214,27 @@ export function registrarRutasDeAnimales(app: FastifyInstance, herd: Herd): void
       )
     },
   )
+
+  app.post('/api/animals/:id/photo', { preHandler: exigirRol(ROLES) }, async (peticion, respuesta) => {
+    const sesion = exigirSesion(peticion.sesionActiva)
+    const params = paramsDeAnimal.safeParse(peticion.params)
+    const cuerpo = ponerFotoSchema.safeParse(peticion.body)
+    if (!params.success || !cuerpo.success) {
+      return cuerpoInvalido(respuesta)
+    }
+
+    return enviar(respuesta, 200, fotoPuestaSchema, () =>
+      herd.ponerFoto({
+        commandId: cuerpo.data.commandId,
+        ranchId: sesion.ranchId,
+        recordedBy: sesion.recordedBy,
+        animalId: params.data.id,
+        version: cuerpo.data.version,
+        evidenciaId: cuerpo.data.evidenciaId,
+        miniaturaId: cuerpo.data.miniaturaId,
+      }),
+    )
+  })
 
   app.get('/api/animals', { preHandler: exigirRol(ROLES) }, async (peticion, respuesta) => {
     const sesion = exigirSesion(peticion.sesionActiva)

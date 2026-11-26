@@ -128,6 +128,7 @@ describe('quién registró en la salida', () => {
     version: 1,
     recordedAt: '2026-03-15T18:00:00.000Z',
     marcas: [],
+    foto: null,
   }
 
   it('acepta un texto con algo, no solo un UUID', () => {

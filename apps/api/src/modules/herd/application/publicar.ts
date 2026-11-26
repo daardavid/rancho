@@ -1,4 +1,5 @@
 import type { Animal } from '../domain/animal'
+import type { FotoDeIdentificacion } from '../domain/foto'
 import type { Correccion } from '../domain/correccion'
 import type { AsignacionDeLugar } from '../domain/lugar'
 import type { CampoDePotrero, Potrero } from '../domain/potrero'
@@ -52,6 +53,11 @@ export type FichaAnimal = {
   readonly recordedBy: string
   readonly recordedAt: string
   readonly marcas: readonly MarcaPublica[]
+  /**
+   * Foto vigente para reconocer al animal. `null` si todavía no hay.
+   * No es un dato de la ficha: no cambia lo demás ni vuelve nada medido.
+   */
+  readonly foto: FotoDeIdentificacion | null
 }
 
 export type CorreccionPublica = {
@@ -97,7 +103,11 @@ export function publicarMarca(marca: Marca): MarcaPublica {
   }
 }
 
-export function publicarAnimal(animal: Animal, marcas: readonly Marca[]): FichaAnimal {
+export function publicarAnimal(
+  animal: Animal,
+  marcas: readonly Marca[],
+  foto: FotoDeIdentificacion | null = null,
+): FichaAnimal {
   return {
     id: animal.id,
     nombre: animal.nombre,
@@ -114,6 +124,7 @@ export function publicarAnimal(animal: Animal, marcas: readonly Marca[]): FichaA
     recordedBy: animal.recordedBy,
     recordedAt: animal.recordedAt.toISOString(),
     marcas: marcas.map(publicarMarca),
+    foto,
   }
 }
 

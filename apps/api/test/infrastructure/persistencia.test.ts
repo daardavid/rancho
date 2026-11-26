@@ -63,6 +63,7 @@ describe('migración inicial', () => {
       'animal_correction',
       'animal_exit_correction',
       'animal_mark',
+      'animal_photo',
       'health_event',
       'health_event_correction',
       'location_assignment',
