@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { historialDeCriaSchema, listaDeVacasSchema, ultimaObservacionSchema } from '@rancho/api-contracts'
+import {
+  desteteDelAnimalSchema,
+  historialDeCriaSchema,
+  listaDeKilosDestetadosSchema,
+  listaDeVacasSchema,
+  ultimaObservacionSchema,
+} from '@rancho/api-contracts'
 
 import { crearCapturaDeDestete } from '../../src/application/destete'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
@@ -217,9 +223,14 @@ describe('historial de cría', () => {
     expect(enLista).not.toContain(ids.becerra)
     expect(enLista).not.toContain(ids.toro)
 
-    expect(lista.porUltimoParto.map((fila) => fila.animalId)).toEqual([ids.vieja, ids.reciente])
-    expect(lista.porUltimoParto.map((fila) => fila.diasDesdeElUltimoParto)).toEqual([694, 56])
-    expect(lista.porUltimoParto[1]?.ultimoDiagnostico).toMatchObject({
+    const vieja = lista.porUltimoParto.find((fila) => fila.animalId === ids.vieja)
+    const reciente = lista.porUltimoParto.find((fila) => fila.animalId === ids.reciente)
+    expect(vieja?.diasDesdeElUltimoParto).toBe(694)
+    expect(reciente?.diasDesdeElUltimoParto).toBe(56)
+    expect(lista.porUltimoParto.findIndex((fila) => fila.animalId === ids.vieja)).toBeLessThan(
+      lista.porUltimoParto.findIndex((fila) => fila.animalId === ids.reciente),
+    )
+    expect(reciente?.ultimoDiagnostico).toMatchObject({
       resultado: 'prenada',
       fecha: '2026-11-20',
       vioAlAnimal: true,
@@ -267,9 +278,118 @@ describe('historial de cría', () => {
     })
 
     const lista = await modelos.kilosDestetados(ranchId)
-    expect(lista.porPromedio.map((fila) => fila.animalId)).toEqual([ids.vieja, ids.baja])
-    expect(lista.porPromedio[1]).toMatchObject({ activo: false })
-    expect(lista.porPromedio.map((fila) => fila.animalId)).not.toContain(ids.reciente)
+    const idsEnLista = lista.porPromedio.map((fila) => fila.animalId)
+    expect(idsEnLista).toContain(ids.vieja)
+    expect(idsEnLista).toContain(ids.baja)
+    expect(idsEnLista.indexOf(ids.vieja)).toBeLessThan(idsEnLista.indexOf(ids.baja))
+    expect(lista.porPromedio.find((fila) => fila.animalId === ids.baja)).toMatchObject({
+      activo: false,
+    })
+    expect(idsEnLista).not.toContain(ids.reciente)
+  })
+
+  it('el promedio suma varios pesos y deja aparte a la madre inferida y a la cría sin peso', async () => {
+    const madre = nuevoId()
+    const vista = nuevoId()
+    const otraVista = nuevoId()
+    const sinPeso = nuevoId()
+    const inferida = nuevoId()
+
+    await vaca(madre, 'Madre de varias', 'cow', 'female')
+    await parto(vista, 'Cría de 200', madre, 'observed', null, '2024-01-01')
+    await parto(otraVista, 'Cría de 230', madre, 'observed', null, '2024-02-01')
+    await parto(sinPeso, 'Cría sin peso', madre, 'observed', null, '2024-03-01')
+    await parto(inferida, 'Cría inferida', madre, 'inferred', 'dicho_de_trabajador', '2024-04-01')
+
+    await captura.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      precisionFecha: 'exact',
+      fecha: '2024-08-01',
+      animales: [
+        {
+          animalId: vista,
+          desteteId: nuevoId(),
+          peso: { id: nuevoId(), kilos: '200.000', calidad: 'measured' },
+        },
+      ],
+    })
+    await captura.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      precisionFecha: 'exact',
+      fecha: '2024-09-01',
+      animales: [
+        {
+          animalId: otraVista,
+          desteteId: nuevoId(),
+          peso: { id: nuevoId(), kilos: '230.001', calidad: 'observed' },
+        },
+      ],
+    })
+    await captura.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      precisionFecha: 'no_se',
+      fecha: null,
+      animales: [{ animalId: sinPeso, desteteId: nuevoId() }],
+    })
+    await captura.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      precisionFecha: 'exact',
+      fecha: '2024-10-01',
+      animales: [
+        {
+          animalId: inferida,
+          desteteId: nuevoId(),
+          peso: { id: nuevoId(), kilos: '160.000', calidad: 'declared' },
+        },
+      ],
+    })
+
+    const historial = await modelos.historial(ranchId, madre, HOY)
+    expect(historial).not.toBeNull()
+    expect(historial?.kilosDestetados.observadas).toMatchObject({
+      conPeso: 2,
+      sinPeso: 1,
+      total: '430.001',
+      promedio: '215.001',
+    })
+    expect(historial?.kilosDestetados.observadas.total).not.toBe(
+      historial?.kilosDestetados.observadas.promedio,
+    )
+    expect(historial?.kilosDestetados.observadas.conPeso).toBeGreaterThanOrEqual(2)
+    expect(historial?.kilosDestetados.observadas.sinPeso).toBeGreaterThanOrEqual(1)
+    expect(historial?.kilosDestetados.inferidas).toMatchObject({
+      conPeso: 1,
+      sinPeso: 0,
+      total: '160.000',
+      promedio: '160.000',
+    })
+    expect(historial?.kilosDestetados.sinPeso.map((cria) => cria.criaId)).toEqual([sinPeso])
+    expect(historial?.kilosDestetados.sinPeso[0]?.certezaMadre).toBe('observed')
+
+    const conPeso = desteteDelAnimalSchema.parse(await modelos.destete(ranchId, vista))
+    expect(conPeso.destete?.peso?.kilos).toBe('200.000')
+    const sin = desteteDelAnimalSchema.parse(await modelos.destete(ranchId, sinPeso))
+    expect(sin.destete?.peso).toBeNull()
+
+    const lista = listaDeKilosDestetadosSchema.parse(await modelos.kilosDestetados(ranchId))
+    const fila = lista.porPromedio.find((item) => item.animalId === madre)
+    expect(fila?.observadas).toMatchObject({
+      conPeso: 2,
+      sinPeso: 1,
+      total: '430.001',
+      promedio: '215.001',
+    })
+    expect(fila?.observadas.total).not.toBe(fila?.observadas.promedio)
+    expect(fila?.inferidas).toMatchObject({ conPeso: 1, total: '160.000' })
+    expect(lista.porPromedio[0]?.animalId).toBe(madre)
   })
 
   it('un diagnóstico solo es observación cuando dice que se vio al animal', async () => {
