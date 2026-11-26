@@ -296,4 +296,30 @@ describe('Nacimiento: el buscador de la madre', () => {
     await usuario.type(screen.getByLabelText('Buscar la madre'), 'pinta')
     expect(await screen.findByRole('button', { name: /La Pinta/ })).toBeDefined()
   })
+
+  it('sin certeza de la madre enfoca el aviso, y el buscador se esconde al elegirla', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [laMadre()] } }),
+      'GET /api/paddocks': () => ({
+        estado: 200,
+        cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 },
+      }),
+      'GET /api/locations': sinLugares(),
+    })
+
+    pintarApp('#/nacimiento')
+    await elegirMadre(usuario, 'La Pinta')
+    expect(screen.queryByLabelText('Buscar la madre')).toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Quitar' }))
+    expect(screen.getByLabelText('Buscar la madre')).toBeDefined()
+
+    await elegirMadre(usuario, 'La Pinta')
+    await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
+    const aviso = await screen.findByRole('alert')
+    expect(aviso.textContent).toContain('Di si viste a la madre')
+    expect(document.activeElement).toBe(aviso)
+  })
 })

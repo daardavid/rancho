@@ -120,22 +120,31 @@ export function Inicio() {
       />
 
       <section className="inicio__accesos" aria-label="Accesos directos">
-        <a className="inicio__acceso" href={rutaAHash({ nombre: 'pesaje' })}>
+        <a
+          className="inicio__acceso"
+          href={rutaAHash({ nombre: 'pesaje' })}
+          aria-label="Registrar pesaje"
+        >
           <IconoBascula />
           <span>Registrar pesaje</span>
         </a>
         <a
           className="inicio__acceso"
           href={rutaAHash({ nombre: 'nacimiento', madreId: null })}
+          aria-label="Nacimiento"
         >
           <IconoNacimiento />
           <span>Nacimiento</span>
         </a>
-        <a className="inicio__acceso" href={rutaAHash({ nombre: 'hato', modo: 'sanidad' })}>
+        <a
+          className="inicio__acceso"
+          href={rutaAHash({ nombre: 'hato', modo: 'sanidad' })}
+          aria-label="Nota de sanidad"
+        >
           <IconoSanidad />
           <span>Nota de sanidad</span>
         </a>
-        <a className="inicio__acceso" href={rutaAHash({ nombre: 'salida' })}>
+        <a className="inicio__acceso" href={rutaAHash({ nombre: 'salida' })} aria-label="Salida">
           <IconoSalida />
           <span>Salida</span>
         </a>

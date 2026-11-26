@@ -166,6 +166,16 @@ describe('Inicio', () => {
     expect(within(accesos).getByRole('link', { name: /Nacimiento/ })).toBeDefined()
     expect(within(accesos).getByRole('link', { name: /Nota de sanidad/ })).toBeDefined()
     expect(within(accesos).getByRole('link', { name: /Salida/ })).toBeDefined()
+    for (const control of [...screen.getAllByRole('link'), ...screen.getAllByRole('button')]) {
+      const nombre = (
+        control.getAttribute('aria-label') ??
+        control.textContent ??
+        ''
+      )
+        .replace(/\s+/g, ' ')
+        .trim()
+      expect(nombre, control.outerHTML.slice(0, 160)).not.toBe('')
+    }
 
     // Para revisar va antes que el resumen del periodo.
     const revisar = screen.getByRole('region', { name: 'Para revisar' })
