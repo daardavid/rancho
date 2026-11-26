@@ -166,7 +166,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
       const filas = filasDe<FilaDeObservacion>(
         await db.execute(sql`
           WITH observaciones AS (
-            ${observacionesDe(ranchId)}
+            ${fuentesDeObservacion(ranchId)}
           )
           SELECT
             animal.id AS animal_id,
@@ -361,7 +361,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
           filasDe<FilaDeObservacion>(
             await db.execute(sql`
               WITH observaciones AS (
-                ${observacionesDe(ranchId)}
+                ${fuentesDeObservacion(ranchId)}
               )
               SELECT
                 animal.id AS animal_id,
@@ -466,8 +466,11 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
 /**
  * Una fila por animal: el hecho más reciente que cuenta como haberlo visto.
  * El hueco y la asignación de lugar no están en esta unión.
+ *
+ * La exportación del hato lee esta misma consulta. Si «haberlo visto» se
+ * definiera dos veces, el archivo y la pantalla podrían decir cosas distintas.
  */
-function observacionesDe(ranchId: RanchId): SQL {
+export function fuentesDeObservacion(ranchId: RanchId): SQL {
   return sql`
     SELECT DISTINCT ON (animal_id)
       animal_id,

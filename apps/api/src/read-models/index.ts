@@ -47,3 +47,4 @@ export {
   type ModelosDeResumen,
   type VistaDeResumenSemanal,
 } from './resumen'
+export { crearModelosDeExportacion, type ArchivoCsv, type ModelosDeExportacion } from './exportacion'
