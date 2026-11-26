@@ -9,6 +9,7 @@ import type { IdentidadHttp } from '../infrastructure/identity/identidad'
 import type {
   ModelosDeCrecimiento,
   ModelosDeCria,
+  ModelosDeExportacion,
   ModelosDePresencia,
   ModelosDeResumen,
   ModelosDeTendencias,
@@ -27,6 +28,7 @@ import { registrarRutasDeResumen } from './routes/resumen'
 import { registrarRutasDeCria, registrarRutasDePrenez } from './routes/cria'
 import { registrarRutasDeDestete } from './routes/destete'
 import { registrarRutasDeBitacora } from './routes/bitacora'
+import { registrarRutasDeExportacion } from './routes/exportacion'
 import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
 import { registrarRutasDeTendencias } from './routes/tendencias'
@@ -58,6 +60,8 @@ export type OpcionesApp = {
   readonly destete?: CapturaDeDestete
   /** Si falta, la bitácora y los pendientes no se montan. */
   readonly journal?: Journal
+  /** Si falta, no se puede bajar el hato, los pesos ni los eventos. */
+  readonly exportacion?: ModelosDeExportacion
   /**
    * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
    * base corren así; el proceso de verdad siempre la monta.
@@ -152,6 +156,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.journal !== undefined) {
     registrarRutasDeBitacora(app, opciones.journal)
+  }
+  if (opciones.exportacion !== undefined) {
+    registrarRutasDeExportacion(app, opciones.exportacion)
   }
 
   return app

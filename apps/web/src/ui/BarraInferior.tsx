@@ -45,6 +45,7 @@ function pestanaDe(ruta: Ruta): Pestana | null {
       return 'inicio'
     case 'bitacora':
     case 'pendientes':
+    case 'exportar':
       return 'inicio'
     case 'muestra':
       return null

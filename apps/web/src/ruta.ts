@@ -45,6 +45,8 @@ export type Ruta =
   | { readonly nombre: 'bitacora' }
   /** Pendientes que el dueño se pone. No es una pestaña. */
   | { readonly nombre: 'pendientes' }
+  /** Bajar el hato, los pesos y los eventos. No es una pestaña. */
+  | { readonly nombre: 'exportar' }
   | { readonly nombre: 'sesion'; readonly sesionId: string }
   | { readonly nombre: 'muestra' }
 
@@ -102,6 +104,9 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/pendientes') {
     return { nombre: 'pendientes' }
+  }
+  if (limpio === '/exportar') {
+    return { nombre: 'exportar' }
   }
   // El resumen abierto desde Inicio trae el mismo día de arranque del periodo:
   // se comparte lo que se estaba viendo, no otro rango.
@@ -164,6 +169,8 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/bitacora'
     case 'pendientes':
       return '#/pendientes'
+    case 'exportar':
+      return '#/exportar'
     case 'muestra':
       return '#/muestra'
     case 'sesion':

@@ -567,6 +567,13 @@ h2.seccion__titulo {
   margin-top: 16px;
 }
 
+.exportar__acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .resumen__aviso {
   margin: 12px 0 0;
   color: var(--verde);

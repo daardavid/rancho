@@ -18,6 +18,7 @@ import { crearJournal } from './modules/journal'
 import {
   crearModelosDeCrecimiento,
   crearModelosDeCria,
+  crearModelosDeExportacion,
   crearModelosDePresencia,
   crearModelosDeResumen,
   crearModelosDeTendencias,
@@ -61,6 +62,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     cria: crearModelosDeCria(cliente.db),
     destete: crearCapturaDeDestete(cliente.db, evidencia),
     journal: crearJournal(cliente.db, herd, evidencia),
+    exportacion: crearModelosDeExportacion(cliente.db),
     base: comprobacionDeBase(cliente.db),
     produccion: configuracion.cookieSegura,
   })

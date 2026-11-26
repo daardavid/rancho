@@ -19,6 +19,7 @@ import { Salidas } from './pantallas/Salidas'
 import { IniciarSesion } from './pantallas/IniciarSesion'
 import { Muestra } from './pantallas/Muestra'
 import { Nacimiento } from './pantallas/Nacimiento'
+import { Exportar } from './pantallas/Exportar'
 import { Pendientes } from './pantallas/Pendientes'
 import { Pesaje } from './pantallas/Pesaje'
 import { ResumenDeLaSemana } from './pantallas/ResumenDeLaSemana'
@@ -124,6 +125,7 @@ export function App() {
       {ruta.nombre === 'tendencias' ? <CargarTendencias /> : null}
       {ruta.nombre === 'bitacora' ? <Bitacora /> : null}
       {ruta.nombre === 'pendientes' ? <Pendientes /> : null}
+      {ruta.nombre === 'exportar' ? <Exportar /> : null}
       {ruta.nombre === 'resumen' ? (
         // La clave remonta el resumen al cambiar el periodo: el texto que se
         // copia es el del periodo que se está viendo, no el anterior.

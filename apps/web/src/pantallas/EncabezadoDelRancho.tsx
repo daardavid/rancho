@@ -11,7 +11,7 @@ import { IconoMenu } from '../ui/iconos'
  *
  * Es el mismo en las cuatro («MI RANCHO» y el título) y lleva el mismo menú ☰:
  * Nacimiento, Potreros, Salidas, Tendencias, Vacas por último parto, Bitácora,
- * Pendientes y Salir. Antes el menú vivía solo en el hato y
+ * Pendientes, Exportar y Salir. Antes el menú vivía solo en el hato y
  * las otras pantallas tenían cada una su encabezado —el pesaje con flecha de
  * regreso y un «Salir» suelto arriba—, así que la misma acción aparecía en
  * lugares distintos según la pestaña.
@@ -153,6 +153,16 @@ export function EncabezadoDelRancho({
             }}
           >
             Pendientes
+          </button>
+          <button
+            type="button"
+            className="encabezado-rancho__opcion"
+            onClick={() => {
+              setAbierto(false)
+              irA({ nombre: 'exportar' })
+            }}
+          >
+            Exportar
           </button>
           <button
             type="button"
