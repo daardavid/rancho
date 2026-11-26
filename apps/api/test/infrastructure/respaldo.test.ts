@@ -12,6 +12,7 @@ import { Client, Pool } from 'pg'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { filasDe, type EjecutorSql } from '../../src/infrastructure/db/filas'
+import { cargarRespaldoEnPostgres } from '../../src/infrastructure/db/cargar-respaldo'
 import { aplicarMigraciones } from '../../src/infrastructure/db/migrar'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearPuertoDeEvidencia } from '../../src/infrastructure/evidence/puerto'
@@ -359,22 +360,26 @@ describe('ida y vuelta del respaldo', () => {
     const vacia = new PGlite()
     await vacia.waitReady
     const socket = await exponerBaseLocal(vacia)
-    const cliente = new Client({ connectionString: socket.url })
-    await cliente.connect()
     try {
-      await cliente.query('BEGIN')
-      await cliente.query(sqlTexto)
-      await cliente.query('COMMIT')
-      expect(await fotoDe(drizzlePglite(vacia))).toEqual(fotoOriginal)
+      await cargarRespaldoEnPostgres(socket.url, sqlTexto)
+      const restaurada = drizzlePglite(vacia)
+      expect(await fotoDe(restaurada)).toEqual(fotoOriginal)
+      const notas = filasDe<{ nota: string }>(
+        await restaurada.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
+      )
+      expect(notas).toEqual([{ nota: 'manga de prueba' }])
     } finally {
-      await cliente.end().catch(() => undefined)
       await socket.cerrar()
       await vacia.close()
     }
   }, 120_000)
 
-  it('el mismo SQL carga en PostgreSQL de servidor cuando hay TEST_DATABASE_URL', async () => {
+  it('en el Postgres de CI deja los mismos animales, pesos y notas', async () => {
     expect(sqlTexto).toContain('INSERT INTO herd.animal')
+    expect(sqlTexto).toContain('Becerro corregido')
+    expect(sqlTexto).toContain('acuerdo de palabra, sin porcentaje')
+    expect(sqlTexto).toContain('manga de prueba')
+    expect(sqlTexto).toContain('350.000')
     expect(sqlTexto).toContain('INSERT INTO herd.animal_correction')
     expect(sqlTexto).toContain('INSERT INTO herd.animal_mark')
     expect(sqlTexto).toContain('INSERT INTO growth.weighing_line')
@@ -385,8 +390,8 @@ describe('ida y vuelta del respaldo', () => {
 
     const url = process.env['TEST_DATABASE_URL']?.trim() ?? ''
     // Sin esa variable no hay servidor: la ida y vuelta de arriba ya cargó el
-    // SQL. En CI está puesta. Si está y el servidor no responde, esto falla;
-    // no se salta.
+    // SQL en PGlite, y el archivo ya trae animales, pesos y notas. En CI está
+    // puesta. Si está y el servidor no responde, esto falla; no se salta.
     if (url === '') {
       return
     }
@@ -394,6 +399,34 @@ describe('ida y vuelta del respaldo', () => {
     const servidor = await cargarEnServidor(url, sqlTexto)
     try {
       expect(await fotoDe(servidor.db)).toEqual(fotoOriginal)
+      const animales = filasDe<{ total: string }>(
+        await servidor.db.execute(sql`SELECT count(*)::text AS total FROM herd.animal`),
+      )
+      expect(animales).toEqual([{ total: '2' }])
+      const ficha = filasDe<{ nombre: string; nota: string }>(
+        await servidor.db.execute(sql`
+          SELECT nombre, arrangement_note AS nota
+          FROM herd.animal
+          WHERE nombre = 'Becerro corregido'
+        `),
+      )
+      expect(ficha).toEqual([
+        { nombre: 'Becerro corregido', nota: 'acuerdo de palabra, sin porcentaje' },
+      ])
+      const pesos = filasDe<{ kilos: string; calidad: string }>(
+        await servidor.db.execute(sql`
+          SELECT kilos::text AS kilos, quality AS calidad
+          FROM growth.weighing_line
+          WHERE result = 'weighed'
+        `),
+      )
+      expect(
+        pesos.map((fila) => ({ kilos: canonico(fila.kilos), calidad: fila.calidad })),
+      ).toEqual([{ kilos: '350', calidad: 'measured' }])
+      const notas = filasDe<{ nota: string }>(
+        await servidor.db.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
+      )
+      expect(notas).toEqual([{ nota: 'manga de prueba' }])
     } finally {
       await servidor.cerrar()
     }
@@ -618,19 +651,12 @@ async function cargarEnServidor(
   }
 
   const conexion = urlConBase(adminUrl, nombre)
-  const cliente = new Client({ connectionString: conexion })
-  await cliente.connect()
   try {
-    await cliente.query('BEGIN')
-    await cliente.query(sqlTexto)
-    await cliente.query('COMMIT')
+    await cargarRespaldoEnPostgres(conexion, sqlTexto)
   } catch (error) {
-    await cliente.query('ROLLBACK').catch(() => undefined)
-    await cliente.end().catch(() => undefined)
     await borrarBase(adminUrl, nombre).catch(() => undefined)
     throw new Error(`El respaldo no cargó en PostgreSQL de servidor: ${mensaje(error)}`)
   }
-  await cliente.end()
 
   const pool = new Pool({ connectionString: conexion })
   const db = drizzlePg(pool)
