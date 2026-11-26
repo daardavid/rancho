@@ -7,6 +7,15 @@ import { defineConfig } from 'vite'
 // ([deployment-strategy.md](../../docs/architecture/deployment-strategy.md)).
 export default defineConfig({
   plugins: [react()],
+  build: {
+    modulePreload: {
+      // El import() de Tendencias no se precarga: si no, el celular bajaría
+      // ECharts al abrir Inicio.
+      resolveDependencies(_filename, deps) {
+        return deps.filter((dep) => !/tendencias/i.test(dep))
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

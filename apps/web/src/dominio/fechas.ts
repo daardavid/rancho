@@ -78,6 +78,19 @@ export function diaLegible(dia: string | null): string {
   return `${Number(partes[3])} ${mes} ${partes[1]}`
 }
 
+/** `"2026-11"` → `"nov 2026"`. Un mes, sin inventar el día. */
+export function mesLegible(mes: string): string {
+  const partes = /^(\d{4})-(\d{2})$/.exec(mes)
+  if (partes === null) {
+    return mes
+  }
+  const nombre = MESES[Number(partes[2]) - 1]
+  if (nombre === undefined) {
+    return mes
+  }
+  return `${nombre} ${partes[1]}`
+}
+
 /** `"2026-11-25"` → `"25 nov"`. Sin año: cabe en el renglón de la captura. */
 export function diaCorto(dia: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia)

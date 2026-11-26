@@ -7,7 +7,7 @@ import { diaDeVuelta, numeroLegible } from '../dominio/fechas'
 import { lecturaDeCrecimiento, type LecturaDeCrecimiento } from '../dominio/revision'
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
-import { BotonPrincipal } from '../ui/Botones'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { Resumen } from '../ui/Resumen'
 import { EncabezadoDelRancho } from './EncabezadoDelRancho'
 
@@ -65,6 +65,10 @@ export function Crecimiento() {
             : `Última vuelta: ${diaDeVuelta(datos.fechaDeLaUltimaVuelta)}`
         }
       />
+
+      <div className="crecimiento__tendencias">
+        <BotonSecundario alTocar={() => irA({ nombre: 'tendencias' })}>Ver tendencias</BotonSecundario>
+      </div>
 
       {ordenadas.length === 0 ? (
         <section className="vacio">

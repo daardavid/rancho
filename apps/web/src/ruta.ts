@@ -30,6 +30,8 @@ export type Ruta =
   | { readonly nombre: 'ficha'; readonly animalId: string; readonly abrirSalida?: boolean }
   | { readonly nombre: 'pesaje' }
   | { readonly nombre: 'crecimiento' }
+  /** Gráficas de la revisión. No es una pestaña: se abre con un botón. */
+  | { readonly nombre: 'tendencias' }
   /** Elegir qué animal sale del hato, desde el acceso directo de Inicio. */
   | { readonly nombre: 'salida' }
   | { readonly nombre: 'sesion'; readonly sesionId: string }
@@ -68,6 +70,9 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/crecimiento') {
     return { nombre: 'crecimiento' }
+  }
+  if (limpio === '/tendencias') {
+    return { nombre: 'tendencias' }
   }
   if (limpio === '/salida') {
     return { nombre: 'salida' }
@@ -115,6 +120,8 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/pesaje'
     case 'crecimiento':
       return '#/crecimiento'
+    case 'tendencias':
+      return '#/tendencias'
     case 'salida':
       return '#/salida'
     case 'muestra':
