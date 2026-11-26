@@ -79,7 +79,12 @@ export function Ficha({
   const dandoDeBaja = abrirSalida
   const [anotandoSanidad, setAnotandoSanidad] = useState(false)
   const [guardado, setGuardado] = useState(false)
-  const [salidaGuardada, setSalidaGuardada] = useState(false)
+  /**
+   * El aviso de la salida es de la acción que acaba de hacerse en este animal.
+   * «Volvió» solo si se deshizo la salida. No se deduce de si el animal que
+   * está en pantalla sigue activo: eso mentía al abrir otra ficha.
+   */
+  const [avisoDeSalida, setAvisoDeSalida] = useState<'regreso' | 'guardada' | null>(null)
   const [sanidadGuardada, setSanidadGuardada] = useState(false)
   const [pesoACorregir, setPesoACorregir] = useState<string | null>(null)
   const [pesoGuardado, setPesoGuardado] = useState(false)
@@ -192,9 +197,9 @@ export function Ficha({
               abrirLaBaja(false)
               void ficha.refetch()
             }}
-            alGuardar={() => {
+            alGuardar={(volvio) => {
               abrirLaBaja(false)
-              setSalidaGuardada(true)
+              setAvisoDeSalida(volvio ? 'regreso' : 'guardada')
               void ficha.refetch()
               void pesos.refetch()
             }}
@@ -243,11 +248,14 @@ export function Ficha({
               Corrección guardada. El valor anterior quedó en la historia.
             </p>
           ) : null}
-          {salidaGuardada ? (
+          {avisoDeSalida === 'regreso' ? (
             <p className="aviso aviso--bien" role="status">
-              {animal.activo
-                ? 'El animal volvió al hato activo. La salida anterior quedó en la historia.'
-                : 'Salida guardada. La ficha y la historia se quedan.'}
+              El animal volvió al hato activo. La salida anterior quedó en la historia.
+            </p>
+          ) : null}
+          {avisoDeSalida === 'guardada' ? (
+            <p className="aviso aviso--bien" role="status">
+              Salida guardada. La ficha y la historia se quedan.
             </p>
           ) : null}
           {sanidadGuardada ? (
@@ -360,7 +368,7 @@ export function Ficha({
               tono="tinta"
               alTocar={() => {
                 setGuardado(false)
-                setSalidaGuardada(false)
+                setAvisoDeSalida(null)
                 setCorrigiendo(true)
               }}
             >
@@ -369,7 +377,7 @@ export function Ficha({
             <BotonSecundario
               alTocar={() => {
                 setGuardado(false)
-                setSalidaGuardada(false)
+                setAvisoDeSalida(null)
                 abrirLaBaja(true)
               }}
             >
