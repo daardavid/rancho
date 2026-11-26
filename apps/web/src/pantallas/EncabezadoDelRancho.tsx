@@ -19,11 +19,18 @@ import { IconoMenu } from '../ui/iconos'
  * «Salir» se queda aquí, en un solo lugar. Las pantallas que no son pestaña
  * (ficha, alta, nacimiento, potreros, salidas, una sesión guardada) no lo
  * repiten: se regresan al hato y desde ahí se sale.
+ *
+ * `alRegresar` es para la pantalla que se abre desde otra y además quiere el
+ * menú: la flecha queda a la izquierda, como en la variante de regreso de la
+ * guía, y el ☰ sigue a la derecha. Tendencias se abre desde Crecimiento y es
+ * la única que usa las dos cosas a la vez.
  */
 export function EncabezadoDelRancho({
   titulo,
   subtitulo,
   acciones,
+  alRegresar,
+  etiquetaRegresar = 'Regresar',
 }: {
   readonly titulo: string
   readonly subtitulo?: ReactNode
@@ -32,6 +39,10 @@ export function EncabezadoDelRancho({
    * encabezado de la guía admite dos botones de ícono y el segundo es el menú.
    */
   readonly acciones?: readonly AccionDeEncabezado[]
+  /** La flecha de regreso, cuando la pantalla no es una pestaña. */
+  readonly alRegresar?: () => void
+  /** Qué dice la flecha. Tiene que nombrar el destino real. */
+  readonly etiquetaRegresar?: string
 }) {
   const [abierto, setAbierto] = useState(false)
   const contenedor = useRef<HTMLDivElement>(null)
@@ -70,6 +81,7 @@ export function EncabezadoDelRancho({
         etiqueta="MI RANCHO"
         titulo={titulo}
         {...(subtitulo === undefined ? {} : { subtitulo })}
+        {...(alRegresar === undefined ? {} : { alRegresar, etiquetaRegresar })}
         acciones={[
           ...delMenu.slice(0, 1),
           {

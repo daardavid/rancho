@@ -9,9 +9,10 @@ import {
   textoDeMeses,
   textoDeVueltas,
 } from '../dominio/tendencias'
+import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BotonPrincipal } from '../ui/Botones'
-import { Encabezado } from '../ui/Encabezado'
+import { EncabezadoDelRancho } from './EncabezadoDelRancho'
 import { GraficaDeMeses, GraficaDePesos, GraficaDeVueltas } from './tendencias/Lienzo'
 
 /**
@@ -19,13 +20,34 @@ import { GraficaDeMeses, GraficaDePesos, GraficaDeVueltas } from './tendencias/L
  *
  * El código de las gráficas vive en este módulo: la aplicación lo descarga
  * solo cuando se abre la pantalla.
+ *
+ * No es una pestaña: se abre desde Crecimiento y desde el menú ☰. Por eso lleva
+ * el mismo encabezado del rancho, con el menú, y además la flecha de regreso a
+ * Crecimiento. Las dos cosas dicen su destino real: la flecha regresa a
+ * Crecimiento, el menú lleva a cualquier pestaña.
  */
+
+/** Las tres formas de la pantalla dicen lo mismo en el encabezado. */
+function EncabezadoDeTendencias({ subtitulo }: { readonly subtitulo?: string }) {
+  return (
+    <EncabezadoDelRancho
+      titulo="Tendencias"
+      {...(subtitulo === undefined ? {} : { subtitulo })}
+      alRegresar={() => {
+        irA({ nombre: 'crecimiento' })
+      }}
+      etiquetaRegresar="Regresar a Crecimiento"
+    />
+  )
+}
+
 export function Tendencias() {
   const consulta = useTendencias()
 
   if (consulta.isPending) {
     return (
       <main className="pantalla">
+        <EncabezadoDeTendencias />
         <Cargando que="Trayendo las tendencias…" />
       </main>
     )
@@ -34,6 +56,7 @@ export function Tendencias() {
   if (consulta.isError) {
     return (
       <main className="pantalla">
+        <EncabezadoDeTendencias />
         <AvisoDeError error={consulta.error} />
         <BotonPrincipal alTocar={() => void consulta.refetch()}>Volver a intentar</BotonPrincipal>
       </main>
@@ -46,11 +69,7 @@ export function Tendencias() {
 function Lectura({ datos }: { readonly datos: NonNullable<ReturnType<typeof useTendencias>['data']> }) {
   return (
     <main className="pantalla pantalla--tendencias">
-      <Encabezado
-        etiqueta="MI RANCHO"
-        titulo="Tendencias"
-        subtitulo="Se calculan al verlas. Nada se guarda."
-      />
+      <EncabezadoDeTendencias subtitulo="Se calculan al verlas. Nada se guarda." />
       <Pesos series={datos.series} />
       <Vueltas vueltas={datos.vueltas} />
       <Meses
