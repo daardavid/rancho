@@ -22,6 +22,8 @@ import type { SourceQuality } from '../shared-kernel/source-quality'
  *
  * La zona del rancho es `America/Mexico_City`. «Días desde el último pesaje» se
  * cuenta contra el día de hoy en esa zona, no contra el reloj del servidor.
+ * Un peso suelto —el del destete— entra en la serie del animal y no mueve la
+ * última vuelta ni la media que se muestra con ella.
  */
 
 export type Categoria = 'calf' | 'cow' | 'bull' | 'other' | 'unknown'
@@ -83,7 +85,10 @@ export type FilaDelResumen = {
   readonly ultimoIntervalo: IntervaloDeCrecimiento | null
   /** Intervalo entre el antepenúltimo y el penúltimo peso. `null` sin tres pesos. */
   readonly intervaloAnterior: IntervaloDeCrecimiento | null
-  /** Días de calendario del rancho desde el último peso. `null` si no hay peso. */
+  /**
+   * Días desde el último peso que fue parte de una vuelta. Un peso suelto no
+   * adelanta este número. `null` si el animal no tiene un peso de vuelta.
+   */
   readonly diasDesdeElUltimoPesaje: number | null
   /** Estaba en la sesión más reciente del rancho y no se pesó. */
   readonly fueHuecoEnLaUltimaSesion: boolean
@@ -93,15 +98,17 @@ export type ResumenDelHato = {
   /** Huecos de la última sesión primero, luego la menor ganancia por día. */
   readonly animales: readonly FilaDelResumen[]
   /**
-   * Media de kilos por día del último intervalo de quienes lo tienen.
-   * Texto de tres decimales calculado en SQL. `null` si nadie lo tiene.
+   * Media de kilos por día de quienes se pesaron en la última vuelta, cada uno
+   * contra su peso anterior. No junta un intervalo que termina en otra vuelta
+   * ni en un peso suelto. Texto de tres decimales calculado en SQL. `null` si
+   * nadie lo tiene.
    */
   readonly gananciaMediaKilosPorDia: string | null
   /** Animales activos pesados en la sesión más reciente. */
   readonly pesadosEnLaUltimaVuelta: number
   /** Animales activos que estaban en esa sesión, pesados o en hueco. */
   readonly esperadosEnLaUltimaVuelta: number
-  /** Día de esa sesión. `null` si no hay ninguna. */
+  /** Día de la última vuelta. `null` si el rancho no tiene vueltas. */
   readonly fechaDeLaUltimaVuelta: string | null
 }
 
@@ -248,7 +255,8 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
               linea.position AS orden_en_sesion,
               linea.kilos AS kilos,
               linea.quality AS calidad,
-              linea.version AS version
+              linea.version AS version,
+              sesion.kind AS clase
             FROM growth.weighing_line linea
             JOIN growth.weighing_session sesion
               ON sesion.id = linea.session_id AND sesion.ranch_id = linea.ranch_id
@@ -271,8 +279,36 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
             SELECT sesion.id, sesion.weighed_on
             FROM growth.weighing_session sesion
             WHERE sesion.ranch_id = ${ranchId}
+              AND sesion.kind = 'vuelta'
             ORDER BY sesion.weighed_on DESC, sesion.recorded_at DESC, sesion.id DESC
             LIMIT 1
+          ),
+          ultimo_en_vuelta AS (
+            SELECT DISTINCT ON (animal_id)
+              animal_id,
+              fecha
+            FROM pesos
+            WHERE clase = 'vuelta'
+            ORDER BY animal_id, fecha DESC, registrado_en DESC, orden_en_sesion DESC, peso_id DESC
+          ),
+          ganancia_de_la_vuelta AS (
+            SELECT
+              CASE
+                WHEN previo.fecha IS NULL OR en_vuelta.fecha = previo.fecha THEN NULL
+                ELSE round((en_vuelta.kilos - previo.kilos) / (en_vuelta.fecha - previo.fecha), 3)
+              END AS kilos_por_dia
+            FROM pesos en_vuelta
+            LEFT JOIN LATERAL (
+              SELECT candidato.fecha, candidato.kilos
+              FROM pesos candidato
+              WHERE candidato.animal_id = en_vuelta.animal_id
+                AND (candidato.fecha, candidato.registrado_en, candidato.orden_en_sesion, candidato.peso_id)
+                  < (en_vuelta.fecha, en_vuelta.registrado_en, en_vuelta.orden_en_sesion, en_vuelta.peso_id)
+              ORDER BY candidato.fecha DESC, candidato.registrado_en DESC,
+                candidato.orden_en_sesion DESC, candidato.peso_id DESC
+              LIMIT 1
+            ) previo ON true
+            WHERE en_vuelta.sesion_id = (SELECT id FROM ultima_sesion)
           ),
           pesados AS (SELECT DISTINCT animal_id FROM pesos),
           huecos AS (
@@ -335,14 +371,15 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
                 )
               END AS ganancia_anterior,
               CASE
-                WHEN ultimo.fecha IS NULL THEN NULL
-                ELSE (${diaDelRancho}::date - ultimo.fecha)::int
+                WHEN ultimo_en_vuelta.fecha IS NULL THEN NULL
+                ELSE (${diaDelRancho}::date - ultimo_en_vuelta.fecha)::int
               END AS dias_desde_ultimo,
               huecos_ultima.animal_id IS NOT NULL AS hueco_ultima
             FROM herd.animal animal
             LEFT JOIN ultimo ON ultimo.animal_id = animal.id
             LEFT JOIN anterior ON anterior.animal_id = animal.id
             LEFT JOIN tercero ON tercero.animal_id = animal.id
+            LEFT JOIN ultimo_en_vuelta ON ultimo_en_vuelta.animal_id = animal.id
             LEFT JOIN huecos_ultima ON huecos_ultima.animal_id = animal.id
             WHERE animal.ranch_id = ${ranchId}
               AND animal.active
@@ -354,9 +391,9 @@ export function crearModelosDeCrecimiento(db: EjecutorSql): ModelosDeCrecimiento
           resumen_numeros AS (
             SELECT
               (
-                SELECT round(avg(ganancia_por_dia), 3)::text
-                FROM calculado
-                WHERE ganancia_por_dia IS NOT NULL
+                SELECT round(avg(kilos_por_dia), 3)::text
+                FROM ganancia_de_la_vuelta
+                WHERE kilos_por_dia IS NOT NULL
               ) AS media,
               (
                 SELECT count(*)::int
