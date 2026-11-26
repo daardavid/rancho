@@ -1,4 +1,4 @@
-import { useId, useState, type ChangeEvent } from 'react'
+import { useId, useState, type ChangeEvent, type ReactNode } from 'react'
 
 import { subirFoto } from '../api/evidencia'
 import { usePonerFoto } from '../api/hato'
@@ -18,6 +18,7 @@ export function FotoDelAnimal({ animal }: { readonly animal: Animal }) {
   const poner = usePonerFoto(animal.id)
   const [error, setError] = useState<unknown>(null)
   const [ocupada, setOcupada] = useState(false)
+  const [idFallido, setIdFallido] = useState<string | null>(null)
   const foto = animal.foto
   const etiqueta = foto === null ? 'Agregar foto' : 'Cambiar foto'
 
@@ -55,16 +56,27 @@ export function FotoDelAnimal({ animal }: { readonly animal: Animal }) {
     elegir(archivo)
   }
 
-  return (
-    <section className="ficha__seccion foto-animal">
-      <h2 className="ficha__titulo">Foto</h2>
-      {foto === null ? null : (
+  let imagen: ReactNode = null
+  if (foto !== null) {
+    imagen =
+      idFallido === foto.evidenciaId ? (
+        <p className="campo__ayuda">La foto se registró, pero no se encuentra.</p>
+      ) : (
         <img
           className="ficha__foto"
           alt={`Foto de ${nombreVisible(animal)}`}
           src={`/api/evidencia/${foto.evidenciaId}`}
+          onError={() => {
+            setIdFallido(foto.evidenciaId)
+          }}
         />
-      )}
+      )
+  }
+
+  return (
+    <section className="ficha__seccion foto-animal">
+      <h2 className="ficha__titulo">Foto</h2>
+      {imagen}
       <label className="campo__etiqueta" htmlFor={id}>
         {etiqueta}
       </label>

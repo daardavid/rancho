@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { Etiqueta, type TonoDeEtiqueta } from './Etiqueta'
 import { Miniatura } from './Miniatura'
@@ -40,12 +40,22 @@ function Cuerpo({
   readonly categoria: CategoriaVisual
   readonly miniaturaId?: string | null
 }) {
+  const [idRoto, setIdRoto] = useState<string | null>(null)
+  const hayMiniatura =
+    miniaturaId !== null && miniaturaId !== undefined && idRoto !== miniaturaId
   return (
     <>
-      {miniaturaId === null || miniaturaId === undefined ? (
-        <span className={`ui-avatar ui-avatar--${categoria}`}>{iniciales(nombre)}</span>
+      {hayMiniatura ? (
+        <Miniatura
+          id={miniaturaId}
+          alFallar={() => {
+            if (miniaturaId !== null && miniaturaId !== undefined) {
+              setIdRoto(miniaturaId)
+            }
+          }}
+        />
       ) : (
-        <Miniatura id={miniaturaId} />
+        <span className={`ui-avatar ui-avatar--${categoria}`}>{iniciales(nombre)}</span>
       )}
       <span className="ui-fila__texto">
         <span className="ui-fila__nombre">{nombre}</span>
