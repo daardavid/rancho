@@ -126,7 +126,7 @@ describe('pantalla Potreros', () => {
     expect(screen.queryByRole('button', { name: 'Agregar un potrero' })).toBeNull()
   })
 
-  it('abre el alta de potrero y manda el nombre que el rancho usa', async () => {
+  it('abre el alta de potrero y la tarjeta de «Empieza con un potrero» desaparece', async () => {
     const usuario = userEvent.setup()
     const api = montarApi({
       'GET /api/session': sesionAbierta(),
@@ -140,6 +140,12 @@ describe('pantalla Potreros', () => {
 
     pintarApp('#/potreros')
     await usuario.click(await screen.findByRole('button', { name: 'Agregar el primer potrero' }))
+
+    // La invitación ya no está: el formulario es lo que hay en pantalla, y una
+    // tarjeta vacía al lado del formulario solo estorba.
+    expect(screen.queryByText('Empieza con un potrero')).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Nuevo potrero' })).toBeDefined()
+
     await usuario.type(screen.getByLabelText('Nombre del potrero'), 'El Zapote')
     await usuario.click(screen.getByRole('button', { name: 'Agregar potrero' }))
 
@@ -357,7 +363,8 @@ describe('Mover a… en el hato', () => {
 
     const destino = within(screen.getByRole('radiogroup', { name: '¿A qué potrero?' }))
     await usuario.click(destino.getByRole('radio', { name: 'El Zapote' }))
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    // El botón dice el destino: no hay que adivinar a dónde se mueven.
+    await usuario.click(screen.getByRole('button', { name: 'Mover 2 al Zapote' }))
 
     const movimiento = api.peticiones.find(
       (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',
@@ -367,6 +374,61 @@ describe('Mover a… en el hato', () => {
       [ANIMAL_A, ANIMAL_B].sort(),
     )
     expect(new Set(movimiento.cuerpo.animales.map((animal) => animal.asignacionId)).size).toBe(2)
+  })
+
+  it('crear el potrero desde «Mover a…» lo deja elegido y mueve en la misma pasada', async () => {
+    const usuario = userEvent.setup()
+    const NUEVO = '77777777-7777-4777-8777-777777777777'
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen(),
+      'GET /api/paddocks': () => ({
+        estado: 200,
+        cuerpo: { potreros: [], sinAsignacion: 2, desconocidos: 0 },
+      }),
+      'GET /api/locations': sinLugares(),
+      'POST /api/paddocks': () => ({
+        estado: 201,
+        cuerpo: {
+          id: NUEVO,
+          nombre: 'Potrero Norte',
+          nota: null,
+          version: 1,
+          recordedBy: CUENTA,
+          recordedAt: CUANDO,
+          correcciones: [],
+        },
+      }),
+      'POST /api/locations': () => ({ estado: 201, cuerpo: { asignaciones: [] } }),
+    })
+
+    pintarApp('#/hato')
+    await screen.findByText('Canelo')
+
+    await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Lucero' }))
+
+    // Sin salir al menú: el potrero se crea aquí mismo.
+    await usuario.click(screen.getByRole('button', { name: 'Crear un potrero nuevo' }))
+    await usuario.type(screen.getByLabelText('Nombre del potrero nuevo'), 'Potrero Norte')
+    await usuario.click(screen.getByRole('button', { name: 'Agregar potrero' }))
+
+    // Queda elegido y el botón final dice el destino.
+    const destino = await screen.findByRole('radiogroup', { name: '¿A qué potrero?' })
+    expect(
+      (within(destino).getByRole('radio', { name: 'Potrero Norte' }) as HTMLInputElement).checked,
+    ).toBe(true)
+    await usuario.click(screen.getByRole('button', { name: 'Mover 2 a Potrero Norte' }))
+
+    const movimiento = api.peticiones.find(
+      (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',
+    ) as { cuerpo: { potreroId: string; animales: { animalId: string }[] } }
+    expect(movimiento.cuerpo.potreroId).toBe(NUEVO)
+    expect(movimiento.cuerpo.animales.map((animal) => animal.animalId).sort()).toEqual(
+      [ANIMAL_A, ANIMAL_B].sort(),
+    )
   })
 
   it('«No sé» es un destino válido y viaja como nulo', async () => {
@@ -389,7 +451,7 @@ describe('Mover a… en el hato', () => {
         name: 'No sé',
       }),
     )
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 1 a «No sé»' }))
 
     const movimiento = api.peticiones.find(
       (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',
@@ -437,7 +499,7 @@ describe('Mover a… en el hato', () => {
     await usuario.click(screen.getByRole('button', { name: /Más datos/ }))
     await usuario.type(screen.getByLabelText('¿Quién lo dijo?'), 'el vaquero')
     await usuario.type(screen.getByLabelText('Nota'), 'los pasaron al lote')
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 1 al Zapote' }))
 
     const movimiento = api.peticiones.find(
       (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',
@@ -476,9 +538,9 @@ describe('Mover a… en el hato', () => {
       }),
     )
 
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 2 al Zapote' }))
     await screen.findByRole('alert')
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 2 al Zapote' }))
 
     const movimientos = api.peticiones.filter(
       (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',
@@ -518,7 +580,7 @@ describe('Mover a… en el hato', () => {
       }),
     )
 
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 1 al Zapote' }))
     await screen.findByRole('alert')
 
     // Otro destino: es otro movimiento, así que hace falta otro comando.
@@ -527,7 +589,7 @@ describe('Mover a… en el hato', () => {
         name: 'La Esperanza',
       }),
     )
-    await usuario.click(screen.getByRole('button', { name: 'Mover a…' }))
+    await usuario.click(screen.getByRole('button', { name: 'Mover 1 a la Esperanza' }))
 
     const movimientos = api.peticiones.filter(
       (peticion) => peticion.metodo === 'POST' && peticion.ruta === '/api/locations',

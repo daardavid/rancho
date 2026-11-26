@@ -47,18 +47,25 @@ export function puedeRegistrarNacimiento(animal: {
   return animal.sexo === 'female' && animal.categoria !== 'calf' && animal.categoria !== 'bull'
 }
 
-/** Madre posible en el formulario: no es toro ni becerro, y no es macho. */
+/**
+ * Madre posible en el buscador del nacimiento: una hembra activa o un animal
+ * cuyo sexo no se sabe, y que siga en el hato. Un macho no se ofrece nunca, un
+ * becerro tampoco (no pare) y un animal dado de baja mucho menos.
+ *
+ * «No sé» en el sexo no se descarta: el rancho casi siempre sabe que la vaca es
+ * vaca, pero cuando el dato falta lo desconocido sigue siendo una respuesta
+ * válida, y el dueño la elige a mano.
+ */
 export function puedeSerMadre(animal: {
   readonly categoria: string
   readonly sexo: string
+  readonly activo?: boolean
 }): boolean {
-  if (animal.categoria === 'bull' || animal.sexo === 'male' || animal.categoria === 'calf') {
+  if (animal.activo === false) {
     return false
   }
-  return (
-    animal.categoria === 'cow' ||
-    animal.sexo === 'female' ||
-    animal.categoria === 'unknown' ||
-    animal.categoria === 'other'
-  )
+  if (animal.categoria === 'bull' || animal.categoria === 'calf' || animal.sexo === 'male') {
+    return false
+  }
+  return animal.sexo === 'female' || animal.sexo === 'unknown'
 }

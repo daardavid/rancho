@@ -18,7 +18,7 @@ import { Muestra } from './pantallas/Muestra'
 import { Nacimiento } from './pantallas/Nacimiento'
 import { Pesaje } from './pantallas/Pesaje'
 import { Sesion } from './pantallas/Sesion'
-import { useRuta } from './ruta'
+import { rutaAHash, useRuta } from './ruta'
 
 /**
  * La aplicación entera: sesión, ruta y la pantalla que toca.
@@ -40,6 +40,19 @@ export function App() {
   const sesion = useSesion()
   const ruta = useRuta()
   const cache = useQueryClient()
+
+  /**
+   * Una pantalla nueva abre arriba.
+   *
+   * El navegador conserva la posición del desplazamiento al cambiar solo el
+   * `hash`: si se venía del final de una lista larga, Potreros abría con su
+   * encabezado a media altura. Volver al inicio de la pantalla es lo que el
+   * dueño espera al entrar a otra cosa.
+   */
+  const claveDeRuta = rutaAHash(ruta)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [claveDeRuta])
 
   // La API avisa cuando contesta 401 a cualquier consulta o comando. La sesión
   // se marca como ausente aquí, en la caché de esta aplicación.

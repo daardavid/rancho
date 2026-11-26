@@ -108,24 +108,22 @@ export function Potreros() {
         </section>
       ) : null}
 
-      {lista.length === 0 ? (
+      {lista.length === 0 && !creando ? (
         <Tarjeta>
           <h2 className="vacio__titulo">Empieza con un potrero</h2>
           <p className="vacio__texto">
             Con el nombre que le dice el rancho basta. Si todavía no tiene nombre, se puede anotar
             sin él y ponerle nombre después.
           </p>
-          {creando ? null : (
-            <BotonPrincipal
-              alTocar={() => {
-                setCreando(true)
-              }}
-            >
-              Agregar el primer potrero
-            </BotonPrincipal>
-          )}
+          <BotonPrincipal
+            alTocar={() => {
+              setCreando(true)
+            }}
+          >
+            Agregar el primer potrero
+          </BotonPrincipal>
         </Tarjeta>
-      ) : (
+      ) : lista.length === 0 ? null : (
         <ul className="hato__lista">
           {lista.map((potrero) => (
             <li key={potrero.id}>

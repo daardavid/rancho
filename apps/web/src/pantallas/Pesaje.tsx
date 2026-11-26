@@ -23,7 +23,7 @@ import { irA } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
 import { BarraDeAccion } from '../ui/BarraDeAccion'
 import { BarraDeAvance } from '../ui/BarraDeAvance'
-import { BotonPrincipal } from '../ui/Botones'
+import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeTexto, Seccion } from '../ui/Campos'
 import { CampoDeKilos } from '../ui/CampoDeKilos'
 import { FotoDeLaBascula } from '../ui/FotoDeLaBascula'
@@ -223,6 +223,14 @@ function EditorDeSesion({
   const registrar = useRegistrarPesaje()
   const [busqueda, setBusqueda] = useState('')
   const [buscando, setBuscando] = useState(false)
+  /**
+   * Los animales marcados en la lista de «Agregar», todavía no en la sesión.
+   *
+   * Se marcan varios y se agregan de una vez: en una vuelta de la manga entran
+   * los mismos becerros casi siempre. Marcar no toca la sesión, así que
+   * desmarcar nunca borra kilos ya escritos.
+   */
+  const [marcados, setMarcados] = useState<readonly string[]>([])
   const [masDatos, setMasDatos] = useState(borrador.nota !== '' || borrador.reportedBy !== '')
   const [intentado, setIntentado] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
@@ -252,6 +260,18 @@ function EditorDeSesion({
       (animal) => !enLaSesion.has(animal.id) && (limpio === '' || coincide(animal, limpio)),
     )
   }, [animales, filas, busqueda])
+
+  /**
+   * Los becerros activos que todavía no están en la sesión.
+   *
+   * Es el atajo de la vuelta de la manga: el hato trae solo activos, así que un
+   * becerro dado de baja no puede aparecer aquí. Lo dice la categoría, no la
+   * edad: una cría con categoría «No sé» no se agrega por este botón.
+   */
+  const becerrosFuera = useMemo(() => {
+    const enLaSesion = new Set(filas.map((fila) => fila.animalId))
+    return animales.filter((animal) => animal.categoria === 'calf' && !enLaSesion.has(animal.id))
+  }, [animales, filas])
 
   // La foto termina de subir después de que el dueño ya siguió capturando.
   // El cambio se aplica al borrador de ahora: si se usara el de cuando se
@@ -291,15 +311,24 @@ function EditorDeSesion({
     })
   }
 
-  const agregarAnimal = (animalId: string): void => {
-    const fila = filaNueva(animalId)
+  /**
+   * Agrega varios de un solo toque. El turno se queda en el primero nuevo
+   * —no en el último—, que es el orden en que pasan por la manga.
+   */
+  const agregarAnimales = (animalIds: readonly string[]): void => {
+    const enLaSesion = new Set(filas.map((fila) => fila.animalId))
+    const nuevos = animalIds.filter((animalId) => !enLaSesion.has(animalId)).map(filaNueva)
+    if (nuevos.length === 0) {
+      return
+    }
     setBusqueda('')
     setBuscando(false)
+    setMarcados([])
     setCerrada(false)
-    setElegida(fila.id)
+    setElegida(nuevos[0]?.id ?? null)
     alCambiar((actual) => {
       const base = actual ?? borradorVigente.current
-      return { ...base, filas: [...base.filas, fila] }
+      return { ...base, filas: [...base.filas, ...nuevos] }
     })
   }
 
@@ -480,6 +509,10 @@ function EditorDeSesion({
           className="pesaje__agregar"
           onClick={() => {
             setBuscando((actual) => !actual)
+            // Cerrar la lista descarta lo marcado: no se agrega a escondidas lo
+            // que se marcó antes de cerrarla.
+            setMarcados([])
+            setBusqueda('')
           }}
         >
           <IconoMas tamano={18} />
@@ -488,11 +521,22 @@ function EditorDeSesion({
 
         {buscando ? (
           <div className="pesaje__extra">
+            {becerrosFuera.length === 0 ? null : (
+              <BotonSecundario
+                alTocar={() => {
+                  agregarAnimales(becerrosFuera.map((animal) => animal.id))
+                }}
+              >
+                {becerrosFuera.length === 1
+                  ? 'Agregar el becerro activo'
+                  : `Agregar los ${String(becerrosFuera.length)} becerros activos`}
+              </BotonSecundario>
+            )}
             <CampoDeTexto
               etiqueta="Buscar"
               valor={busqueda}
               alCambiar={setBusqueda}
-              ayuda="Por nombre, seña o arete."
+              ayuda="Por nombre, seña o arete. Marca los que quieras y agrégalos de una vez."
             />
             {sugeridos.length === 0 ? (
               <p className="campo__ayuda">
@@ -502,22 +546,49 @@ function EditorDeSesion({
               </p>
             ) : (
               <ul className="pesaje__lista">
-                {sugeridos.map((animal) => (
-                  <li key={animal.id}>
-                    <button
-                      type="button"
-                      className="pesaje__sugerido"
-                      onClick={() => {
-                        agregarAnimal(animal.id)
-                      }}
-                    >
-                      <span className="pesaje__sugerido-nombre">+ {nombreVisible(animal)}</span>
-                      <span className="pesaje__sugerido-datos">{datosDelAnimal(animal)}</span>
-                    </button>
-                  </li>
-                ))}
+                {sugeridos.map((animal) => {
+                  const marcado = marcados.includes(animal.id)
+                  const nombre = nombreVisible(animal)
+                  return (
+                    <li key={animal.id}>
+                      <label className={marcado ? 'pesaje__sugerido pesaje__sugerido--marcado' : 'pesaje__sugerido'}>
+                        <input
+                          type="checkbox"
+                          className="pesaje__sugerido-casilla"
+                          checked={marcado}
+                          aria-label={`Elegir a ${nombre}`}
+                          onChange={(evento) => {
+                            setMarcados((actuales) =>
+                              evento.target.checked
+                                ? [...actuales, animal.id]
+                                : actuales.filter((id) => id !== animal.id),
+                            )
+                          }}
+                        />
+                        <span className="pesaje__sugerido-texto">
+                          <span className="pesaje__sugerido-nombre">{nombre}</span>
+                          <span className="pesaje__sugerido-datos">{datosDelAnimal(animal)}</span>
+                        </span>
+                      </label>
+                    </li>
+                  )
+                })}
               </ul>
             )}
+            {/* Un solo animal se agrega con su casilla y «Agregar»; el atajo de
+                «Agregar todos los becerros» está arriba, siempre visible. */}
+            <BotonSecundario
+              alTocar={() => {
+                agregarAnimales(marcados)
+              }}
+              deshabilitado={marcados.length === 0}
+            >
+              {marcados.length === 0
+                ? 'Agregar los marcados'
+                : marcados.length === 1
+                  ? 'Agregar 1 animal'
+                  : `Agregar ${String(marcados.length)} animales`}
+            </BotonSecundario>
           </div>
         ) : null}
 

@@ -55,7 +55,7 @@ test('un potrero, un grupo movido y el lugar vigente en la ficha', async ({ page
     .getByRole('radiogroup', { name: '¿A qué potrero?' })
     .getByRole('radio', { name: potrero })
     .check()
-  await page.getByRole('button', { name: 'Mover a…', exact: true }).click()
+  await page.getByRole('button', { name: `Mover 2 a ${potrero}` }).click()
 
   // El conteo del potrero es una consulta: se ve al volver a su pantalla.
   await page.getByRole('button', { name: 'Menú' }).click()

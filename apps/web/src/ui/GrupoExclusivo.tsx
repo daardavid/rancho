@@ -58,10 +58,17 @@ export function GrupoExclusivo({
               key={opcion.valor}
               className={activa ? `${claseOpcion} ui-opcion ${claseOpcion}--activa` : `${claseOpcion} ui-opcion`}
             >
+              {/*
+                El nombre se fija con `aria-label` además del texto visible: el
+                texto de la opción es su nombre, nunca el `value`. Así una
+                opción de potrero se anuncia «El Zapote» y no el id con el que
+                viaja al servidor.
+              */}
               <input
                 type="radio"
                 name={nombre}
                 value={opcion.valor}
+                aria-label={opcion.texto}
                 checked={activa}
                 onChange={() => {
                   alElegir(opcion.valor)
