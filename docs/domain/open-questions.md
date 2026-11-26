@@ -6,7 +6,7 @@ Lo que esta versión no responde. No se completa con suposiciones.
 - P1 importa pronto, sin impedir un primer relato del rancho.
 - P2 sirve más adelante.
 
-Conteo de esta versión: P0 = 7, P1 = 14, P2 = 9.
+Conteo de esta versión: P0 = 7, P1 = 14, P2 = 10.
 
 ## P0
 
