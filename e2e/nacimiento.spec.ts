@@ -38,18 +38,34 @@ test('el nacimiento deja la cría en la familia de la vaca', async ({ page }) =>
 
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
   await expect(page.getByRole('heading', { name: 'Nacimiento' })).toBeVisible()
-  await expect(page.getByLabel('Madre').locator('option:checked')).toHaveText(vaca)
+  // La madre viene elegida desde su ficha y se ve en el buscador, sin desplegar
+  // una lista: es la misma elección, con el mismo buscador de todas.
+  await expect(page.getByText(vaca, { exact: true }).first()).toBeVisible()
+  await expect(page.getByLabel('Buscar la madre')).toHaveValue('')
   await expect(page.getByRole('radio', { name: 'La vi' })).not.toBeChecked()
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
   await expect(page.getByRole('alert')).toContainText('viste a la madre')
 
   await page.getByRole('radio', { name: 'La vi' }).check()
+
+  /*
+   * El padre solo se pregunta cuando hay un solo toro activo. La base es una
+   * sola para toda la corrida y otra prueba puede haber dado de alta otro toro:
+   * en ese caso el formulario dice que «único toro» no aplica y el padre se
+   * queda en «No sé». Las dos situaciones son correctas; lo que no se acepta es
+   * que «Inferido: único toro» venga marcado.
+   */
   const padre = page.getByRole('radiogroup', { name: 'Padre' })
-  await expect(padre.getByRole('radio', { name: 'No sé' })).not.toBeChecked()
-  await expect(padre.getByRole('radio', { name: /Inferido: único toro/ })).not.toBeChecked()
-  await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
-  await expect(page.getByRole('alert')).toContainText('viste al padre')
-  await padre.getByRole('radio', { name: 'No sé' }).check()
+  if ((await padre.count()) > 0) {
+    await expect(padre.getByRole('radio', { name: 'No sé' })).not.toBeChecked()
+    await expect(padre.getByRole('radio', { name: /Inferido: único toro/ })).not.toBeChecked()
+    await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
+    await expect(page.getByRole('alert')).toContainText('viste al padre')
+    await padre.getByRole('radio', { name: 'No sé' }).check()
+  } else {
+    // Con más de un toro no se inventa padre: se dice que no se puede inferir.
+    await expect(page.getByText(/Hay más de un toro activo/)).toBeVisible()
+  }
 
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
   await expect(page.getByRole('heading', { name: 'Familia' })).toBeVisible()

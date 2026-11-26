@@ -83,6 +83,77 @@ export async function darDeAltaConNombre(page: Page, nombre: string): Promise<vo
   await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
 }
 
+/**
+ * Da de alta un animal con nombre y tipo, y regresa al hato.
+ *
+ * El tipo importa para las capturas que separan becerros de vacas: «Agregar los
+ * becerros activos» mira la categoría, no la edad.
+ */
+export async function darDeAltaComo(
+  page: Page,
+  nombre: string,
+  categoria: 'Becerro' | 'Vaca' | 'Toro',
+): Promise<void> {
+  await abrirAlta(page)
+  await page.getByLabel('Nombre o seña').fill(nombre)
+  await page.getByRole('radio', { name: categoria, exact: true }).check()
+  await guardarAlta(page)
+  await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
+  await page.getByRole('button', { name: 'Regresar al hato' }).click()
+  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+}
+
+/**
+ * Da de baja un animal desde su ficha, con el motivo en «No sé».
+ *
+ * Un animal dado de baja no está en el hato activo: es lo que prueba que el
+ * pesaje no lo vuelve a proponer.
+ */
+export async function darDeBaja(page: Page, nombre: string): Promise<void> {
+  await page.getByRole('button', { name: new RegExp(escapeRegex(nombre)) }).click()
+  await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
+  await page.getByRole('button', { name: 'Dar de baja' }).click()
+  await page.getByRole('button', { name: 'Dar de baja', exact: true }).click()
+  await expect(page.getByText('Ya no está en el hato')).toBeVisible()
+}
+
+/**
+ * El borrador del pesaje que vive en este navegador: la captura tal como quedó.
+ *
+ * Es la lectura más precisa de qué animales entraron a la sesión, y no depende
+ * de cómo se pinten los renglones.
+ */
+export async function filasDelBorrador(page: Page): Promise<readonly string[]> {
+  return page.evaluate(() => {
+    const guardado = window.localStorage.getItem('rancho.pesaje.borrador')
+    if (guardado === null) {
+      return []
+    }
+    const borrador = JSON.parse(guardado) as { filas?: { animalId?: string }[] }
+    return (borrador.filas ?? []).map((fila) => fila.animalId ?? '')
+  })
+}
+
+/** Los animales que la API considera activos, y los que ya salieron. */
+export async function animalesDeLaApi(page: Page): Promise<{
+  activos: { id: string; categoria: string; nombre: string | null }[]
+  salidas: { id: string; categoria: string; nombre: string | null }[]
+}> {
+  return page.evaluate(async () => {
+    const activos = (await (await fetch('/api/animals')).json()) as {
+      animales: { id: string; categoria: string; nombre: string | null }[]
+    }
+    const salidas = (await (await fetch('/api/animals?estado=salidas')).json()) as {
+      animales: { id: string; categoria: string; nombre: string | null }[]
+    }
+    return { activos: activos.animales, salidas: salidas.animales }
+  })
+}
+
+export function escapeRegex(texto: string): string {
+  return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /** Va a una pantalla de la barra de abajo. */
 export async function irA(
   page: Page,

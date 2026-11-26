@@ -191,7 +191,7 @@ test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) 
   await expect(page.getByLabel('Buscar', { exact: true })).toHaveValue('')
 })
 
-/** Busca el animal en el pesaje y lo agrega a la vuelta. */
+/** Busca el animal en el pesaje, lo marca y lo agrega a la vuelta. */
 async function agregarAlPesaje(
   page: import('@playwright/test').Page,
   nombre: string,
@@ -201,7 +201,9 @@ async function agregarAlPesaje(
     await page.getByRole('button', { name: 'Agregar otro animal' }).click()
   }
   await buscar.fill(nombre)
-  await page.getByRole('button', { name: new RegExp(`\\+ ${escapeRegex(nombre)}`) }).click()
+  // Se marca en la lista y se agrega: la lista admite varios de una vez.
+  await page.getByRole('checkbox', { name: `Elegir a ${nombre}` }).check()
+  await page.getByRole('button', { name: 'Agregar 1 animal' }).click()
   await expect(renglonDe(page, nombre)).toBeVisible()
 }
 
