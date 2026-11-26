@@ -4,6 +4,7 @@ import type { PuertoDeEvidencia } from '../infrastructure/evidence/puerto'
 import type { CapturaDeDestete } from '../application/destete'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
+import type { Journal } from '../modules/journal'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
 import type {
   ModelosDeCrecimiento,
@@ -25,6 +26,7 @@ import { registrarRutasDePresencia } from './routes/presencia'
 import { registrarRutasDeResumen } from './routes/resumen'
 import { registrarRutasDeCria, registrarRutasDePrenez } from './routes/cria'
 import { registrarRutasDeDestete } from './routes/destete'
+import { registrarRutasDeBitacora } from './routes/bitacora'
 import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
 import { registrarRutasDeTendencias } from './routes/tendencias'
@@ -54,6 +56,8 @@ export type OpcionesApp = {
   readonly cria?: ModelosDeCria
   /** Si falta, anotar un destete no se monta. Corregirlo también pide Herd. */
   readonly destete?: CapturaDeDestete
+  /** Si falta, la bitácora y los pendientes no se montan. */
+  readonly journal?: Journal
   /**
    * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
    * base corren así; el proceso de verdad siempre la monta.
@@ -145,6 +149,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.cria !== undefined) {
     registrarRutasDeCria(app, opciones.cria)
+  }
+  if (opciones.journal !== undefined) {
+    registrarRutasDeBitacora(app, opciones.journal)
   }
 
   return app

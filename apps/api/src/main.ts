@@ -14,6 +14,7 @@ import { crearPuertoDeEvidencia } from './infrastructure/evidence/puerto'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
+import { crearJournal } from './modules/journal'
 import {
   crearModelosDeCrecimiento,
   crearModelosDeCria,
@@ -59,6 +60,7 @@ export async function arrancar(): Promise<FastifyInstance> {
     tendencias: crearModelosDeTendencias(cliente.db),
     cria: crearModelosDeCria(cliente.db),
     destete: crearCapturaDeDestete(cliente.db, evidencia),
+    journal: crearJournal(cliente.db, herd, evidencia),
     base: comprobacionDeBase(cliente.db),
     produccion: configuracion.cookieSegura,
   })
