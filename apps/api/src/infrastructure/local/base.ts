@@ -24,6 +24,12 @@ export type CuentaPedida = {
   readonly contrasena: string
 }
 
+export type CuentaLocal = {
+  readonly id: string
+  readonly usuario: string
+  readonly rol: string
+}
+
 export type PreparacionLocal = {
   readonly ranchId: string
   readonly ranchoCreado: boolean
@@ -32,6 +38,8 @@ export type PreparacionLocal = {
   readonly cuentaId: string | null
   readonly usuario: string | null
   readonly rol: string | null
+  /** Usuarios que ya había, o el que acaba de crearse. Nunca la contraseña. */
+  readonly usuarios: readonly string[]
 }
 
 type BaseLocal = {
@@ -84,17 +92,18 @@ export async function prepararInstalacionLocal(
   await aplicarMigraciones(db as PgliteDatabase<Record<string, never>>)
   const rancho = await sembrarRancho(db, opciones.nombreDelRancho)
 
-  const antes = await contarCuentas(db)
-  if (antes > 0) {
-    const existente = await primeraCuenta(db)
+  const existentes = await listarCuentasLocales(db)
+  const primera = existentes[0]
+  if (primera !== undefined) {
     return {
       ranchId: rancho.id,
       ranchoCreado: rancho.creado,
       cuentaCreada: false,
-      cuentas: antes,
-      cuentaId: existente?.id ?? null,
-      usuario: existente?.usuario ?? null,
-      rol: existente?.rol ?? null,
+      cuentas: existentes.length,
+      cuentaId: primera.id,
+      usuario: primera.usuario,
+      rol: primera.rol,
+      usuarios: existentes.map((cuenta) => cuenta.usuario),
     }
   }
 
@@ -104,14 +113,16 @@ export async function prepararInstalacionLocal(
     usuario: pedida.usuario,
     contrasena: pedida.contrasena,
   })
+  const usuario = pedida.usuario.trim()
   return {
     ranchId: rancho.id,
     ranchoCreado: rancho.creado,
     cuentaCreada: true,
     cuentas: 1,
     cuentaId: cuenta.id,
-    usuario: pedida.usuario.trim(),
+    usuario,
     rol: cuenta.rol,
+    usuarios: [usuario],
   }
 }
 
@@ -146,35 +157,15 @@ export async function exponerBaseLocal(cliente: PGlite): Promise<{
   }
 }
 
-async function contarCuentas(db: EjecutorSql): Promise<number> {
-  const filas = filasDe<{ total: unknown }>(
-    await db.execute(sql`SELECT count(*) AS total FROM identity.account`),
-  )
-  return comoNumero(filas[0]?.total)
-}
-
-async function primeraCuenta(
-  db: EjecutorSql,
-): Promise<{ id: string; usuario: string; rol: string } | null> {
-  const filas = filasDe<{ id: string; usuario: string; rol: string }>(
+/** Cuentas de esta instalación, de la más antigua a la más nueva. */
+export async function listarCuentasLocales(db: EjecutorSql): Promise<CuentaLocal[]> {
+  return filasDe<CuentaLocal>(
     await db.execute(sql`
       SELECT id, usuario, rol
       FROM identity.account
       ORDER BY created_at
-      LIMIT 1
     `),
   )
-  return filas[0] ?? null
-}
-
-function comoNumero(valor: unknown): number {
-  if (typeof valor === 'bigint' || typeof valor === 'number') {
-    return Number(valor)
-  }
-  if (typeof valor === 'string' && valor.trim() !== '') {
-    return Number(valor)
-  }
-  throw new Error('No pude contar las cuentas.')
 }
 
 function texto(error: unknown): string {
