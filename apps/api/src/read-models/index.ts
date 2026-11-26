@@ -21,6 +21,16 @@ export {
 } from './crecimiento'
 export { crearModelosDeTendencias, type ModelosDeTendencias } from './tendencias'
 export {
+  crearModelosDeCria,
+  type DiagnosticoEnLaVista,
+  type FilaDeVaca,
+  type HistorialDeCria,
+  type IntervaloEntrePartos,
+  type ListaDeVacas,
+  type ModelosDeCria,
+  type Parto,
+} from './cria'
+export {
   crearModelosDePresencia,
   type AnimalDelInicio,
   type AnimalSinVerse,
