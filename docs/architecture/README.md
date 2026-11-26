@@ -85,6 +85,7 @@ Rejected as standalone contexts: Reproduction, Health, Presence, Security, Land,
 | [adr/ADR-015-local-embedded-postgresql.md](adr/ADR-015-local-embedded-postgresql.md) | Proposed. Single-user local mode runs on embedded PostgreSQL with a data folder. Production stays managed PostgreSQL (ADR-007) |
 | [adr/ADR-016-publicacion.md](adr/ADR-016-publicacion.md) | Proposed. Free publication: Render web service plus Neon Postgres. Does not publish, and does not close AQ-P1-006 until accepted |
 | [adr/ADR-017-graficas.md](adr/ADR-017-graficas.md) | Proposed. Apache ECharts, modular, loaded only when Tendencias opens. Not part of the accepted stack until David merges it |
+| [adr/ADR-018-bitacora.md](adr/ADR-018-bitacora.md) | Proposed. Module `journal` for the ranch log and the owner's reminders. Not part of the five-module logical baseline until David merges it |
 
 Physical ADRs are accepted as the Physical Architecture v1 baseline. They do not scaffold the application.
 
