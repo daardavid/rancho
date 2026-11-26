@@ -711,3 +711,34 @@ describe('Una sola acción de cada cosa', () => {
     expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
   })
 })
+
+describe('foto en la lista del hato', () => {
+  it('pide la miniatura y no la foto completa', async () => {
+    const original = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const miniatura = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [
+            animalDeLista({
+              id: BECERRO_A,
+              nombre: 'Canelo',
+              categoria: 'calf',
+              foto: { evidenciaId: original, miniaturaId: miniatura, version: 1 },
+            }),
+          ],
+        },
+      }),
+      'GET /api/read-models/growth-overview': elResumen([]),
+    })
+
+    pintarApp('#/hato')
+
+    const fila = await screen.findByRole('button', { name: /Canelo/ })
+    const imagen = fila.querySelector('img')
+    expect(imagen?.getAttribute('src')).toBe(`/api/evidencia/${miniatura}`)
+    expect(document.body.querySelector(`img[src="/api/evidencia/${original}"]`)).toBeNull()
+  })
+})

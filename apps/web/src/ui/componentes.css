@@ -347,6 +347,15 @@
   color: var(--texto-suave);
 }
 
+.ui-miniatura {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: none;
+  background: var(--neutro-fondo);
+}
+
 .ui-fila__texto {
   flex: 1;
   min-width: 0;

@@ -16,6 +16,13 @@ import { abrirBaseLocal } from './base'
 export const CONFIRMACION_DE_RESTAURACION = 'RESTAURAR'
 
 /**
+ * El SQL guarda qué foto es de qué animal, no los bytes. La misma idea que
+ * `npm run cargar-respaldo`: las imágenes se quedan en la carpeta de evidencia.
+ */
+export const AVISO_FOTOS_FUERA_DEL_SQL =
+  'Las fotos no van en el archivo SQL: solo sus datos. Los bytes se quedan en la carpeta de evidencia.'
+
+/**
  * Esquemas de la app. `evidence` guarda los metadatos de las fotos: sin él,
  * una base restaurada queda sin `evidence.file` y `db:migrate` no lo vuelve a
  * crear porque la migración ya está marcada en `drizzle`. `journal` guarda

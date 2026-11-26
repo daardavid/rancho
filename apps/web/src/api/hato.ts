@@ -4,6 +4,7 @@ import {
   corregirAnimalSchema,
   crecimientoDelHatoSchema,
   fichaConHistoriaSchema,
+  fotoPuestaSchema,
   listaDeAnimalesSchema,
   marcaSchema,
   marcarPerdidaSchema,
@@ -16,6 +17,7 @@ import {
   type CorregirAnimal,
   type MarcarPerdida,
   type CorregirSalida,
+  type PonerFoto,
   type RegistrarAnimal,
   type RegistrarSalida,
   type ReemplazarMarca,
@@ -54,6 +56,18 @@ export function useSalidas(habilitada = true) {
     queryKey: LLAVE_DE_SALIDAS,
     queryFn: () => pedir(listaDeAnimalesSchema, '/api/animals?estado=salidas'),
     enabled: habilitada,
+  })
+}
+
+/** Pone o cambia la foto del animal. La anterior se queda; la ficha no se toca. */
+export function usePonerFoto(animalId: string) {
+  const cache = useQueryClient()
+  return useMutation({
+    mutationFn: (cuerpo: PonerFoto) =>
+      pedir(fotoPuestaSchema, `/api/animals/${animalId}/photo`, { metodo: 'POST', cuerpo }),
+    onSuccess: () => {
+      invalidarHato(cache, animalId)
+    },
   })
 }
 

@@ -8,6 +8,7 @@ import { filasDe, type EjecutorSql } from '../../../infrastructure/db/filas'
 
 import type { Animal, ValorAnterior } from '../domain/animal'
 import type { Correccion } from '../domain/correccion'
+import type { FotoDeIdentificacion } from '../domain/foto'
 import { RechazoDeHerd } from '../domain/errores'
 import type { Marca } from '../domain/marca'
 import type { CorreccionDeSalida, Salida } from '../domain/salida'
@@ -323,6 +324,32 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
       return filas.map((fila) => fila.animal_id)
     },
 
+    async fotosVigentes(ranchId, animalIds) {
+      return leerFotosVigentes(db, ranchId, animalIds)
+    },
+
+    async fotoVigente(ranchId, animalId) {
+      const fotos = await leerFotosVigentes(db, ranchId, [animalId])
+      const foto = fotos[0]
+      if (foto === undefined) {
+        return null
+      }
+      return { evidenciaId: foto.evidenciaId, miniaturaId: foto.miniaturaId, version: foto.version }
+    },
+
+    async insertarFoto(entrada) {
+      await db.execute(sql`
+        INSERT INTO herd.animal_photo (
+          id, ranch_id, animal_id, evidence_id, thumbnail_evidence_id,
+          version, recorded_by, recorded_at
+        ) VALUES (
+          ${entrada.id}, ${entrada.ranchId}, ${entrada.animalId},
+          ${entrada.foto.evidenciaId}, ${entrada.foto.miniaturaId},
+          ${entrada.foto.version}, ${entrada.recordedBy}, ${entrada.recordedAt}
+        )
+      `)
+    },
+
     async estados(ranchId, ids) {
       if (ids.length === 0) {
         return []
@@ -338,6 +365,42 @@ export function crearRepositorioDeAnimales(db: EjecutorSql): RepositorioDeAnimal
       return filas.map((fila) => ({ id: fila.id, activo: bandera(fila.active) }))
     },
   }
+}
+
+type FilaFoto = {
+  animal_id: string
+  evidence_id: string
+  thumbnail_evidence_id: string
+  version: unknown
+}
+
+async function leerFotosVigentes(
+  db: EjecutorSql,
+  ranchId: RanchId,
+  animalIds: readonly string[],
+): Promise<readonly (FotoDeIdentificacion & { readonly animalId: string })[]> {
+  if (animalIds.length === 0) {
+    return []
+  }
+  const filas = filasDe<FilaFoto>(
+    await db.execute(sql`
+      SELECT DISTINCT ON (animal_id)
+        animal_id, evidence_id, thumbnail_evidence_id, version
+      FROM herd.animal_photo
+      WHERE ranch_id = ${ranchId}
+        AND animal_id IN (${sql.join(
+          animalIds.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})
+      ORDER BY animal_id, version DESC
+    `),
+  )
+  return filas.map((fila) => ({
+    animalId: fila.animal_id,
+    evidenciaId: fila.evidence_id,
+    miniaturaId: fila.thumbnail_evidence_id,
+    version: Number(fila.version),
+  }))
 }
 
 async function leerAnimal(

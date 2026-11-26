@@ -128,6 +128,34 @@ export const correccionDeAnimal = esquemaHerd.table(
 )
 
 /**
+ * Foto para reconocer al animal. No es un dato de la ficha: no cambia nombre,
+ * sexo, categoría ni calidad de nada. Cada fila es una foto que se puso;
+ * cambiarla agrega otra y la anterior se queda. Los bytes viven en `evidence`
+ * y esta tabla no los borra.
+ */
+export const fotoDeAnimal = esquemaHerd.table(
+  'animal_photo',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    evidenciaId: uuid('evidence_id').notNull(),
+    miniaturaId: uuid('thumbnail_evidence_id').notNull(),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    uniqueIndex('animal_photo_version').on(tabla.animalId, tabla.version),
+    index('animal_photo_ranch').on(tabla.ranchId, tabla.animalId),
+    check('animal_photo_version_positiva', sql`${tabla.version} >= 1`),
+    check('animal_photo_quien', sql`length(btrim(${tabla.recordedBy})) > 0`),
+  ],
+)
+
+/**
  * Salida anterior, cuando se corrige. Una fila por corrección, con el motivo
  * que tenía, el día en que se supo, la nota, la foto, quién corrigió, cuándo
  * y por qué. No se borra al volver a activo.

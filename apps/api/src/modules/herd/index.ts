@@ -75,6 +75,7 @@ import {
   type EntradaAnotarDiagnostico,
   type EntradaCorregirDiagnostico,
 } from './application/prenez'
+import { ponerFotoDe, type EntradaPonerFoto, type FotoPuesta } from './application/foto'
 import {
   asentarDestetes,
   corregirDesteteDe,
@@ -135,10 +136,12 @@ export type {
   EntradaCorregirSalida,
   EntradaRegistrar,
   EntradaRegistrarNacimiento,
+  EntradaPonerFoto,
   EntradaRegistrarSalida,
   EstadoEnRancho,
   FamiliaPublica,
   FichaAnimal,
+  FotoPuesta,
   FichaConHistoria,
   FiliacionConHistoria,
   FiliacionPublica,
@@ -188,6 +191,7 @@ export type Herd = {
   reemplazarMarca(entrada: EntradaReemplazarMarca): Promise<{ anterior: MarcaPublica; nueva: MarcaPublica }>
   marcarPerdida(entrada: EntradaMarcarPerdida): Promise<MarcaPublica>
   registrarSalida(entrada: EntradaRegistrarSalida): Promise<FichaConHistoria>
+  ponerFoto(entrada: EntradaPonerFoto): Promise<FotoPuesta>
   corregirSalida(entrada: EntradaCorregirSalida): Promise<FichaConHistoria>
   listarActivos(ranchId: RanchId): Promise<FichaAnimal[]>
   listarSalidas(ranchId: RanchId): Promise<FichaAnimal[]>
@@ -266,6 +270,19 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
     reemplazarMarca: (entrada) => correr((repos) => reemplazar(repos, entrada)),
     marcarPerdida: (entrada) => correr((repos) => marcarPerdida(repos, entrada)),
     registrarSalida: (entrada) => registrarSalidaDe(salida, entrada),
+    ponerFoto: (entrada) =>
+      ponerFotoDe(
+        {
+          // El recibo y la foto se leen fuera de la escritura. El puerto de
+          // evidencia no usa la transacción: con ella abierta, en la base
+          // embebida las dos se esperan.
+          leerRecibo: (commandId) =>
+            db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
+          escribir: correr,
+          evidencia,
+        },
+        entrada,
+      ),
     corregirSalida: (entrada) => corregirSalidaDe(salida, entrada),
     listarActivos: (ranchId) => correr((repos) => listarActivos(repos.animales, ranchId)),
     listarSalidas: (ranchId) => correr((repos) => listarSalidas(repos.animales, ranchId)),

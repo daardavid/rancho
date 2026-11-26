@@ -211,6 +211,32 @@ export const marcaSchema = z.strictObject({
   recordedAt: instanteSchema,
 })
 
+/**
+ * Foto vigente para reconocer al animal.
+ *
+ * `evidenciaId` es la foto. `miniaturaId` es la que piden la lista y los
+ * buscadores. Ninguna cambia un dato del animal ni vuelve nada medido.
+ */
+export const fotoDeIdentificacionSchema = z.strictObject({
+  evidenciaId: z.uuid(),
+  miniaturaId: z.uuid(),
+  version: z.number().int().positive(),
+})
+
+/** Poner o cambiar la foto. `version` es la de la foto, cero si todavía no hay. */
+export const ponerFotoSchema = z.strictObject({
+  commandId: z.uuid(),
+  version: z.number().int().nonnegative(),
+  evidenciaId: z.uuid(),
+  miniaturaId: z.uuid(),
+})
+
+export const fotoPuestaSchema = z.strictObject({
+  animalId: z.uuid(),
+  foto: fotoDeIdentificacionSchema,
+  anterior: fotoDeIdentificacionSchema.nullable(),
+})
+
 export const fichaAnimalSchema = z.strictObject({
   id: z.uuid(),
   nombre: nombreSchema.nullable(),
@@ -227,6 +253,7 @@ export const fichaAnimalSchema = z.strictObject({
   recordedBy: registradoPorSchema,
   recordedAt: instanteSchema,
   marcas: z.array(marcaSchema),
+  foto: fotoDeIdentificacionSchema.nullable(),
 })
 
 export const correccionSchema = z.strictObject({
@@ -276,6 +303,9 @@ export const errorDeAnimalSchema = z.strictObject({
   codigo: codigoDeErrorDeAnimalSchema,
 })
 
+export type PonerFoto = z.infer<typeof ponerFotoSchema>
+export type FotoPuesta = z.infer<typeof fotoPuestaSchema>
+export type FotoDeIdentificacion = z.infer<typeof fotoDeIdentificacionSchema>
 export type RegistrarAnimal = z.infer<typeof registrarAnimalSchema>
 export type CorregirAnimal = z.infer<typeof corregirAnimalSchema>
 export type RegistrarSalida = z.infer<typeof registrarSalidaSchema>

@@ -153,6 +153,7 @@ function animalBase(): Record<string, unknown> {
     recordedBy: CUENTA,
     recordedAt: CUANDO,
     marcas: [],
+    foto: null,
   }
 }
 

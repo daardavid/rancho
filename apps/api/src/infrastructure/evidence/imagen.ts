@@ -3,8 +3,8 @@
  *
  * El tipo lo deciden los bytes, no el Content-Type que mande el celular
  * ([ADR-011](../../../../../docs/architecture/adr/ADR-011-evidence-storage.md)).
- * JPEG, PNG y WebP cubren la cámara del teléfono. Un PDF o un audio no es
- * la foto del indicador: esta subida es solo esa foto.
+ * JPEG, PNG y WebP cubren la cámara del teléfono. Un PDF o un audio no entra
+ * por aquí: esta subida es la foto del indicador y la foto del animal.
  */
 
 export const TAMANO_MAXIMO_DE_FOTO = 25 * 1024 * 1024
@@ -13,9 +13,8 @@ export const TIPOS_DE_IMAGEN = ['image/jpeg', 'image/png', 'image/webp'] as cons
 export type TipoDeImagen = (typeof TIPOS_DE_IMAGEN)[number]
 
 export const MENSAJE_FOTO_NO_ES_IMAGEN =
-  'Eso no es una foto JPEG, PNG o WebP. Toma la foto del indicador con la cámara del celular.'
-export const MENSAJE_FOTO_GRANDE =
-  'La foto pesa más de 25 MB. Toma otra más cerca del indicador.'
+  'Eso no es una foto JPEG, PNG o WebP. Elige una foto del celular.'
+export const MENSAJE_FOTO_GRANDE = 'La foto pesa más de 25 MB. Elige una más chica.'
 export const MENSAJE_FOTO_VACIA = 'La foto llegó vacía. Tómala otra vez.'
 
 export const CODIGOS_DE_RECHAZO_DE_FOTO = [

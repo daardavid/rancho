@@ -16,6 +16,7 @@ import {
 } from '../dominio/borrador'
 import { diaCorto, diasEntre, diasLegibles, fechaDelPesaje, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
 import { calidad, categoria, tipoDeMarca } from '../dominio/etiquetas'
+import { Miniatura } from '../ui/Miniatura'
 import { compararConElAnterior, revisarKilos, type ComparacionDePeso } from '../dominio/kilos'
 import { referenciaDePeso, type PesoFechado } from '../dominio/referenciaDePeso'
 import type { Animal } from '../dominio/tipos'
@@ -565,6 +566,7 @@ function EditorDeSesion({
                             )
                           }}
                         />
+                        <Miniatura id={animal.foto?.miniaturaId} />
                         <span className="pesaje__sugerido-texto">
                           <span className="pesaje__sugerido-nombre">{nombre}</span>
                           <span className="pesaje__sugerido-datos">{datosDelAnimal(animal)}</span>
