@@ -1,9 +1,10 @@
-import type { FilaDeVaca } from '@rancho/api-contracts'
+import type { FilaDeKilosDestetados, FilaDeVaca } from '@rancho/api-contracts'
 import { useState } from 'react'
 
 import { useVacas } from '../api/cria'
+import { useKilosDestetados } from '../api/destete'
 import { resultadoDePrenez } from '../dominio/etiquetas'
-import { diaLegible } from '../dominio/fechas'
+import { diaLegible, kilosLegibles } from '../dominio/fechas'
 import { rutaAHash } from '../ruta'
 import { AvisoDeError } from '../ui/Avisos'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
@@ -18,6 +19,7 @@ import { EncabezadoDelRancho } from './EncabezadoDelRancho'
  */
 export function Vacas() {
   const vacas = useVacas()
+  const kilos = useKilosDestetados()
   const [eligiendo, setEligiendo] = useState(false)
   const [elegidas, setElegidas] = useState<readonly string[]>([])
   const [anotando, setAnotando] = useState(false)
@@ -130,8 +132,75 @@ export function Vacas() {
         elegidas={elegidas}
         alAlternar={alternar}
       />
+
+      <KilosPorVaca
+        filas={kilos.data?.porPromedio}
+        cargando={kilos.isPending}
+        error={kilos.isError}
+      />
     </main>
   )
+}
+
+function KilosPorVaca({
+  filas,
+  cargando,
+  error,
+}: {
+  readonly filas: readonly FilaDeKilosDestetados[] | undefined
+  readonly cargando: boolean
+  readonly error: boolean
+}) {
+  return (
+    <section className="ficha__seccion">
+      <h2 className="ficha__titulo">Kilos destetados por vaca</h2>
+      <p className="campo__ayuda">
+        Promedio de las crías destetadas que sí tienen peso. La madre inferida se cuenta aparte.
+        No hay ajuste a 205 días ni una meta.
+      </p>
+      {cargando ? <p className="campo__ayuda">Trayendo los kilos…</p> : null}
+      {error ? (
+        <p className="campo__ayuda" role="status">
+          No se pudieron traer los kilos destetados.
+        </p>
+      ) : null}
+      {filas === undefined ? null : filas.length === 0 ? (
+        <p className="campo__ayuda">Ninguna vaca tiene una cría destetada con peso.</p>
+      ) : (
+        <ul className="lista lista--planas">
+          {filas.map((fila) => (
+            <li key={fila.animalId}>
+              <p>
+                <a href={rutaAHash({ nombre: 'ficha', animalId: fila.animalId })}>
+                  {fila.nombre ?? 'Sin nombre o seña'}
+                </a>
+                {fila.activo ? null : ' · Ya salió. El destete se queda.'}
+              </p>
+              <p className="campo__ayuda">{lineaDe('Madre vista', fila.observadas)}</p>
+              <p className="campo__ayuda">{lineaDe('Madre inferida', fila.inferidas)} Se cuentan aparte.</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function lineaDe(
+  etiqueta: string,
+  resumen: FilaDeKilosDestetados['observadas'],
+): string {
+  if (resumen.conPeso === 0) {
+    return `${etiqueta}: ninguna con peso.`
+  }
+  const cuantas = resumen.conPeso === 1 ? '1 cría' : `${resumen.conPeso} crías`
+  const sinPeso =
+    resumen.sinPeso === 0
+      ? ''
+      : resumen.sinPeso === 1
+        ? ' 1 sin peso, no se rellena.'
+        : ` ${resumen.sinPeso} sin peso, no se rellenan.`
+  return `${etiqueta}: promedio ${kilosLegibles(resumen.promedio)}, total ${kilosLegibles(resumen.total)}, ${cuantas}.${sinPeso}`
 }
 
 function Grupo({

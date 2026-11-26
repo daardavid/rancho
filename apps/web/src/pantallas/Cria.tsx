@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 
 import { useAnotarDiagnostico, useCorregirDiagnostico, useHistorialDeCria } from '../api/cria'
 import { nombreVisible } from '../dominio/animal'
+import { textoDeEdad, textoDePeso } from '../dominio/destete'
 import {
   RESULTADOS_DE_PRENEZ,
   campoDeDiagnostico,
@@ -10,7 +11,7 @@ import {
   opcionesElegibles,
   resultadoDePrenez,
 } from '../dominio/etiquetas'
-import { diaLegible, hoyEnElRancho, instanteLegible } from '../dominio/fechas'
+import { diaLegible, hoyEnElRancho, instanteLegible, kilosLegibles } from '../dominio/fechas'
 import { esConflictoDeVersion } from '../dominio/mensajes'
 import { AvisoDeError } from '../ui/Avisos'
 import { useEnfocarAviso } from '../ui/enfocar'
@@ -136,6 +137,7 @@ function Historia({
           ))}
         </ul>
       )}
+      {historial.partos.length === 0 ? null : <KilosDestetados kilos={historial.kilosDestetados} />}
 
       <h3 className="inicio__grupo">Diagnóstico de preñez</h3>
       {historial.diagnosticos.length === 0 ? (
@@ -203,8 +205,59 @@ function PartoEnLaFicha({
       {intervalo === undefined ? null : (
         <p className="campo__ayuda">{textoDeIntervalo(intervalo.dias)} desde el parto anterior con fecha.</p>
       )}
+      {parto.destete === null ? (
+        <p className="campo__ayuda">Sin destete anotado.</p>
+      ) : (
+        <>
+          <p className="campo__ayuda">
+            {parto.destete.fecha === null
+              ? 'Destetado, sin día.'
+              : parto.destete.precisionFecha === 'approximate'
+                ? `Destetado el ${diaLegible(parto.destete.fecha)}, aproximado.`
+                : `Destetado el ${diaLegible(parto.destete.fecha)}.`}
+          </p>
+          <p className="campo__ayuda">
+            {textoDePeso(parto.destete.peso?.kilos ?? null, parto.destete.peso?.calidad ?? null)}
+          </p>
+          <p className="campo__ayuda">{textoDeEdad(parto.destete.edad)}</p>
+        </>
+      )}
     </li>
   )
+}
+
+function KilosDestetados({
+  kilos,
+}: {
+  readonly kilos: HistorialDeCria['kilosDestetados']
+}) {
+  return (
+    <>
+      <h3 className="inicio__grupo">Kilos destetados</h3>
+      <p className="campo__ayuda">{textoDeResumen('Madre vista', kilos.observadas)}</p>
+      <p className="campo__ayuda">
+        {textoDeResumen('Madre inferida', kilos.inferidas)} Se cuentan aparte.
+      </p>
+      {kilos.sinPeso.length === 0 ? null : (
+        <p className="campo__ayuda">
+          Sin peso al destete:{' '}
+          {kilos.sinPeso.map((cria) => cria.nombre ?? 'Sin nombre o seña').join(', ')}. No se
+          rellena.
+        </p>
+      )}
+    </>
+  )
+}
+
+function textoDeResumen(
+  etiqueta: string,
+  resumen: HistorialDeCria['kilosDestetados']['observadas'],
+): string {
+  if (resumen.conPeso === 0) {
+    return `${etiqueta}: ninguna cría destetada con peso.`
+  }
+  const cuantas = resumen.conPeso === 1 ? '1 cría' : `${resumen.conPeso} crías`
+  return `${etiqueta}: total ${kilosLegibles(resumen.total)}, promedio ${kilosLegibles(resumen.promedio)}, de ${cuantas}.`
 }
 
 function DiagnosticoLeido({

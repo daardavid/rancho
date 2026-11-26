@@ -21,7 +21,7 @@ export type Ruta =
    * usan los accesos directos de Inicio para anotar sanidad sin buscar el
    * botón: la captura es la misma, solo se llega un toque más adelante.
    */
-  | { readonly nombre: 'hato'; readonly modo?: 'sanidad' }
+  | { readonly nombre: 'hato'; readonly modo?: 'sanidad' | 'destete' }
   | { readonly nombre: 'salidas' }
   | { readonly nombre: 'potreros' }
   | { readonly nombre: 'alta' }
@@ -54,6 +54,9 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/hato/sanidad') {
     return { nombre: 'hato', modo: 'sanidad' }
+  }
+  if (limpio === '/hato/destete') {
+    return { nombre: 'hato', modo: 'destete' }
   }
   if (limpio === '/salidas') {
     return { nombre: 'salidas' }

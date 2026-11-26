@@ -26,6 +26,7 @@ import { Filtros } from '../ui/Filtros'
 import { IconoBascula, IconoBuscar, IconoMas } from '../ui/iconos'
 import { Mosaicos } from '../ui/Mosaicos'
 import { EncabezadoDelRancho } from './EncabezadoDelRancho'
+import { FormularioDeDestete } from './Destete'
 import { FormularioDeSanidad } from './Sanidad'
 import { TarjetaDelPrimerAnimal } from './TarjetaDelPrimerAnimal'
 
@@ -65,7 +66,7 @@ const LARGO_DE_QUIEN_LO_DIJO = 200
  * pantalla; el resto de las pantallas conservan su barra de sesión hasta que
  * les toque su rediseño.
  */
-export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' | null }) {
+export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' | 'destete' | null }) {
   const hato = useHato()
   const resumen = useResumenDelHato()
   const todosLosPotreros = usePotreros()
@@ -81,8 +82,9 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
    * Inicio puede llegar con el modo de sanidad ya encendido (`#/hato/sanidad`):
    * es el mismo modo, solo se ahorra el toque de buscarlo.
    */
-  const [modo, setModo] = useState<'mover' | 'sanidad' | null>(modoInicial)
+  const [modo, setModo] = useState<'mover' | 'sanidad' | 'destete' | null>(modoInicial)
   const [sanidadGuardada, setSanidadGuardada] = useState(false)
+  const [desteteGuardado, setDesteteGuardado] = useState(false)
   const [elegidos, setElegidos] = useState<readonly string[]>([])
   const buscando = normalizar(busqueda) !== ''
   // Sin activos hay que saber si alguien ya salió: «no hay animales» sería
@@ -313,6 +315,11 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
                   Elige los animales y toca «Anotar sanidad». La nota se escribe una vez por cada
                   uno.
                 </p>
+              ) : modo === 'destete' ? (
+                <p className="campo__ayuda" role="status">
+                  Elige las crías y toca «Anotar destete». El destete no las saca del hato. El
+                  peso, si se pesó, se anota en la ficha de cada una.
+                </p>
               ) : (
                 <>
                   <BotonSecundario
@@ -335,6 +342,16 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
                   >
                     Anotar sanidad a varios animales
                   </BotonSecundario>
+                  <BotonSecundario
+                    tono="tinta"
+                    alTocar={() => {
+                      setDesteteGuardado(false)
+                      setElegidos([])
+                      setModo('destete')
+                    }}
+                  >
+                    Anotar destete a varios
+                  </BotonSecundario>
                 </>
               )}
             </div>
@@ -343,6 +360,12 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
           {sanidadGuardada ? (
             <p className="aviso aviso--bien" role="status">
               Notas de sanidad guardadas. Cada animal tiene la suya.
+            </p>
+          ) : null}
+
+          {desteteGuardado ? (
+            <p className="aviso aviso--bien" role="status">
+              Destete guardado. Siguen en el hato.
             </p>
           ) : null}
 
@@ -388,6 +411,30 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
                 void hato.refetch()
                 void lugares.refetch()
                 void todosLosPotreros.refetch()
+              }}
+            />
+          ) : null}
+
+          {modo === 'destete' && !vacio ? (
+            <FormularioDeDestete
+              animales={elegidos}
+              nombreDelGrupo={
+                elegidos.length === 0
+                  ? 'elige las crías'
+                  : elegidos.length === 1
+                    ? '1 cría'
+                    : `${String(elegidos.length)} crías`
+              }
+              conPeso={false}
+              alGuardar={() => {
+                setModo(null)
+                setElegidos([])
+                setDesteteGuardado(true)
+              }}
+              alCancelar={() => {
+                setModo(null)
+                setElegidos([])
+                setDesteteGuardado(false)
               }}
             />
           ) : null}

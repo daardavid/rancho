@@ -167,6 +167,26 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
     quePaso: 'No hay ninguna hembra en el diagnóstico.',
     queHacer: 'Elige al menos una y vuelve a anotar.',
   },
+  destete_ya_existe: {
+    quePaso: 'Esta cría ya tiene destete anotado.',
+    queHacer: 'Corrígelo en la ficha si el día estaba mal. No se anota otro encima.',
+  },
+  destete_vacio: {
+    quePaso: 'No hay ninguna cría en el destete.',
+    queHacer: 'Elige al menos una y vuelve a anotar.',
+  },
+  fecha_sin_elegir: {
+    quePaso: 'Falta decir qué día se destetó.',
+    queHacer: 'Elige fecha exacta, aproximada o «No sé». Si no lo eliges, no se guarda.',
+  },
+  fecha_incoherente: {
+    quePaso: 'El día del destete no cuadra con lo que se eligió.',
+    queHacer: 'Si es «No sé», deja el día vacío. Si es exacto o aproximado, pon el día.',
+  },
+  peso_sin_fecha: {
+    quePaso: 'Hay un peso y no se sabe qué día se pesó.',
+    queHacer: 'Pon el día del peso, o deja el peso en blanco.',
+  },
   resultado_invalido: {
     quePaso: 'El resultado no es uno de los del rancho.',
     queHacer: 'Elige Preñada, Vacía o No sé.',
