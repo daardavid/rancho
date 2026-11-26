@@ -19,6 +19,7 @@ export {
   type ResumenDelHato,
   type VistaDeAnimal,
 } from './crecimiento'
+export { crearModelosDeTendencias, type ModelosDeTendencias } from './tendencias'
 export {
   crearModelosDePresencia,
   type AnimalDelInicio,
