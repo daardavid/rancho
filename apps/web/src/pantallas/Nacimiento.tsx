@@ -505,8 +505,8 @@ function Madre({
           Madre
         </p>
         <p className="campo__ayuda">
-          Se busca por nombre, seña o arete, como en el pesaje. Solo salen las hembras activas:
-          si no sabes quién es, déjala en «No sé» abajo.
+          Se busca por nombre, seña o arete, como en el pesaje. Solo salen las hembras activas y
+          las que tienen el sexo en «No sé».
         </p>
         {elegida === null ? null : (
           <div className="eleccion">
@@ -538,14 +538,18 @@ function Madre({
         ) : null}
       </div>
 
-      <Segmentado
-        etiqueta="Certeza de la madre"
-        opciones={CERTEZA_DE_MADRE}
-        valor={certeza}
-        alElegir={(valor) => {
-          alElegirCerteza(valor as CertezaMadre)
-        }}
-      />
+      {/* La certeza es de una madre concreta: sin madre no hay nada que
+          asegurar. Se vuelve a «No sé» quitando la madre con «Quitar». */}
+      {madreId === '' ? null : (
+        <Segmentado
+          etiqueta="Certeza de la madre"
+          opciones={CERTEZA_DE_MADRE}
+          valor={certeza}
+          alElegir={(valor) => {
+            alElegirCerteza(valor as CertezaMadre)
+          }}
+        />
+      )}
       {certeza === 'inferred' && madreId !== '' ? (
         <Pildoras
           etiqueta="Por qué queda inferida"
