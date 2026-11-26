@@ -65,6 +65,14 @@ const MADRE = '44444444-4444-4444-8444-444444444444'
 const CRIA = '55555555-5555-4555-8555-555555555555'
 const POTRERO = '66666666-6666-4666-8666-666666666666'
 const FILIACION = '77777777-7777-4777-8777-777777777777'
+const TORO = '88888888-8888-4888-8888-888888888888'
+const BECERRO = '99999999-9999-4999-8999-999999999999'
+const DUDOSA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const VENDIDA = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+
+function sinLugares() {
+  return () => ({ estado: 200, cuerpo: { animales: [] } })
+}
 
 function laMadre() {
   return animalDeLista({
@@ -74,6 +82,20 @@ function laMadre() {
     sexo: 'female',
     tenencia: 'ranch',
   })
+}
+
+/**
+ * Elige la madre con el buscador, como lo hace el dueño: escribe y toca.
+ *
+ * El buscador reemplazó al desplegable: solo ofrece hembras activas o de sexo
+ * «No sé», y se encuentra por nombre, seña o arete.
+ */
+async function elegirMadre(
+  usuario: ReturnType<typeof userEvent.setup>,
+  nombre: string,
+): Promise<void> {
+  await usuario.type(await screen.findByLabelText('Buscar la madre'), nombre)
+  await usuario.click(await screen.findByRole('button', { name: new RegExp(nombre) }))
 }
 
 function potrero() {
@@ -125,7 +147,7 @@ describe('Nacimiento: la propuesta de la madre', () => {
     })
 
     pintarApp('#/nacimiento')
-    await usuario.selectOptions(await screen.findByLabelText('Madre'), MADRE)
+    await elegirMadre(usuario, 'La Pinta')
     expect(await screen.findByText('¿Va con su madre? Del rancho · El Zapote')).toBeDefined()
     await usuario.click(screen.getByRole('radio', { name: 'La vi' }))
     await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
@@ -174,7 +196,7 @@ describe('Nacimiento: la propuesta de la madre', () => {
     })
 
     pintarApp('#/nacimiento')
-    await usuario.selectOptions(await screen.findByLabelText('Madre'), MADRE)
+    await elegirMadre(usuario, 'La Pinta')
     const aceptar = await screen.findByRole('button', { name: 'Va con su madre' })
     await waitFor(() => {
       expect(aceptar).toHaveProperty('disabled', false)
@@ -208,9 +230,70 @@ describe('Nacimiento: la propuesta de la madre', () => {
     })
 
     pintarApp('#/nacimiento')
-    await usuario.selectOptions(await screen.findByLabelText('Madre'), MADRE)
+    await elegirMadre(usuario, 'La Pinta')
 
     expect(await screen.findByText('No se pudo traer el nombre del potrero.')).toBeDefined()
     expect(screen.queryByText(/Potrero sin nombre/)).toBeNull()
+  })
+})
+
+describe('Nacimiento: el buscador de la madre', () => {
+  it('no ofrece machos ni animales dados de baja', async () => {
+    const usuario = userEvent.setup()
+    // El hato activo trae a la vaca, al toro, a un becerro y a una vaca con el
+    // sexo en «No sé». Un animal dado de baja no lo manda la API, pero si
+    // llegara, la pantalla tampoco lo ofrece.
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [
+            laMadre(),
+            animalDeLista({ id: TORO, nombre: 'El Toro Prieto', categoria: 'bull', sexo: 'male' }),
+            animalDeLista({ id: BECERRO, nombre: 'Becerro Suelto', categoria: 'calf', sexo: 'female' }),
+            animalDeLista({ id: DUDOSA, nombre: 'La Dudosa', categoria: 'cow', sexo: 'unknown' }),
+            animalDeLista({
+              id: VENDIDA,
+              nombre: 'La Vendida',
+              categoria: 'cow',
+              sexo: 'female',
+              activo: false,
+            }),
+          ],
+        },
+      }),
+      'GET /api/paddocks': () => ({
+        estado: 200,
+        cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 },
+      }),
+      'GET /api/locations': sinLugares(),
+    })
+
+    pintarApp('#/nacimiento')
+
+    // Un animal dado de baja no se ofrece como madre.
+    await usuario.type(await screen.findByLabelText('Buscar la madre'), 'vendida')
+    expect(await screen.findByText(/Ninguna hembra activa coincide/)).toBeDefined()
+
+    // El macho no se ofrece aunque se escriba su nombre.
+    await usuario.clear(screen.getByLabelText('Buscar la madre'))
+    await usuario.type(screen.getByLabelText('Buscar la madre'), 'prieto')
+    expect(await screen.findByText(/Ninguna hembra activa coincide/)).toBeDefined()
+
+    // El becerro tampoco: no pare.
+    await usuario.clear(screen.getByLabelText('Buscar la madre'))
+    await usuario.type(screen.getByLabelText('Buscar la madre'), 'suelto')
+    expect(await screen.findByText(/Ninguna hembra activa coincide/)).toBeDefined()
+
+    // Una vaca con sexo «No sé» sí se ofrece: lo desconocido es una respuesta.
+    await usuario.clear(screen.getByLabelText('Buscar la madre'))
+    await usuario.type(screen.getByLabelText('Buscar la madre'), 'dudosa')
+    expect(await screen.findByRole('button', { name: /La Dudosa/ })).toBeDefined()
+
+    // Y la hembra de verdad también.
+    await usuario.clear(screen.getByLabelText('Buscar la madre'))
+    await usuario.type(screen.getByLabelText('Buscar la madre'), 'pinta')
+    expect(await screen.findByRole('button', { name: /La Pinta/ })).toBeDefined()
   })
 })

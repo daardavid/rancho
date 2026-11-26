@@ -5,14 +5,16 @@ import type { LugaresDelHato, PotrerosDelRancho } from '@rancho/api-contracts'
 import { useFicha, useHato } from '../api/hato'
 import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
 import { useRegistrarNacimiento } from '../api/nacimientos'
-import { nombreVisible, puedeSerMadre } from '../dominio/animal'
+import { coincide, nombreVisible, normalizar, puedeSerMadre } from '../dominio/animal'
 import {
   MOTIVOS_DE_LA_MADRE,
   PRECISIONES_DE_FECHA,
   SEXOS,
   TENENCIAS,
+  categoria,
   opcionesElegibles,
   tenencia as textoDeTenencia,
+  tipoDeMarca,
 } from '../dominio/etiquetas'
 import { hoyEnElRancho } from '../dominio/fechas'
 import type { Animal, FichaCompleta } from '../dominio/tipos'
@@ -488,35 +490,62 @@ function Madre({
   readonly alElegirCerteza: (certeza: CertezaMadre) => void
   readonly alElegirMotivo: (motivo: MotivoMadre) => void
 }) {
+  const [busqueda, setBusqueda] = useState('')
+  const elegida = madres.find((animal) => animal.id === madreId) ?? null
+  const limpio = normalizar(busqueda)
+  // Con el buscador vacío no se abre una lista larga: se escribe algo y se
+  // elige. La madre que ya venía de la ficha se ve elegida arriba.
+  const encontradas =
+    limpio === '' ? [] : madres.filter((animal) => coincide(animal, limpio))
+
   return (
     <>
-      <label className="campo">
-        <span className="campo__etiqueta">Madre</span>
-        <select
-          className="campo__entrada"
-          value={madreId}
-          onChange={(evento) => {
-            alElegirMadre(evento.target.value)
-          }}
-        >
-          <option value="">No sé</option>
-          {madres.map((animal) => (
-            <option key={animal.id} value={animal.id}>
-              {nombreVisible(animal)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {madreId === '' ? null : (
-        <Segmentado
-          etiqueta="Certeza de la madre"
-          opciones={CERTEZA_DE_MADRE}
-          valor={certeza}
-          alElegir={(valor) => {
-            alElegirCerteza(valor as CertezaMadre)
+      <div className="campo">
+        <p className="campo__etiqueta" id="madre-etiqueta">
+          Madre
+        </p>
+        <p className="campo__ayuda">
+          Se busca por nombre, seña o arete, como en el pesaje. Solo salen las hembras activas:
+          si no sabes quién es, déjala en «No sé» abajo.
+        </p>
+        {elegida === null ? null : (
+          <div className="eleccion">
+            <span className="eleccion__nombre">{nombreVisible(elegida)}</span>
+            <button
+              type="button"
+              className="enlace"
+              onClick={() => {
+                alElegirMadre('')
+              }}
+            >
+              Quitar
+            </button>
+          </div>
+        )}
+        <BuscarMadre
+          valor={busqueda}
+          alCambiar={setBusqueda}
+          encontradas={encontradas}
+          alElegir={(id) => {
+            setBusqueda('')
+            alElegirMadre(id)
           }}
         />
-      )}
+        {limpio !== '' && encontradas.length === 0 ? (
+          <p className="campo__ayuda" role="status">
+            Ninguna hembra activa coincide. Revisa cómo se escribe o déjala en «No sé».
+          </p>
+        ) : null}
+      </div>
+
+      <Segmentado
+        etiqueta="Certeza de la madre"
+        opciones={CERTEZA_DE_MADRE}
+        valor={certeza}
+        alElegir={(valor) => {
+          alElegirCerteza(valor as CertezaMadre)
+        }}
+      />
       {certeza === 'inferred' && madreId !== '' ? (
         <Pildoras
           etiqueta="Por qué queda inferida"
@@ -529,6 +558,63 @@ function Madre({
       ) : null}
     </>
   )
+}
+
+/**
+ * El buscador de la madre: un campo y la lista de las que coinciden.
+ *
+ * Un botón por hembra, con su arete y su categoría, para reconocerla sin abrir
+ * la ficha. El nombre accesible es el nombre y los datos, no el id.
+ */
+function BuscarMadre({
+  valor,
+  alCambiar,
+  encontradas,
+  alElegir,
+}: {
+  readonly valor: string
+  readonly alCambiar: (valor: string) => void
+  readonly encontradas: readonly Animal[]
+  readonly alElegir: (id: string) => void
+}) {
+  return (
+    <div className="madre__buscador">
+      <CampoDeTexto
+        etiqueta="Buscar la madre"
+        valor={valor}
+        alCambiar={alCambiar}
+        ayuda="Por nombre, seña o arete."
+      />
+      {encontradas.length === 0 ? null : (
+        <ul className="pesaje__lista">
+          {encontradas.map((animal) => (
+            <li key={animal.id}>
+              <button
+                type="button"
+                className="pesaje__sugerido"
+                onClick={() => {
+                  alElegir(animal.id)
+                }}
+              >
+                <span className="pesaje__sugerido-texto">
+                  <span className="pesaje__sugerido-nombre">{nombreVisible(animal)}</span>
+                  <span className="pesaje__sugerido-datos">{datosDeLaMadre(animal)}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/** El arete puesto y la categoría, para distinguir dos vacas con nombre parecido. */
+function datosDeLaMadre(animal: Animal): string {
+  const puesto = animal.marcas.find((marca) => marca.estado === 'active')
+  const arete =
+    puesto === undefined ? 'Sin arete puesto' : `${tipoDeMarca(puesto.tipo)} ${puesto.valor}`
+  return `${arete} · ${categoria(animal.categoria)}`
 }
 
 function Padre({
@@ -589,12 +675,21 @@ function Padre({
   )
 }
 
+/**
+ * Las madres que ofrece el buscador. Si se abrió desde la ficha de una vaca,
+ * ella va primero aunque su sexo no se haya anotado: el dueño ya la eligió al
+ * entrar por su ficha. Un animal que no puede ser madre no entra ni así.
+ */
 function madresElegibles(animales: readonly Animal[], preseleccion: FichaCompleta | null): Animal[] {
   const lista = animales.filter((animal) => puedeSerMadre(animal))
-  if (preseleccion !== null && puedeSerMadre(preseleccion) && !lista.some((animal) => animal.id === preseleccion.id)) {
-    return [preseleccion, ...lista]
+  if (
+    preseleccion === null ||
+    !puedeSerMadre(preseleccion) ||
+    lista.some((animal) => animal.id === preseleccion.id)
+  ) {
+    return lista
   }
-  return lista
+  return [preseleccion, ...lista]
 }
 
 function armar(
