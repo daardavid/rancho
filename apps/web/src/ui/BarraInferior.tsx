@@ -33,6 +33,9 @@ function pestanaDe(ruta: Ruta): Pestana | null {
       return 'pesaje'
     case 'crecimiento':
       return 'crecimiento'
+    case 'tendencias':
+      // Tendencias no es pestaña. Ninguna de las cuatro queda marcada.
+      return null
     case 'salida':
       // «Salida» es una captura que se abre desde Inicio y no deja de serlo.
       return 'inicio'

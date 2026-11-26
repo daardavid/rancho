@@ -1435,3 +1435,54 @@
   outline-offset: 2px;
 }
 
+.crecimiento__tendencias {
+  margin: 0 0 16px;
+}
+
+.tendencias__bloque {
+  margin-top: 16px;
+}
+
+.tendencias__bloque h2 {
+  margin: 0 0 8px;
+  font-family: var(--fuente-titulo);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tendencias__animales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.tendencias__animal {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+}
+
+.tendencias__animal--activo {
+  border-color: var(--texto);
+  background: var(--texto);
+  color: #fff;
+}
+
+.tendencias__lienzo {
+  width: 100%;
+  height: 260px;
+}
+
+.tendencias__vacio,
+.tendencias__nota {
+  margin: 0 0 8px;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+

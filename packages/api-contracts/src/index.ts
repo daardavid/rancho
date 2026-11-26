@@ -131,6 +131,19 @@ export {
   type RegistrarPotrero,
 } from './lugar'
 export {
+  mesDeTendenciaSchema,
+  mesSchema,
+  puntoDeTendenciaSchema,
+  serieDeTendenciaSchema,
+  tendenciasSchema,
+  vueltaDeTendenciaSchema,
+  type MesDeTendencia,
+  type PuntoDeTendencia,
+  type SerieDeTendencia,
+  type Tendencias,
+  type VueltaDeTendencia,
+} from './tendencias'
+export {
   animalDelInicioSchema,
   animalSinVerseSchema,
   cambioDelPeriodoSchema,

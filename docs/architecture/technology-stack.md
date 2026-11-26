@@ -7,6 +7,7 @@ The selected physical stack for the Logical Architecture v1 baseline and the Phy
 | Layer | Choice |
 | --- | --- |
 | Production UI | React, TypeScript, Vite SPA at the future `apps/web` |
+| Charts | Apache ECharts, modular imports, loaded only with Tendencias. Proposed in [ADR-017](adr/ADR-017-graficas.md); not accepted until David merges it |
 | UI server state | TanStack Query |
 | UI local state | Component state and the URL |
 | Discovery UI | Existing `apps/domain-map`, unchanged |
@@ -37,6 +38,7 @@ The matrix of record. "Revisit when" is a trigger, not a backlog.
 | Concern | Candidate A | Candidate B | Candidate C | Decision | Why | Revisit when |
 | --- | --- | --- | --- | --- | --- | --- |
 | Frontend | React + Vite SPA | Next.js | Another UI framework | React + Vite SPA | Authenticated forms, no SEO need, team already on this stack, API stays separate | A public server-rendered site becomes a product requirement |
+| Charts | Apache ECharts, modular, deferred | The full package in the initial JavaScript | Hand-drawn SVG for every series | ECharts in chunks that load with Tendencias ([ADR-017](adr/ADR-017-graficas.md), proposed) | Trends that grow with the data, without adding the library to the first open | David rejects the proposal, or a measured open shows the chunk is too heavy to use |
 | Backend runtime | TypeScript / Node.js | Python | Go or C# | TypeScript / Node.js | One language with the UI, enough for the I/O and the rules | A measured CPU-bound workload, or the team no longer shares TypeScript |
 | Backend framework | Fastify | NestJS | Express or Hono | Fastify as HTTP adapter | Domain modules stay plain TypeScript. Nest's modules are a different concept. Express and Hono do not improve the transaction model | Domain code must import the framework to get a correct transaction |
 | API | Command-oriented REST | GraphQL | tRPC as the public API | Command-oriented REST | Commands match orchestrators. Shared Zod types cover the TypeScript client. Adapters stay on HTTP | A real third-party client needs a graph this team does not want to hand-build |
@@ -63,5 +65,5 @@ Kubernetes, microservices, a broker, event sourcing, temporal tables, GraphQL, R
 - Version: 0.2
 - Status: Accepted with the Physical Architecture v1 baseline
 - Last updated: 2026-10-04
-- Source: [physical-architecture.md](physical-architecture.md) and ADR-005 through ADR-013
+- Source: [physical-architecture.md](physical-architecture.md) and ADR-005 through ADR-013. Charts are proposed in ADR-017 and are not accepted until David merges that ADR
 - Validation: No dependency is installed by this document
