@@ -93,13 +93,32 @@ export type MotivoDeSalida = MesDeTendencia['salidas'][number]['motivo']
  * La trama de una barra, en el formato de `decal` de ECharts.
  *
  * Se declara aquí y no se importa el tipo de la biblioteca para que este
- * archivo siga sin depender de ECharts. La forma es la que ECharts acepta.
+ * archivo siga sin depender de ECharts. La forma es la que ECharts acepta
+ * (`lib/util/decal.js`, `lib/model/globalDefault.js`), y tiene dos reglas que
+ * se rompen fácil:
+ *
+ * - `dashArrayX`/`dashArrayY` son las celdas del mosaico, en píxeles: se pinta
+ *   una celda sí y la siguiente no, y un renglón anidado alterna el dibujo de
+ *   izquierda a derecha (así se escalona un punto respecto al de abajo).
+ * - `symbolSize` es una proporción en `(0, 1]` de esa celda, no un tamaño en
+ *   píxeles. Si pasa de `1`, el símbolo tapa el hueco y la trama se ve como un
+ *   relleno sólido. Quienes dibujan puntos o triángulos necesitan además un
+ *   ancho de celda de varios píxeles: con `[1, 0]` el círculo queda en una
+ *   franja de un píxel.
+ *
+ * El `color` va explícito: el que ECharts pone por omisión es
+ * `rgba(0, 0, 0, 0.2)`, invisible sobre las barras oscuras.
  */
 export type Decal = {
   readonly symbol: 'circle' | 'rect' | 'triangle'
+  /** Proporción de la celda que ocupa el símbolo, en `(0, 1]`. */
   readonly symbolSize: number
-  readonly dashArrayX: readonly number[]
+  /** Celdas de izquierda a derecha; un renglón anidado escala el dibujo. */
+  readonly dashArrayX: readonly (number | readonly number[])[]
+  /** Celdas de arriba abajo: se pintan las posiciones pares. */
   readonly dashArrayY: readonly number[]
+  /** El trazo de la trama. Debe contrastar con el fondo de su barra. */
+  readonly color: string
   readonly rotation?: number
 }
 
@@ -109,40 +128,57 @@ export type MarcaDeMotivo = {
   readonly decal: Decal
 }
 
+/**
+ * El trazo de la trama según el fondo de la barra: claro translúcido donde la
+ * barra es oscura y oscuro translúcido sobre el ámbar claro. En los dos casos
+ * queda arriba de 3:1 contra el fondo, el mínimo de contraste para algo que no
+ * es texto.
+ */
+export const TRAMA_SOBRE_OSCURO = 'rgba(255, 255, 255, 0.65)'
+export const TRAMA_SOBRE_CLARO = 'rgba(28, 31, 26, 0.65)'
+
 const DECAL_DE_PUNTOS: Decal = {
   symbol: 'circle',
-  symbolSize: 4,
-  dashArrayX: [1, 0],
-  dashArrayY: [1, 4],
+  symbolSize: 0.75,
+  dashArrayX: [[8, 8], [0, 8, 8, 0]],
+  dashArrayY: [8, 0],
+  color: TRAMA_SOBRE_CLARO,
 }
 
 const DECAL_DE_RAYAS: Decal = {
   symbol: 'rect',
-  symbolSize: 8,
+  symbolSize: 1,
   dashArrayX: [1, 0],
-  dashArrayY: [2, 4],
+  dashArrayY: [2, 5],
+  color: TRAMA_SOBRE_OSCURO,
 }
 
 const DECAL_DE_DIAGONAL: Decal = {
   symbol: 'rect',
-  symbolSize: 8,
+  symbolSize: 1,
+  // El mismo trazo que las rayas, inclinado a 45°: las rayas se leen de
+  // izquierda a derecha y estas de esquina a esquina, así que sin color no se
+  // confunden.
   dashArrayX: [1, 0],
-  dashArrayY: [2, 4],
+  dashArrayY: [2, 5],
+  color: TRAMA_SOBRE_OSCURO,
   rotation: Math.PI / 4,
 }
 
 const DECAL_DE_TABLERO: Decal = {
   symbol: 'rect',
-  symbolSize: 4,
-  dashArrayX: [3, 3],
-  dashArrayY: [3, 3],
+  symbolSize: 1,
+  dashArrayX: [[5, 5], [0, 5, 5, 0]],
+  dashArrayY: [5, 0],
+  color: TRAMA_SOBRE_OSCURO,
 }
 
 const DECAL_DE_TRIANGULOS: Decal = {
   symbol: 'triangle',
-  symbolSize: 6,
-  dashArrayX: [1, 0],
-  dashArrayY: [1, 4],
+  symbolSize: 0.75,
+  dashArrayX: [[9, 9], [0, 9, 9, 0]],
+  dashArrayY: [7, 2],
+  color: TRAMA_SOBRE_OSCURO,
 }
 
 /**
