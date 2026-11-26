@@ -216,6 +216,24 @@ describe('Ficha: corregir', () => {
 })
 
 describe('Ficha: salida', () => {
+  it('la URL manda: Atrás cierra el formulario de baja y Adelante lo vuelve a abrir', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}/salida`)
+
+    // Llega con la baja desplegada, como el acceso «Salida» de Inicio.
+    expect(await screen.findByRole('heading', { name: 'Dar de baja' })).toBeDefined()
+
+    // Atrás del navegador: la URL vuelve a la ficha sin `/salida`.
+    window.location.hash = `#/animal/${ANIMAL}`
+    expect(await screen.findByRole('button', { name: /^Dar de baja$/ })).toBeDefined()
+    expect(screen.queryByRole('heading', { name: 'Dar de baja' })).toBeNull()
+  })
+
   it('al volver a dejarlo activo avisa que regresó al hato, no que salió', async () => {
     const usuario = userEvent.setup()
     let activo = false

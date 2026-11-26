@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
+import { darDeAltaConNombre, entrarAlHato, nombreUnico } from './ayudas'
 
 /**
  * Potreros y lugar esperado, de punta a punta.
@@ -14,7 +14,7 @@ import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
  * los conteos se leen dentro de la fila del potrero que esta prueba creó.
  */
 test('un potrero, un grupo movido y el lugar vigente en la ficha', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
 
   const potrero = nombreUnico('Potrero')
   const uno = nombreUnico('Mueve uno')

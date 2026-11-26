@@ -53,14 +53,30 @@ import { GraficaDePesos } from './GraficaDePesos'
  * Corregir un peso desde aquí y desde la sesión es lo mismo: el mismo comando y
  * la misma historia. Lo que estaba no se borra.
  */
-export function Ficha({ animalId }: { readonly animalId: string }) {
+export function Ficha({
+  animalId,
+  abrirSalida = false,
+}: {
+  readonly animalId: string
+  /**
+   * Llega desde «Salida» de Inicio con la baja ya desplegada. Es la misma
+   * ficha y el mismo comando: solo se ahorra buscar el botón.
+   */
+  readonly abrirSalida?: boolean
+}) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
   const observacion = useUltimaObservacion(animalId)
   const historia = usePesosConHistoria(animalId)
   const potreros = usePotreros()
   const [corrigiendo, setCorrigiendo] = useState(false)
-  const [dandoDeBaja, setDandoDeBaja] = useState(false)
+  /**
+   * Si la baja está abierta lo dice la URL, no un estado aparte: la ficha vive
+   * en `#/animal/<id>` y con `#/animal/<id>/salida` llega el formulario
+   * desplegado. Así Atrás y Adelante del navegador abren y cierran el
+   * formulario como cualquier otra navegación, sin quedar desfasados.
+   */
+  const dandoDeBaja = abrirSalida
   const [anotandoSanidad, setAnotandoSanidad] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [salidaGuardada, setSalidaGuardada] = useState(false)
@@ -97,6 +113,20 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
   const ultimoPeso = pesos.data?.ultimoPesaje ?? null
   const arete = areteVigente(animal)
   const correccionesDePeso = new Map((historia.data?.pesos ?? []).map((peso) => [peso.id, peso]))
+
+  /**
+   * Abrir o cerrar la baja deja la URL diciendo la verdad: si el formulario se
+   * ve, la URL lo dice, y al cerrarlo vuelve a la ficha. Así un recargado a
+   * media captura no regresa a un formulario que ya se cerró, y el acceso
+   * «Salida» de Inicio sigue funcionando con `#/animal/<id>/salida`.
+   */
+  const abrirLaBaja = (abrir: boolean): void => {
+    if (abrir) {
+      irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true })
+    } else if (window.location.hash.endsWith('/salida')) {
+      irA({ nombre: 'ficha', animalId: animal.id })
+    }
+  }
 
   return (
     <main className="pantalla pantalla--ficha">
@@ -159,17 +189,17 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
           <FormularioDeSalida
             ficha={animal}
             alRecargar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
               void ficha.refetch()
             }}
             alGuardar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
               setSalidaGuardada(true)
               void ficha.refetch()
               void pesos.refetch()
             }}
             alCancelar={() => {
-              setDandoDeBaja(false)
+              abrirLaBaja(false)
             }}
           />
         </section>
@@ -340,7 +370,7 @@ export function Ficha({ animalId }: { readonly animalId: string }) {
               alTocar={() => {
                 setGuardado(false)
                 setSalidaGuardada(false)
-                setDandoDeBaja(true)
+                abrirLaBaja(true)
               }}
             >
               {animal.activo ? 'Dar de baja' : 'Corregir la salida'}

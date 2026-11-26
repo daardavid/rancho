@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
+import { darDeAltaConNombre, entrarAlHato, nombreUnico } from './ayudas'
 
 /**
  * Notas de sanidad, de punta a punta.
@@ -11,7 +11,7 @@ import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
  * corrida, así que los nombres son propios y nadie supone un hato vacío.
  */
 test('anotar sanidad a un animal y a un grupo, y verlo en cada ficha', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
 
   const uno = nombreUnico('Sanidad uno')
   const dos = nombreUnico('Sanidad dos')

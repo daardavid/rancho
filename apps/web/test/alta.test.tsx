@@ -359,7 +359,7 @@ describe('Alta de un animal', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('Canelo')).toBeDefined()
     // En la lista se ve el arete puesto, no el viejo.
@@ -390,7 +390,7 @@ describe('Alta de un animal', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('Empieza con el primer animal')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Dar de alta el primer animal' })).toBeDefined()

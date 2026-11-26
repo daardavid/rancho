@@ -1,10 +1,9 @@
 import type { AsignarLugar, FilaDeCrecimiento } from '@rancho/api-contracts'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
 import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
 import { useUltimaSesion } from '../api/pesajes'
-import { useSalir } from '../api/sesion'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
 import { diaLegible, diasLegibles, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
 import {
@@ -15,19 +14,19 @@ import {
 } from '../dominio/etiquetas'
 import { etiquetaDeGanancia, type TonoDeGanancia } from '../dominio/revision'
 import type { Animal } from '../dominio/tipos'
-import { irA } from '../ruta'
+import { irA, rutaAHash } from '../ruta'
 import { Aviso } from '../ui/Aviso'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { BotonFlotante, BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { Desplegable } from '../ui/Desplegable'
-import { Encabezado } from '../ui/Encabezado'
 import { FilaDeAnimal, type CategoriaVisual } from '../ui/FilaDeAnimal'
 import { Filtros } from '../ui/Filtros'
-import { IconoBascula, IconoBuscar, IconoMas, IconoMenu } from '../ui/iconos'
+import { IconoBascula, IconoBuscar, IconoMas } from '../ui/iconos'
 import { Mosaicos } from '../ui/Mosaicos'
-import { Tarjeta } from '../ui/Tarjeta'
+import { EncabezadoDelRancho } from './EncabezadoDelRancho'
 import { FormularioDeSanidad } from './Sanidad'
+import { TarjetaDelPrimerAnimal } from './TarjetaDelPrimerAnimal'
 
 /**
  * Valores del filtro de lugar que no son ids de potrero. Van con un texto fijo
@@ -65,7 +64,7 @@ const LARGO_DE_QUIEN_LO_DIJO = 200
  * pantalla; el resto de las pantallas conservan su barra de sesión hasta que
  * les toque su rediseño.
  */
-export function Hato() {
+export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' | null }) {
   const hato = useHato()
   const resumen = useResumenDelHato()
   const todosLosPotreros = usePotreros()
@@ -77,8 +76,11 @@ export function Hato() {
    * El modo de selección del hato. Tocar varias filas sirve para dos capturas
    * distintas —mover a un potrero o anotar sanidad—, pero solo hay un modo a la
    * vez: una acción por pantalla.
+   *
+   * Inicio puede llegar con el modo de sanidad ya encendido (`#/hato/sanidad`):
+   * es el mismo modo, solo se ahorra el toque de buscarlo.
    */
-  const [modo, setModo] = useState<'mover' | 'sanidad' | null>(null)
+  const [modo, setModo] = useState<'mover' | 'sanidad' | null>(modoInicial)
   const [sanidadGuardada, setSanidadGuardada] = useState(false)
   const [elegidos, setElegidos] = useState<readonly string[]>([])
   const buscando = normalizar(busqueda) !== ''
@@ -177,18 +179,24 @@ export function Hato() {
 
   return (
     <main className="pantalla pantalla--hato">
-      <MenuYEncabezado
-        total={total}
-        subtituloVacio={subtituloVacio}
-        // Mientras el resumen no llegó (cargando o error) no se afirma nada del
-        // último pesaje: una consulta que falló no es «no hay pesajes».
-        ultimoPesaje={
-          resumen.data === undefined ? null : textoDelUltimoPesaje(resumen.data.animales)
+      <EncabezadoDelRancho
+        titulo="Hato"
+        subtitulo={subtituloDelHato(total, subtituloVacio, resumen.data === undefined ? null : textoDelUltimoPesaje(resumen.data.animales))}
+        acciones={
+          // En el hato vacío de verdad el alta se ofrece una sola vez, en la
+          // tarjeta. Si ya hubo salidas, el «+» sigue siendo el alta y la
+          // búsqueda encuentra a quien salió.
+          !vacio || haySalidas
+            ? [
+                {
+                  etiqueta: 'Dar de alta un animal',
+                  icono: <IconoMas />,
+                  href: rutaAHash({ nombre: 'alta' }),
+                  destacado: true,
+                },
+              ]
+            : []
         }
-        // En el hato vacío de verdad el alta se ofrece una sola vez, en la tarjeta.
-        // Si ya hubo salidas, el «+» sigue siendo el alta y la búsqueda encuentra
-        // a quien salió.
-        conAlta={!vacio || haySalidas}
       />
 
       {mirandoSalidas ? (
@@ -199,19 +207,7 @@ export function Hato() {
           <BotonPrincipal alTocar={() => void salidas.refetch()}>Volver a intentar</BotonPrincipal>
         </>
       ) : vacio && !haySalidas ? (
-        <Tarjeta>
-          <h2 className="hato__vacio-titulo">Empieza con el primer animal</h2>
-          <p className="hato__vacio-texto">
-            Con el nombre o la seña basta. Si no sabes algo, déjalo en «No sé»: se completa después.
-          </p>
-          <BotonPrincipal
-            alTocar={() => {
-              irA({ nombre: 'alta' })
-            }}
-          >
-            Dar de alta el primer animal
-          </BotonPrincipal>
-        </Tarjeta>
+        <TarjetaDelPrimerAnimal />
       ) : (
         <>
           <div className="ui-buscador">
@@ -579,129 +575,19 @@ function MoverA({
 }
 
 /**
- * El encabezado y su menú. «Salir» vive aquí: es la única salida de la sesión
- * en esta pantalla, no se repite arriba.
+ * El subtítulo del hato. Mientras el resumen no llegó (cargando o error) no se
+ * afirma nada del último pesaje: una consulta que falló no es «no hay pesajes».
  */
-function MenuYEncabezado({
-  total,
-  subtituloVacio,
-  ultimoPesaje,
-  conAlta,
-}: {
-  readonly total: number
-  readonly subtituloVacio: string
-  readonly ultimoPesaje: string | null
-  readonly conAlta: boolean
-}) {
-  const [abierto, setAbierto] = useState(false)
-  const contenedor = useRef<HTMLDivElement>(null)
-  const salir = useSalir()
-
-  // El menú se descarta como se descarta cualquier menú: con Escape o tocando
-  // fuera. En el celular, tocar fuera es la salida natural cuando no hay teclado.
-  useEffect(() => {
-    if (!abierto) {
-      return
-    }
-    function alTeclear(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') {
-        setAbierto(false)
-      }
-    }
-    function alTocarFuera(evento: Event) {
-      const nodo = contenedor.current
-      if (nodo !== null && evento.target instanceof Node && !nodo.contains(evento.target)) {
-        setAbierto(false)
-      }
-    }
-    document.addEventListener('keydown', alTeclear)
-    document.addEventListener('pointerdown', alTocarFuera)
-    return () => {
-      document.removeEventListener('keydown', alTeclear)
-      document.removeEventListener('pointerdown', alTocarFuera)
-    }
-  }, [abierto])
-
+function subtituloDelHato(
+  total: number,
+  subtituloVacio: string,
+  ultimoPesaje: string | null,
+): string {
+  if (total === 0) {
+    return subtituloVacio
+  }
   const conUltimoPesaje = ultimoPesaje === null ? '' : ` · ${ultimoPesaje}`
-  const subtitulo =
-    total === 0
-      ? subtituloVacio
-      : `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'}${conUltimoPesaje}`
-
-  return (
-    <div className="hato__encabezado" ref={contenedor}>
-      <Encabezado
-        etiqueta="MI RANCHO"
-        titulo="Hato"
-        subtitulo={subtitulo}
-        acciones={[
-          ...(conAlta
-            ? [
-                {
-                  etiqueta: 'Dar de alta un animal',
-                  icono: <IconoMas />,
-                  href: '#/alta',
-                  destacado: true,
-                },
-              ]
-            : []),
-          {
-            etiqueta: 'Menú',
-            icono: <IconoMenu />,
-            alTocar: () => {
-              setAbierto(!abierto)
-            },
-          },
-        ]}
-      />
-
-      {abierto ? (
-        <div className="hato__menu">
-          <button
-            type="button"
-            className="hato__menu-opcion"
-            onClick={() => {
-              setAbierto(false)
-              irA({ nombre: 'nacimiento', madreId: null })
-            }}
-          >
-            Registrar nacimiento
-          </button>
-          <button
-            type="button"
-            className="hato__menu-opcion"
-            onClick={() => {
-              setAbierto(false)
-              irA({ nombre: 'potreros' })
-            }}
-          >
-            Potreros
-          </button>
-          <button
-            type="button"
-            className="hato__menu-opcion"
-            onClick={() => {
-              setAbierto(false)
-              irA({ nombre: 'salidas' })
-            }}
-          >
-            Salidas
-          </button>
-          <button
-            type="button"
-            className="hato__menu-opcion"
-            disabled={salir.isPending}
-            onClick={() => {
-              setAbierto(false)
-              salir.mutate()
-            }}
-          >
-            {salir.isPending ? 'Saliendo…' : 'Salir'}
-          </button>
-        </div>
-      ) : null}
-    </div>
-  )
+  return `${String(total)} ${total === 1 ? 'animal activo' : 'animales activos'}${conUltimoPesaje}`
 }
 
 /** Una fila del hato con lo que la API ya sabe: aquí no se calcula ningún peso. */

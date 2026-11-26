@@ -268,7 +268,7 @@ describe('Sanidad desde el hato', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     await usuario.click(
       await screen.findByRole('button', { name: 'Anotar sanidad a varios animales' }),
@@ -314,7 +314,7 @@ describe('Sanidad desde el hato', () => {
       },
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     await usuario.click(
       await screen.findByRole('button', { name: 'Anotar sanidad a varios animales' }),
