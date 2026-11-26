@@ -42,3 +42,8 @@ export {
   type UltimaObservacion,
   type VistaDeInicio,
 } from './presencia'
+export {
+  crearModelosDeResumen,
+  type ModelosDeResumen,
+  type ResumenSemanalSemanal,
+} from './resumen'

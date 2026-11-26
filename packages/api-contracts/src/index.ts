@@ -239,6 +239,22 @@ export {
   type ResultadoDePrenez,
 } from './cria'
 export {
+  animalSinVerseEnElResumenSchema,
+  conteoDeMotivoDeSalidaSchema,
+  conteoDeResultadoDePrenezSchema,
+  errorDeResumenSchema,
+  motivoDeSalidaDelResumenSchema,
+  resultadoDePrenezDelResumenSchema,
+  resumenSemanalSchema,
+  type AnimalSinVerseEnElResumen,
+  type ConteoDeMotivoDeSalida,
+  type ConteoDeResultadoDePrenez,
+  type ErrorDeResumen,
+  type MotivoDeSalidaDelResumen,
+  type ResultadoDePrenezDelResumen,
+  type ResumenSemanal,
+} from './resumen'
+export {
   LARGO_MAXIMO_CONTRASENA,
   LARGO_MAXIMO_USUARIO,
   codigoDeErrorDeSesionSchema,

@@ -9,6 +9,7 @@ import type {
   ModelosDeCrecimiento,
   ModelosDeCria,
   ModelosDePresencia,
+  ModelosDeResumen,
   ModelosDeTendencias,
 } from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
@@ -21,6 +22,7 @@ import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
 import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evidencia'
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDePresencia } from './routes/presencia'
+import { registrarRutasDeResumen } from './routes/resumen'
 import { registrarRutasDeCria, registrarRutasDePrenez } from './routes/cria'
 import { registrarRutasDeDestete } from './routes/destete'
 import { registrarRutasDeSalud } from './routes/salud'
@@ -44,6 +46,8 @@ export type OpcionesApp = {
   readonly crecimiento?: ModelosDeCrecimiento
   /** Si falta, la última observación y Inicio no se montan. */
   readonly presencia?: ModelosDePresencia
+  /** Si falta, el resumen de la semana no se monta. */
+  readonly resumen?: ModelosDeResumen
   /** Si falta, la lectura de tendencias no se monta. */
   readonly tendencias?: ModelosDeTendencias
   /** Si falta, el historial de cría y la lista de vacas no se montan. */
@@ -130,6 +134,11 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.presencia !== undefined) {
     registrarRutasDePresencia(app, opciones.presencia)
+  }
+  if (opciones.resumen !== undefined) {
+    // El día del rancho sale del mismo modelo de presencia que usa Inicio: no
+    // se calcula una segunda vez con otro reloj.
+    registrarRutasDeResumen(app, opciones.resumen)
   }
   if (opciones.tendencias !== undefined) {
     registrarRutasDeTendencias(app, opciones.tendencias)

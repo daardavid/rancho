@@ -18,6 +18,7 @@ import {
   crearModelosDeCrecimiento,
   crearModelosDeCria,
   crearModelosDePresencia,
+  crearModelosDeResumen,
   crearModelosDeTendencias,
 } from './read-models'
 
@@ -46,13 +47,15 @@ export async function arrancar(): Promise<FastifyInstance> {
   const cliente = abrirCliente(configuracion.databaseUrl, configuracion.maxConexiones)
   const evidencia = crearPuertoDeEvidencia(cliente.db, carpetaDeEvidencia())
   const herd = crearHerd(cliente.db, evidencia)
+  const presencia = crearModelosDePresencia(cliente.db)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db, configuracion.secretoDeSesion),
     herd,
     growth: crearGrowth(cliente.db, herd, evidencia),
     evidencia,
     crecimiento: crearModelosDeCrecimiento(cliente.db),
-    presencia: crearModelosDePresencia(cliente.db),
+    presencia,
+    resumen: crearModelosDeResumen(cliente.db, presencia),
     tendencias: crearModelosDeTendencias(cliente.db),
     cria: crearModelosDeCria(cliente.db),
     destete: crearCapturaDeDestete(cliente.db, evidencia),
