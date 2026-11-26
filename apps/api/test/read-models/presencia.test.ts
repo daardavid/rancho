@@ -46,6 +46,7 @@ const ids = {
   criaVieja: nuevoId(),
   criaSinFecha: nuevoId(),
   madreDelParto: nuevoId(),
+  madreSoloInferida: nuevoId(),
   criaVista: nuevoId(),
   criaInferida: nuevoId(),
   criaSinCerteza: nuevoId(),
@@ -199,6 +200,7 @@ beforeAll(async () => {
   await nacimiento(ids.criaVieja, 'Cría vieja', '2026-10-01', 'exact')
   await nacimiento(ids.criaSinFecha, 'Cría sin fecha', null, null)
   await animal(ids.madreDelParto, 'Madre del parto', 'cow')
+  await animal(ids.madreSoloInferida, 'Madre inferida', 'cow')
   await nacimientoConMadre(ids.criaVista, ids.filiacionVista, 'Cría vista', {
     certeza: 'observed',
     animalId: ids.madreDelParto,
@@ -206,10 +208,20 @@ beforeAll(async () => {
   })
   await nacimientoConMadre(ids.criaInferida, nuevoId(), 'Cría inferida', {
     certeza: 'inferred',
-    animalId: ids.madreDelParto,
+    animalId: ids.madreSoloInferida,
     motivo: 'parto_visto',
   })
   await nacimientoConMadre(ids.criaSinCerteza, nuevoId(), 'Cría sin certeza', DESCONOCIDO)
+  await herd.anotarSalud({
+    commandId: nuevoId(),
+    ranchId,
+    recordedBy,
+    tipo: 'problema',
+    detalle: 'No se sabe si se le vio',
+    fecha: '2026-11-22',
+    vioAlAnimal: null,
+    animales: [{ animalId: ids.sinNada, notaId: nuevoId() }],
+  })
 
   await herd.registrarSalida({
     commandId: nuevoId(),
@@ -271,7 +283,19 @@ describe('última observación', () => {
     })
     expect((await modelos.ultimaObservacion(ranchId, ids.criaInferida, HOY))?.observacion).toBeNull()
     expect((await modelos.ultimaObservacion(ranchId, ids.criaSinCerteza, HOY))?.observacion).toBeNull()
+
+    const madre = await modelos.ultimaObservacion(ranchId, ids.madreDelParto, HOY)
+    expect(madre?.observacion).toMatchObject({
+      origen: 'nacimiento',
+      origenId: ids.filiacionVista,
+      fecha: '2026-11-21',
+      dias: 3,
+    })
+    expect((await modelos.ultimaObservacion(ranchId, ids.madreSoloInferida, HOY))?.observacion).toBeNull()
+    expect((await modelos.ultimaObservacion(ranchId, ids.sinNada, HOY))?.observacion).toBeNull()
+
     expect(idsDe(vista.paraRevisar.sinObservacion)).not.toContain(ids.criaVista)
+    expect(idsDe(vista.paraRevisar.sinObservacion)).not.toContain(ids.madreDelParto)
     expect(idsDe(vista.paraRevisar.sinObservacion)).toContain(ids.criaInferida)
     expect(idsDe(vista.paraRevisar.sinObservacion)).toContain(ids.criaSinCerteza)
   })
@@ -295,7 +319,7 @@ describe('Inicio', () => {
   it('cuenta activos, nacimientos, salidas, pesajes y notas con los datos sembrados', () => {
     expect(vista.activosPorCategoria).toEqual([
       { categoria: 'calf', cantidad: 7 },
-      { categoria: 'cow', cantidad: 6 },
+      { categoria: 'cow', cantidad: 7 },
       { categoria: 'bull', cantidad: 1 },
       { categoria: 'other', cantidad: 1 },
       { categoria: 'unknown', cantidad: 1 },
@@ -310,7 +334,7 @@ describe('Inicio', () => {
     expect(vista.cambios.nacimientosSinFecha).toBe(1)
     expect(vista.cambios.salidas.map((fila) => fila.animalId)).toEqual([ids.salio])
     expect(vista.cambios.pesajes).toBe(2)
-    expect(vista.cambios.notasDeSanidad).toBe(3)
+    expect(vista.cambios.notasDeSanidad).toBe(4)
   })
 
   it('al acortar el periodo deja fuera lo anterior y no toca la lista de activos', async () => {
@@ -339,7 +363,7 @@ describe('Inicio', () => {
         ids.criaPeriodo,
         ids.criaVieja,
         ids.criaSinFecha,
-        ids.madreDelParto,
+        ids.madreSoloInferida,
         ids.criaInferida,
         ids.criaSinCerteza,
       ].sort(),
@@ -348,12 +372,13 @@ describe('Inicio', () => {
 
   it('ordena por días a todos los que tienen observación, sin dejar fuera al de hoy ni al de hace meses', () => {
     const lista = vista.paraRevisar.porDiasSinVerse
-    expect(lista.map((fila) => fila.dias)).toEqual([327, 14, 9, 3, 1, 0])
+    expect(lista.map((fila) => fila.dias)).toEqual([327, 14, 9, 3, 3, 1, 0])
     expect(lista.map((fila) => fila.animalId)).toEqual([
       ids.vistoHaceMucho,
       ids.pesado,
       ids.mismoDia,
       ids.criaVista,
+      ids.madreDelParto,
       ids.notaVista,
       ids.vistoHoy,
     ])
@@ -361,6 +386,7 @@ describe('Inicio', () => {
       'pesaje',
       'pesaje',
       'pesaje',
+      'nacimiento',
       'nacimiento',
       'sanidad',
       'pesaje',

@@ -12,9 +12,9 @@ import type { RanchId } from '../shared-kernel/ids'
  * nota. Se reconstruye de los hechos que dicen que el animal se vio:
  *
  * - un pesaje (`weighed`); un hueco no cuenta
- * - una nota de sanidad con `saw_animal`
- * - un nacimiento con fecha cuya madre está en «La vi» (`observed`); la
- *   observación es de la cría ese día. Inferida o «No sé» no cuentan.
+ * - una nota de sanidad con `saw_animal` en sí; «No se vio» y «No sé» no cuentan
+ * - un nacimiento con fecha cuya madre está en «La vi» (`observed`); ese día
+ *   es observación de la cría y de la madre. Inferida o «No sé» no cuentan.
  *
  * No cuentan una asignación de lugar, un hueco, ni una nota que no dice que se
  * vio. Si el mismo día hay dos, gana la que se registró después.
@@ -421,7 +421,7 @@ function observacionesDe(ranchId: RanchId): SQL {
         nota.recorded_at AS registrado_en
       FROM herd.health_event nota
       WHERE nota.ranch_id = ${ranchId}
-        AND nota.saw_animal
+        AND nota.saw_animal IS TRUE
       UNION ALL
       SELECT
         filiacion.offspring_id AS animal_id,
@@ -432,6 +432,18 @@ function observacionesDe(ranchId: RanchId): SQL {
       FROM herd.parentage_record filiacion
       WHERE filiacion.ranch_id = ${ranchId}
         AND filiacion.birth_date IS NOT NULL
+        AND filiacion.dam_certainty = 'observed'
+      UNION ALL
+      SELECT
+        filiacion.dam_id AS animal_id,
+        filiacion.birth_date AS fecha,
+        'nacimiento' AS origen,
+        filiacion.id AS origen_id,
+        filiacion.recorded_at AS registrado_en
+      FROM herd.parentage_record filiacion
+      WHERE filiacion.ranch_id = ${ranchId}
+        AND filiacion.birth_date IS NOT NULL
+        AND filiacion.dam_id IS NOT NULL
         AND filiacion.dam_certainty = 'observed'
     ) fuentes
     ORDER BY animal_id, fecha DESC, registrado_en DESC, origen_id DESC

@@ -40,10 +40,24 @@ describe('contrato de la nota de sanidad', () => {
     expect(anotarSaludSchema.safeParse({ ...notaBase, tipo: 'inyeccion' }).success).toBe(false)
   })
 
-  it('sin decir si se vio, o con un texto, la nota no se acepta', () => {
+  it('«No sé» es null y se acepta; omitirlo o mandar un texto, no', () => {
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: undefined }).success).toBe(false)
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: true }).success).toBe(true)
+    expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: null }).success).toBe(true)
     expect(anotarSaludSchema.safeParse({ ...notaBase, vioAlAnimal: 'si' }).success).toBe(false)
+    expect(notaDeSaludSchema.safeParse({
+      id: NOTA,
+      animalId: ANIMAL,
+      tipo: 'problema',
+      detalle: 'No se sabe si se le vio',
+      fecha: '2026-11-20',
+      producto: null,
+      evidenciaId: null,
+      vioAlAnimal: null,
+      version: 1,
+      recordedBy: 'cuenta',
+      recordedAt: CUANDO,
+    }).success).toBe(true)
   })
 
   it('el contrato no esconde el grupo: quien rechaza el animal repetido es la aplicación', () => {

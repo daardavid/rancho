@@ -169,6 +169,7 @@ describe('Sanidad en la ficha', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Anotar sanidad' }))
     expect(screen.getByRole('radio', { name: 'Vacuna' })).toHaveProperty('checked', false)
     expect(screen.getByRole('radio', { name: 'No se vio' })).toHaveProperty('checked', false)
+    expect(screen.getByRole('radio', { name: 'No sé' })).toHaveProperty('checked', false)
     await usuario.type(
       await screen.findByLabelText('¿Qué se hizo o se vio?'),
       'Vacuna contra el ántrax',
@@ -228,6 +229,40 @@ describe('Sanidad en la ficha', () => {
     })
     expect(api.peticiones.find((peticion) => peticion.metodo === 'POST')?.cuerpo).toMatchObject({
       vioAlAnimal: true,
+    })
+  })
+
+  it('«No sé» se manda explícito y no viene marcado', async () => {
+    const usuario = userEvent.setup()
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL_A}`]: () => ({ estado: 200, cuerpo: fichaDeAnimal({ id: ANIMAL_A, nombre: 'Canelo' }) }),
+      [`GET /api/read-models/animal-growth/${ANIMAL_A}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+      'GET /api/paddocks': () => ({ estado: 200, cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 } }),
+      [`GET /api/animals/${ANIMAL_A}/location`]: () => ({
+        estado: 200,
+        cuerpo: { vigente: null, historia: [] },
+      }),
+      [`GET /api/animals/${ANIMAL_A}/health-notes`]: () => ({
+        estado: 200,
+        cuerpo: { animalId: ANIMAL_A, notas: [] },
+      }),
+      'POST /api/health-notes': () => ({ estado: 201, cuerpo: { notas: [unaNota({ vioAlAnimal: null })] } }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL_A}`)
+    await usuario.click(await screen.findByRole('button', { name: 'Anotar sanidad' }))
+    expect(screen.getByRole('radio', { name: 'No sé' })).toHaveProperty('checked', false)
+    await usuario.type(await screen.findByLabelText('¿Qué se hizo o se vio?'), 'Le dieron algo')
+    await usuario.click(screen.getByRole('radio', { name: 'Otro' }))
+    await usuario.click(screen.getByRole('radio', { name: 'No sé' }))
+    await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad' }))
+
+    await waitFor(() => {
+      expect(api.peticiones.some((peticion) => peticion.metodo === 'POST')).toBe(true)
+    })
+    expect(api.peticiones.find((peticion) => peticion.metodo === 'POST')?.cuerpo).toMatchObject({
+      vioAlAnimal: null,
     })
   })
 

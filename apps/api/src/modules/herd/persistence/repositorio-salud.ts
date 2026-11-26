@@ -211,7 +211,7 @@ function notaDesde(fila: FilaNota): NotaDeSalud {
     fecha: dia(fila.occurred_on),
     producto: fila.product,
     evidenciaId: fila.evidence_id,
-    vioAlAnimal: booleano(fila.saw_animal),
+    vioAlAnimal: vistoDe(fila.saw_animal),
     version: entero(fila.version),
     recordedBy: recordedBySchema.parse(fila.recorded_by),
     recordedAt: instante(fila.recorded_at),
@@ -289,7 +289,11 @@ function detallePg(error: unknown): { unica: boolean; foranea: boolean; chequeo:
   return { unica, foranea, chequeo }
 }
 
-function booleano(valor: unknown): boolean {
+/** `null` es «No sé». No es lo mismo que no haber elegido. */
+function vistoDe(valor: unknown): boolean | null {
+  if (valor === null) {
+    return null
+  }
   if (typeof valor === 'boolean') {
     return valor
   }

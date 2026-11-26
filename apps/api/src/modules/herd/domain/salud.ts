@@ -21,8 +21,9 @@ import { LARGO_MAXIMO_NOMBRE, LARGO_MAXIMO_NOTA } from './valores'
  *
  * `vioAlAnimal` lo elige quien anota. No hay valor por omisión: si no dice si
  * vio al animal, la nota no se abre. Así no se guarda «no se vio» porque nadie
- * lo tocó. Una nota solo cuenta como observación cuando dice que sí se vio
- * (`TGT-SEC-001`). El modelo guarda sí o no; «No sé» todavía no cabe.
+ * lo tocó. `true` es «Sí se vio», `false` es «No se vio» y `null` es «No sé».
+ * Una nota solo cuenta como observación cuando dice que sí se vio
+ * (`TGT-SEC-001`). «No sé» no cuenta.
  */
 
 export const TIPOS_DE_NOTA_DE_SALUD = ['vacuna', 'medicamento', 'bano', 'problema', 'otro'] as const
@@ -45,8 +46,11 @@ export type NotaDeSalud = {
   readonly producto: string | null
   /** Foto del frasco, del animal o de lo que se vio. `null` es sin foto. */
   readonly evidenciaId: string | null
-  /** La nota dice que el animal se vio. Alguien lo eligió: no hay omisión. */
-  readonly vioAlAnimal: boolean
+  /**
+   * `true` se vio, `false` no se vio, `null` es «No sé». Alguien lo eligió:
+   * no hay omisión.
+   */
+  readonly vioAlAnimal: boolean | null
   readonly version: number
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
@@ -61,8 +65,8 @@ export type RegistroDeNotaDeSalud = {
   readonly fecha: string
   readonly producto?: string | null
   readonly evidenciaId?: string | null
-  /** Obligatorio. Omitirlo no se guarda como «no se vio». */
-  readonly vioAlAnimal?: boolean
+  /** Obligatorio. Omitirlo no se guarda como «no se vio». `null` es «No sé». */
+  readonly vioAlAnimal?: boolean | null
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
 }
@@ -85,7 +89,7 @@ export type CambiosDeNota = {
   readonly fecha?: string
   readonly producto?: string | null
   readonly evidenciaId?: string | null
-  readonly vioAlAnimal?: boolean
+  readonly vioAlAnimal?: boolean | null
 }
 
 /**
@@ -180,7 +184,7 @@ export function corregirNotaDeSalud(
 
   let vioAlAnimal = actual.vioAlAnimal
   if (cambios.vioAlAnimal !== undefined && cambios.vioAlAnimal !== actual.vioAlAnimal) {
-    anteriores.push({ campo: 'vioAlAnimal', valorAnterior: actual.vioAlAnimal ? 'si' : 'no' })
+    anteriores.push({ campo: 'vioAlAnimal', valorAnterior: textoDeVisto(actual.vioAlAnimal) })
     vioAlAnimal = cambios.vioAlAnimal
   }
 
@@ -211,12 +215,26 @@ function tipoDe(valor: string): TipoDeNotaDeSalud {
   return valor
 }
 
-/** Sí o no, elegido. `undefined` no se convierte en «no se vio». */
-export function vistoElegido(valor: boolean | undefined): boolean {
-  if (valor !== true && valor !== false) {
+/**
+ * Sí, no o «No sé», elegido. `undefined` no se convierte en «no se vio» ni en
+ * «No sé»: si nadie lo tocó, la nota no se abre.
+ */
+export function vistoElegido(valor: boolean | null | undefined): boolean | null {
+  if (valor !== true && valor !== false && valor !== null) {
     throw new RechazoDeHerd('visto_sin_elegir')
   }
   return valor
+}
+
+/** El valor anterior, en texto, para la historia de la corrección. */
+export function textoDeVisto(valor: boolean | null): 'si' | 'no' | 'no_se' {
+  if (valor === true) {
+    return 'si'
+  }
+  if (valor === false) {
+    return 'no'
+  }
+  return 'no_se'
 }
 
 function motivoDe(motivo: string): string {
