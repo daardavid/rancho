@@ -49,6 +49,28 @@ describe('cargarConfiguracion', () => {
     expect(() => cargarConfiguracion({ DATABASE_URL: URL })).toThrow(/Falta SESSION_SECRET/)
   })
 
+  it('en modo publicado, sin SESSION_SECRET o sin DATABASE_URL, no arranca y lo dice', () => {
+    expect(() =>
+      cargarConfiguracion({ NODE_ENV: 'production', SESSION_SECRET: SECRETO }),
+    ).toThrow(/Falta DATABASE_URL/)
+    expect(() => cargarConfiguracion({ NODE_ENV: 'production', DATABASE_URL: URL })).toThrow(
+      /Falta SESSION_SECRET/,
+    )
+    expect(() =>
+      cargarConfiguracion({ NODE_ENV: 'production', DATABASE_URL: '   ', SESSION_SECRET: SECRETO }),
+    ).toThrow(/Falta DATABASE_URL/)
+    expect(() =>
+      cargarConfiguracion({ NODE_ENV: 'production', DATABASE_URL: URL, SESSION_SECRET: '   ' }),
+    ).toThrow(/Falta SESSION_SECRET/)
+  })
+
+  it('en modo publicado la cookie lleva Secure', () => {
+    const configuracion = cargarConfiguracion(entorno({ NODE_ENV: 'production' }))
+    expect(configuracion.produccion).toBe(true)
+    expect(configuracion.modoLocal).toBe(false)
+    expect(configuracion.cookieSegura).toBe(true)
+  })
+
   it('un SESSION_SECRET vacío cuenta como faltante', () => {
     expect(() => cargarConfiguracion({ DATABASE_URL: URL, SESSION_SECRET: '   ' })).toThrow(
       /Falta SESSION_SECRET/,

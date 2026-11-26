@@ -58,6 +58,8 @@ Candidate categories, not a selection: a small application platform that also se
 
 There is no compelling reason to name the vendor in an ADR yet. AQ-P1-006 stays open for the provider and the region. The shape above is closed.
 
+A free host for the first publication is proposed in [ADR-016](adr/ADR-016-publicacion.md). It stays a proposal until David accepts it. AQ-P1-006 stays open until then.
+
 A container image is created only if the chosen host wants one. A Dockerfile is not part of this design.
 
 ## CI/CD

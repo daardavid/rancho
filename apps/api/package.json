@@ -18,7 +18,8 @@
     "local": "tsx src/infrastructure/local/cli.ts",
     "contrasena": "tsx src/infrastructure/local/cli-contrasena.ts",
     "respaldo": "tsx src/infrastructure/local/cli-respaldo.ts",
-    "restaurar": "tsx src/infrastructure/local/cli-restaurar.ts"
+    "restaurar": "tsx src/infrastructure/local/cli-restaurar.ts",
+    "cargar-respaldo": "tsx src/infrastructure/db/cli-cargar-respaldo.ts"
   },
   "dependencies": {
     "@fastify/static": "^10.1.12",

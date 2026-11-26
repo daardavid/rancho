@@ -348,8 +348,21 @@ archivo es relativa a la carpeta desde donde corriste npm (por ejemplo la
 raíz del repo), no a `apps/api`. Hay que correrlo en una terminal: sin ella
 no pregunta y no restaura.
 
-Para pasar ese archivo a un PostgreSQL 17 vacío (el de este repo; el motor
-embebido es PostgreSQL 18 y el SQL que escribe carga en 17):
+Para pasar ese archivo a un PostgreSQL vacío, sin instalar `psql`, apunta
+`DATABASE_URL` a esa base en la terminal (no lo dejes en `.env` si esa base
+es la publicada) y corre:
+
+```bash
+npm run cargar-respaldo -- respaldos/rancho-2026-11-23-223045-123.sql
+```
+
+Pide que escribas `CARGAR`. Reemplaza los esquemas de la app en esa base, en
+una transacción. Si la respuesta es otra, no cambia nada. Hay que correrlo en
+una terminal. La base publicada usa este mismo comando; los pasos, de las
+cuentas al celular, están en [publicar.md](publicar.md).
+
+El motor embebido es PostgreSQL 18 y el SQL carga en el PostgreSQL 17 de este
+repo. Si ya tienes `psql`, es el mismo archivo:
 
 ```bash
 psql "postgres://usuario:clave@127.0.0.1:5432/rancho" -v ON_ERROR_STOP=1 --single-transaction -f respaldos/rancho-2026-11-23-223045-123.sql
