@@ -36,7 +36,7 @@
   --columna: 30rem;
   --alto-barra: 72px;
 
-  --fuente-texto: 'Inter', system-ui, sans-serif;
+  --fuente-texto: 'Inter Variable', 'Inter', system-ui, sans-serif;
   --fuente-titulo: 'Archivo', system-ui, sans-serif;
 
   /* Nombres que ya usan las pantallas de INC-001 y INC-002. */
