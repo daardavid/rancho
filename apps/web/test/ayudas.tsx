@@ -70,6 +70,15 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
         return Response.json({ pesos: [] }, { status: 200 })
       }
       // La ficha de una hembra pide su cría. Sin partos la API responde vacío.
+      if (metodo === 'GET' && /^\/api\/read-models\/destete\/[^/]+$/.test(ruta)) {
+        return Response.json(
+          { animalId: ruta.split('/').pop(), destete: null },
+          { status: 200 },
+        )
+      }
+      if (metodo === 'GET' && ruta === '/api/read-models/kilos-destetados') {
+        return Response.json({ porPromedio: [] }, { status: 200 })
+      }
       if (metodo === 'GET' && /^\/api\/read-models\/cria\/[^/]+$/.test(ruta)) {
         return Response.json(
           {
@@ -79,6 +88,11 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
             partosSinFecha: 0,
             diasDesdeElUltimoParto: null,
             diagnosticos: [],
+            kilosDestetados: {
+              observadas: { conPeso: 0, sinPeso: 0, total: null, promedio: null },
+              inferidas: { conPeso: 0, sinPeso: 0, total: null, promedio: null },
+              sinPeso: [],
+            },
           },
           { status: 200 },
         )

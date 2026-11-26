@@ -128,6 +128,8 @@ const TABLAS: ReadonlyArray<readonly [string, string, string]> = [
   ['herd', 'health_event_correction', 'id'],
   ['herd', 'pregnancy_check', 'id'],
   ['herd', 'pregnancy_check_correction', 'id'],
+  ['herd', 'weaning', 'id'],
+  ['herd', 'weaning_correction', 'id'],
   ['herd', 'parentage_record', 'id'],
   ['herd', 'parentage_correction', 'id'],
   ['growth', 'weighing_session', 'id'],

@@ -28,6 +28,8 @@ export {
   type IntervaloEntrePartos,
   type ListaDeVacas,
   type ModelosDeCria,
+  type DesteteDelAnimal,
+  type ListaDeKilosDestetados,
   type Parto,
 } from './cria'
 export {

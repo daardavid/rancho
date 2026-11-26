@@ -4,6 +4,17 @@ import type { EjecutorSql } from '../infrastructure/db/filas'
 import { filasDe } from '../infrastructure/db/filas'
 import type { RanchId } from '../shared-kernel/ids'
 
+import {
+  desteteDelAnimal,
+  destetesPorCria,
+  kilosDe,
+  listaDeKilos,
+  type DesteteDeCria,
+  type DesteteEnLaFicha,
+  type FilaDeKilos,
+  type KilosDeLaVaca,
+} from './destete'
+
 /**
  * Historial de cría, como consulta.
  *
@@ -32,6 +43,8 @@ export type Parto = {
   readonly precisionFecha: 'exact' | 'approximate' | null
   readonly certezaMadre: CertezaDeMadre
   readonly motivo: 'parto_visto' | 'dicho_de_trabajador' | 'otro' | null
+  /** `null` cuando no hay destete anotado. No se inventa un peso. */
+  readonly destete: DesteteDeCria | null
 }
 
 export type IntervaloEntrePartos = {
@@ -75,6 +88,8 @@ export type HistorialDeCria = {
   readonly diasDesdeElUltimoParto: number | null
   /** Del más reciente al más viejo. */
   readonly diagnosticos: readonly DiagnosticoEnLaVista[]
+  /** Vista e inferida por separado. Solo entran las crías destetadas con peso. */
+  readonly kilosDestetados: KilosDeLaVaca
 }
 
 export type DiagnosticoEnLaLista = {
@@ -101,11 +116,24 @@ export type ListaDeVacas = {
   readonly sinPartoRegistrado: readonly FilaDeVaca[]
 }
 
+export type DesteteDelAnimal = {
+  readonly animalId: string
+  readonly destete: DesteteEnLaFicha | null
+}
+
+export type ListaDeKilosDestetados = {
+  readonly porPromedio: readonly FilaDeKilos[]
+}
+
 export type ModelosDeCria = {
   /** `null` cuando el animal no existe en este rancho. */
   historial(ranchId: RanchId, animalId: string, hoy?: string): Promise<HistorialDeCria | null>
   /** Hembras activas de la lista. `hoy` fija la prueba. */
   vacas(ranchId: RanchId, hoy?: string): Promise<ListaDeVacas>
+  /** `null` cuando el animal no existe. El destete puede ser null. */
+  destete(ranchId: RanchId, animalId: string): Promise<DesteteDelAnimal | null>
+  /** Vacas con al menos una cría destetada con peso. Incluye a las que ya salieron. */
+  kilosDestetados(ranchId: RanchId): Promise<ListaDeKilosDestetados>
 }
 
 const CATEGORIAS: readonly Categoria[] = ['calf', 'cow', 'bull', 'other', 'unknown']
@@ -189,7 +217,12 @@ export function crearModelosDeCria(db: EjecutorSql): ModelosDeCria {
             AND filiacion.dam_certainty IN ('observed', 'inferred')
         `),
       )
-      const partos = ordenarPartos(filas.map(partoDe))
+      const base = ordenarPartos(filas.map(partoDe))
+      const pesos = await destetesPorCria(db, ranchId, base)
+      const partos = base.map((parto) => ({
+        ...parto,
+        destete: pesos.get(parto.criaId) ?? null,
+      }))
       const conFecha = partos.filter((parto) => parto.fecha !== null)
       const ultima = conFecha[0]?.fecha ?? null
 
@@ -200,7 +233,14 @@ export function crearModelosDeCria(db: EjecutorSql): ModelosDeCria {
         partosSinFecha: partos.length - conFecha.length,
         diasDesdeElUltimoParto: ultima === null ? null : diasEntre(ultima, dia),
         diagnosticos: await diagnosticosDe(db, ranchId, animalId),
+        kilosDestetados: kilosDe(partos),
       }
+    },
+    destete(ranchId, animalId) {
+      return desteteDelAnimal(db, ranchId, animalId)
+    },
+    kilosDestetados(ranchId) {
+      return listaDeKilos(db, ranchId)
     },
 
     async vacas(ranchId, hoy) {
@@ -430,6 +470,7 @@ function partoDe(fila: FilaParto): Parto {
     precisionFecha: precision,
     certezaMadre: certeza,
     motivo: motivo ?? null,
+    destete: null,
   }
 }
 

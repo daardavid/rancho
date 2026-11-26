@@ -20,9 +20,12 @@ import {
   type SesionPublica,
 } from './application/servicio'
 import { crearRepositorioDePesajes } from './persistence/repositorio'
+import { insertarPesosDeDestete, type PesoDeDestetePublico } from './application/peso-de-destete'
 
 export type { EntradaCorregir, EntradaRegistrar, PesoPublico, PesosDelAnimal, SesionPublica }
-export { RechazoDeGrowth }
+export type { DepsDeGrowth }
+export type { PesoDeDestetePublico }
+export { RechazoDeGrowth, insertarPesosDeDestete }
 
 /**
  * Sesiones de pesaje y corrección de un peso.
@@ -73,4 +76,9 @@ function depsDe(tx: EjecutorSql): DepsDeGrowth {
     sesiones: crearRepositorioDePesajes(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
   }
+}
+
+/** Repositorios de Growth atados a una transacción que abrió el orquestador. */
+export function repositoriosDeGrowth(tx: EjecutorSql): DepsDeGrowth {
+  return depsDe(tx)
 }

@@ -136,6 +136,11 @@ describe('vacas por último parto', () => {
           intervalos: [],
           partosSinFecha: 0,
           diasDesdeElUltimoParto: null,
+          kilosDestetados: {
+            observadas: { conPeso: 0, sinPeso: 0, total: null, promedio: null },
+            inferidas: { conPeso: 0, sinPeso: 0, total: null, promedio: null },
+            sinPeso: [],
+          },
           diagnosticos: [
             {
               id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',

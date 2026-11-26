@@ -110,7 +110,12 @@ export function useCorregirPeso(pesoId: string) {
 
 /**
  * Todo lo que un peso mueve: la serie del animal, el resumen del hato, el
- * último peso que enseña el hato y la última sesión que propone la siguiente.
+ * último peso que enseña el hato, la última sesión y el destete. El peso al
+ * destete es el mismo peso: si se corrige desde «Pesos», «Destete», la cría
+ * de la madre y los kilos destetados tienen que leer el número nuevo.
+ *
+ * Las llaves van literales para no importar `destete.ts`, que ya importa este
+ * archivo.
  */
 function invalidarDespuesDePesar(cache: ReturnType<typeof useQueryClient>): void {
   void cache.invalidateQueries({ queryKey: ['ficha'] })
@@ -121,4 +126,7 @@ function invalidarDespuesDePesar(cache: ReturnType<typeof useQueryClient>): void
   void cache.invalidateQueries({ queryKey: ['hato'] })
   void cache.invalidateQueries({ queryKey: LLAVE_DE_INICIO })
   void cache.invalidateQueries({ queryKey: ['observacion'] })
+  void cache.invalidateQueries({ queryKey: ['destete'] })
+  void cache.invalidateQueries({ queryKey: ['cria'] })
+  void cache.invalidateQueries({ queryKey: ['kilos-destetados'] })
 }

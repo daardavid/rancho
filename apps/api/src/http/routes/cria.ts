@@ -4,9 +4,11 @@ import {
   correccionDeDiagnosticoComandoSchema,
   diagnosticoConHistoriaSchema,
   diagnosticosAnotadosSchema,
+  desteteDelAnimalSchema,
   errorDeCriaSchema,
   errorDePrenezSchema,
   historialDeCriaSchema,
+  listaDeKilosDestetadosSchema,
   listaDeVacasSchema,
   type ErrorDePrenez,
 } from '@rancho/api-contracts'
@@ -110,6 +112,40 @@ export function registrarRutasDeCria(app: FastifyInstance, modelos: ModelosDeCri
     const lista = await modelos.vacas(sesion.ranchId)
     return respuesta.header('cache-control', 'no-store').code(200).send(listaDeVacasSchema.parse(lista))
   })
+
+  app.get(
+    '/api/read-models/destete/:id',
+    { preHandler: exigirRol(ROLES) },
+    async (peticion, respuesta) => {
+      const sesion = exigirSesion(peticion.sesionActiva)
+      const params = paramsDeAnimal.safeParse(peticion.params)
+      if (!params.success) {
+        return cuerpoInvalidoDeCria(respuesta)
+      }
+
+      const vista = await modelos.destete(sesion.ranchId, params.data.id)
+      if (vista === null) {
+        return respuesta
+          .header('cache-control', 'no-store')
+          .code(404)
+          .send(errorDeCriaSchema.parse({ codigo: 'no_encontrado' }))
+      }
+      return respuesta.header('cache-control', 'no-store').code(200).send(desteteDelAnimalSchema.parse(vista))
+    },
+  )
+
+  app.get(
+    '/api/read-models/kilos-destetados',
+    { preHandler: exigirRol(ROLES) },
+    async (peticion, respuesta) => {
+      const sesion = exigirSesion(peticion.sesionActiva)
+      const lista = await modelos.kilosDestetados(sesion.ranchId)
+      return respuesta
+        .header('cache-control', 'no-store')
+        .code(200)
+        .send(listaDeKilosDestetadosSchema.parse(lista))
+    },
+  )
 }
 
 function cambiosDe(

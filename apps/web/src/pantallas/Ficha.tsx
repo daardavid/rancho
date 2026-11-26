@@ -34,6 +34,7 @@ import { CriaDelAnimal } from './Cria'
 import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
 import { LugarDelAnimalEnLaFicha } from './LugarDelAnimal'
+import { DesteteDelAnimal } from './Destete'
 import { FormularioDeSanidad, SanidadDelAnimal } from './Sanidad'
 import { FormularioDeSalida } from './Salida'
 import { GraficaDePesos } from './GraficaDePesos'
@@ -334,6 +335,8 @@ export function Ficha({
               </p>
             ) : null}
           </section>
+
+          <DesteteDelAnimal animalId={animal.id} puedeAnotar={animal.activo} />
 
           <section className="ficha__seccion">
             <h2 className="ficha__titulo">Dónde se le espera</h2>
