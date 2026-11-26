@@ -6,7 +6,7 @@ Este archivo resume cómo trabaja la fábrica. **No reemplaza** a la [Constituci
 
 ## Qué es este repo
 
-RANCHO es el software de gestión y decisión de un rancho ganadero en Balancán, Tabasco. El incremento en curso es [INC-005 — Listo para uso real](docs/product/increments/INC-005-listo-para-uso-real.md). INC-001 a INC-004 ya están en `main`. Las tareas de la fábrica están en `fabrica/tareas/` y su orden en `fabrica/tareas/orden.txt`.
+RANCHO es el software de gestión y decisión de un rancho ganadero en Balancán, Tabasco. El incremento en curso es [INC-006 — Ligera en el celular, sin mensajes falsos y con tendencias](docs/product/increments/INC-006-ligera-y-sin-falsos.md). INC-001 a INC-005 ya están en `main`. Las tareas de la fábrica están en `fabrica/tareas/` y su orden en `fabrica/tareas/orden.txt`.
 
 `apps/domain-map` es el mapa de diseño. No es la app del rancho y no se toca en estas tareas.
 
