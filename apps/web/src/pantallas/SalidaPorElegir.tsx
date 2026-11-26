@@ -131,7 +131,7 @@ export function SalidaPorElegir() {
                       categoria={categoriaVisual(animal.categoria)}
                       miniaturaId={animal.foto?.miniaturaId ?? null}
                       alTocar={() => {
-                        irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true })
+                        irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true, desde: 'inicio' })
                       }}
                     />
                   </li>

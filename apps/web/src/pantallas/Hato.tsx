@@ -838,7 +838,7 @@ function FilaDeHato({
       {...(seleccion === undefined
         ? {
             alTocar: () => {
-              irA({ nombre: 'ficha', animalId: animal.id })
+              irA({ nombre: 'ficha', animalId: animal.id, desde: 'hato' })
             },
           }
         : {})}
@@ -868,7 +868,7 @@ function FilaDeSalidaEnElHato({
       categoria={categoriaVisual(animal.categoria)}
       miniaturaId={animal.foto?.miniaturaId ?? null}
       alTocar={() => {
-        irA({ nombre: 'ficha', animalId: animal.id })
+        irA({ nombre: 'ficha', animalId: animal.id, desde: 'hato' })
       }}
     />
   )

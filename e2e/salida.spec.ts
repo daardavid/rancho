@@ -49,3 +49,42 @@ test('dar de baja lo saca del hato y del pesaje, y Salidas lo encuentra', async 
   await expect(page.getByText('Ningún animal coincide o ya está en la sesión.')).toBeVisible()
   await expect(page.getByRole('button', { name: nombre })).toHaveCount(0)
 })
+
+/**
+ * R-42: el texto de la flecha dice a dónde lleva, de verdad.
+ *
+ * David lo encontró al probar INC-006: una ficha dada de baja decía «Regresar
+ * al hato» y aterrizaba en Salidas. Ahora la ficha recuerda de dónde se llegó
+ * (`?desde=`) y, cuando no lo sabe, lo decide por el animal. En los tres casos
+ * el texto nombra el destino real.
+ */
+test('la flecha de una ficha dada de baja dice el lugar al que lleva', async ({ page }) => {
+  await entrarAlHato(page)
+  const nombre = nombreUnico('Sale y regresa')
+
+  // Se llega desde el alta: la ficha no sabe de dónde viene y se decide por el
+  // animal. Salió, así que el destino es Salidas y el texto lo dice.
+  await darDeAltaConNombre(page, nombre)
+  await page.getByRole('button', { name: 'Dar de baja' }).click()
+  await page.getByRole('button', { name: 'Dar de baja', exact: true }).click()
+  await expect(page.getByText('Ya no está en el hato')).toBeVisible()
+  await page.getByRole('button', { name: 'Regresar a salidas' }).click()
+  await expect(page.getByRole('heading', { name: 'Salidas', exact: true })).toBeVisible()
+
+  // Abierta desde Salidas: vuelve a Salidas, y lo dice.
+  await page.getByLabel('Buscar en salidas').fill(nombre)
+  await page.getByRole('button', { name: new RegExp(nombre) }).click()
+  await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
+  await page.getByRole('button', { name: 'Regresar a salidas' }).click()
+  await expect(page.getByRole('heading', { name: 'Salidas', exact: true })).toBeVisible()
+
+  // Abierta desde el hato (la búsqueda encuentra a quien salió): vuelve al
+  // hato, y ahora sí dice «Regresar al hato».
+  await irA(page, 'Hato')
+  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+  await page.getByLabel('Buscar', { exact: true }).fill(nombre)
+  await page.getByRole('button', { name: new RegExp(nombre) }).click()
+  await expect(page.getByRole('heading', { name: nombre })).toBeVisible()
+  await page.getByRole('button', { name: 'Regresar al hato' }).click()
+  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+})

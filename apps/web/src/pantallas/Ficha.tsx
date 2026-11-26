@@ -8,6 +8,7 @@ import { usePesosConHistoria } from '../api/pesajes'
 import { areteVigente, nombreVisible } from '../dominio/animal'
 import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
 import { textoDeUltimaObservacion } from '../dominio/observacion'
+import { regresoDeLaFicha } from '../dominio/regreso'
 import {
   campoDeFicha,
   categoria,
@@ -20,7 +21,7 @@ import {
   valorDeFicha,
 } from '../dominio/etiquetas'
 import type { FichaCompleta } from '../dominio/tipos'
-import { irA } from '../ruta'
+import { irA, type DesdeLaFicha } from '../ruta'
 import { AvisoDeError, BotonGrande, Cargando } from '../ui/Avisos'
 import { Aviso } from '../ui/Aviso'
 import { BotonSecundario } from '../ui/Botones'
@@ -59,6 +60,7 @@ import { GraficaDePesos } from './GraficaDePesos'
 export function Ficha({
   animalId,
   abrirSalida = false,
+  desde,
 }: {
   readonly animalId: string
   /**
@@ -66,6 +68,11 @@ export function Ficha({
    * ficha y el mismo comando: solo se ahorra buscar el botón.
    */
   readonly abrirSalida?: boolean
+  /**
+   * De qué pantalla se llegó, según la URL. La flecha de regreso regresa ahí y
+   * lo nombra; sin esto se decide por el animal (`regresoDeLaFicha`).
+   */
+  readonly desde?: DesdeLaFicha
 }) {
   const ficha = useFicha(animalId)
   const pesos = usePesos(animalId)
@@ -101,6 +108,9 @@ export function Ficha({
   }
 
   if (ficha.isError) {
+    // Sin ficha no se sabe si el animal salió. Se regresa por donde se llegó y,
+    // si no se sabe, al hato: es donde se busca a alguien.
+    const regreso = regresoDeLaFicha(desde, true)
     return (
       <main className="pantalla">
         <AvisoDeError error={ficha.error} />
@@ -108,16 +118,17 @@ export function Ficha({
         <BotonGrande
           secundario
           alTocar={() => {
-            irA({ nombre: 'hato' })
+            irA(regreso.ruta)
           }}
         >
-          Regresar al hato
+          {regreso.etiqueta}
         </BotonGrande>
       </main>
     )
   }
 
   const animal = ficha.data
+  const regreso = regresoDeLaFicha(desde, animal.activo)
   const ultimoPeso = pesos.data?.ultimoPesaje ?? null
   const arete = areteVigente(animal)
   const correccionesDePeso = new Map((historia.data?.pesos ?? []).map((peso) => [peso.id, peso]))
@@ -129,10 +140,13 @@ export function Ficha({
    * «Salida» de Inicio sigue funcionando con `#/animal/<id>/salida`.
    */
   const abrirLaBaja = (abrir: boolean): void => {
+    const origen = desde === undefined ? {} : { desde }
+    // `abrirSalida` sigue diciendo si la baja está abierta; la URL trae además
+    // de dónde se llegó, y eso no se pierde al abrir ni cerrar el formulario.
     if (abrir) {
-      irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true })
-    } else if (window.location.hash.endsWith('/salida')) {
-      irA({ nombre: 'ficha', animalId: animal.id })
+      irA({ nombre: 'ficha', animalId: animal.id, abrirSalida: true, ...origen })
+    } else if (abrirSalida) {
+      irA({ nombre: 'ficha', animalId: animal.id, ...origen })
     }
   }
 
@@ -146,9 +160,9 @@ export function Ficha({
             : `Último peso: ${kilosLegibles(ultimoPeso.kilos)} el ${diaLegible(ultimoPeso.fecha)}`
         }
         alRegresar={() => {
-          irA(animal.activo ? { nombre: 'hato' } : { nombre: 'salidas' })
+          irA(regreso.ruta)
         }}
-        etiquetaRegresar={animal.activo ? 'Regresar al hato' : 'Regresar a salidas'}
+        etiquetaRegresar={regreso.etiqueta}
       />
 
       <div className="ficha__etiquetas">

@@ -59,3 +59,28 @@ test('el JS inicial no contiene ECharts y Tendencias va en su trozo', () => {
   expect(statSync(resolve(DIST, 'assets', trozo)).size).toBeGreaterThan(30_000)
   expect(texto.includes('echarts') || texto.includes('zrender')).toBe(true)
 })
+
+/**
+ * R-42: Tendencias no es una pestaña, pero lleva el mismo encabezado del rancho
+ * —«MI RANCHO», el título y el menú ☰— y además la flecha de regreso a
+ * Crecimiento, que es de donde se abre.
+ */
+test('Tendencias tiene el menú del rancho y regresa a Crecimiento', async ({ page }) => {
+  await entrar(page)
+  await irA(page, 'Crecimiento')
+  await page.getByRole('button', { name: 'Ver tendencias' }).click()
+
+  const encabezado = page.locator('header.ui-encabezado')
+  await expect(encabezado.getByRole('heading', { name: 'Tendencias' })).toBeVisible()
+  await expect(encabezado.getByText('MI RANCHO')).toBeVisible()
+  await expect(encabezado.getByRole('button', { name: 'Menú' })).toBeVisible()
+
+  // El menú abre como en las pestañas.
+  await encabezado.getByRole('button', { name: 'Menú' }).click()
+  await expect(page.getByRole('button', { name: 'Salir' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // La flecha dice su destino y llega a él.
+  await encabezado.getByRole('button', { name: 'Regresar a Crecimiento' }).click()
+  await expect(page.getByRole('heading', { name: 'Crecimiento', exact: true })).toBeVisible()
+})
