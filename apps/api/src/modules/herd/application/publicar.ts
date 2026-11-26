@@ -106,7 +106,7 @@ export function publicarMarca(marca: Marca): MarcaPublica {
 export function publicarAnimal(
   animal: Animal,
   marcas: readonly Marca[],
-  foto: FotoDeIdentificacion | null = null,
+  foto: FotoDeIdentificacion | null,
 ): FichaAnimal {
   return {
     id: animal.id,

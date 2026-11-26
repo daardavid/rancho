@@ -260,6 +260,44 @@ describe('foto de cada animal', () => {
     )
     expect(filas.map((fila) => fila.evidence_id)).toEqual([evidenciaId, otra])
 
+    const commandIdCorreccion = nuevoId()
+    const correccion = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/corrections`,
+      headers: { cookie },
+      payload: {
+        commandId: commandIdCorreccion,
+        version: 1,
+        motivo: 'tenía seña',
+        nombre: 'Canelo corregido',
+      },
+    })
+    expect(correccion.statusCode).toBe(200)
+    expect(correccion.json()).toMatchObject({
+      nombre: 'Canelo corregido',
+      version: 2,
+      foto: { evidenciaId: otra, miniaturaId: otraMini, version: 2 },
+    })
+
+    const correccionRepetida = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/corrections`,
+      headers: { cookie },
+      payload: {
+        commandId: commandIdCorreccion,
+        version: 1,
+        motivo: 'tenía seña',
+        nombre: 'Canelo corregido',
+      },
+    })
+    expect(correccionRepetida.statusCode).toBe(200)
+    expect(correccionRepetida.json()).toEqual(correccion.json())
+    expect(correccionRepetida.json().foto).toEqual({
+      evidenciaId: otra,
+      miniaturaId: otraMini,
+      version: 2,
+    })
+
     const conflicto = await app.inject({
       method: 'POST',
       url: `/api/animals/${animalId}/photo`,
@@ -273,7 +311,83 @@ describe('foto de cada animal', () => {
     })
     expect(conflicto.statusCode).toBe(409)
     expect(conflicto.json()).toEqual({ codigo: 'version_conflict' })
-    expect(ficha.json().version).toBe(1)
+
+    const despues = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}`,
+      headers: { cookie },
+    })
+    expect(despues.statusCode).toBe(200)
+    expect(despues.json()).toMatchObject({
+      nombre: 'Canelo corregido',
+      version: 2,
+      foto: { evidenciaId: otra, miniaturaId: otraMini, version: 2 },
+    })
+    const filasTrasConflicto = filasDe<{ evidence_id: string; version: number | string }>(
+      await db.execute(sql`
+        SELECT evidence_id, version
+        FROM herd.animal_photo
+        WHERE animal_id = ${animalId}
+        ORDER BY version
+      `),
+    )
+    expect(filasTrasConflicto).toHaveLength(2)
+    expect(filasTrasConflicto.map((fila) => fila.evidence_id)).toEqual([evidenciaId, otra])
+    expect(filasTrasConflicto.map((fila) => Number(fila.version))).toEqual([1, 2])
+  })
+
+  it('el mismo comando de foto con otra evidencia es idempotency_mismatch', async () => {
+    const cookie = await entrar()
+    const animalId = await alta(cookie)
+    const evidenciaId = await subir(cookie, JPEG)
+    const miniaturaId = await subir(cookie, PNG)
+    const commandId = nuevoId()
+    const puesta = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/photo`,
+      headers: { cookie },
+      payload: { commandId, version: 0, evidenciaId, miniaturaId },
+    })
+    expect(puesta.statusCode).toBe(200)
+
+    const distinta = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/photo`,
+      headers: { cookie },
+      payload: {
+        commandId,
+        version: 0,
+        evidenciaId: await subir(cookie, JPEG),
+        miniaturaId,
+      },
+    })
+    expect(distinta.statusCode).toBe(409)
+    expect(distinta.json()).toEqual({ codigo: 'idempotency_mismatch' })
+
+    const ficha = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}`,
+      headers: { cookie },
+    })
+    expect(ficha.json().foto).toEqual({ evidenciaId, miniaturaId, version: 1 })
+  })
+
+  it('una evidencia que no es del rancho es evidencia_ajena', async () => {
+    const cookie = await entrar()
+    const animalId = await alta(cookie)
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/photo`,
+      headers: { cookie },
+      payload: {
+        commandId: nuevoId(),
+        version: 0,
+        evidenciaId: nuevoId(),
+        miniaturaId: nuevoId(),
+      },
+    })
+    expect(respuesta.statusCode).toBe(422)
+    expect(respuesta.json()).toEqual({ codigo: 'evidencia_ajena' })
   })
 })
 

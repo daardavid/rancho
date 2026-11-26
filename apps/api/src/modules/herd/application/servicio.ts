@@ -201,7 +201,7 @@ export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Pr
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
       })
       await deps.animales.insertar(animal)
-      return { ...publicarAnimal(animal, []), correcciones: [], correccionesDeSalida: [] }
+      return { ...publicarAnimal(animal, [], null), correcciones: [], correccionesDeSalida: [] }
     },
   )
 }
@@ -244,14 +244,7 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
         correctedBy: entrada.recordedBy,
         correctedAt: new Date(),
       })
-      const marcas = await deps.animales.marcasDe(ranchId, [animalId])
-      const correcciones = await deps.animales.correccionesDe(ranchId, animalId)
-      const correccionesDeSalida = await deps.animales.correccionesDeSalida(ranchId, animalId)
-      return {
-        ...publicarAnimal(corregida.animal, marcas),
-        correcciones: correcciones.map(publicarCorreccion),
-        correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
-      }
+      return await fichaDe(deps, corregida.animal)
     },
   )
 }
