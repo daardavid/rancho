@@ -1,7 +1,7 @@
 # INC-002 — Todo en local
 
 Status:
-DRAFT. Becomes READY when David merges it.
+ACCEPTED. David merged it on 2026-11-25.
 
 ## Problem
 

@@ -1,7 +1,7 @@
 # INC-004 — Vida y lugar del hato
 
 Status:
-DRAFT. Becomes READY when David merges it.
+ACCEPTED. David merged it on 2026-11-25.
 
 ## Problem
 

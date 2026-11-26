@@ -38,13 +38,44 @@ lleva `Secure` sin excepción, y el proceso se niega a arrancar si además está
 `MODO=local`.
 
 Correrlo otra vez no regenera el secreto, no crea otro rancho, no crea otra
-cuenta y no borra datos. Si ya hay un `npm run local` abierto, el segundo no
-puede usar la misma carpeta: ciérralo antes. Lo mismo vale para el respaldo y
-la restauración: la carpeta la usa un solo proceso.
+cuenta y no borra datos. Si ya hay cuenta, dice el usuario. Si ya hay un
+`npm run local` abierto, el segundo no puede usar la misma carpeta: ciérralo
+antes. Lo mismo vale para el respaldo, la restauración y el cambio de
+contraseña: la carpeta la usa un solo proceso.
 
 `npm run local` no usa el `DATABASE_URL` del `.env`. La base embebida se queda
 en esta máquina (`127.0.0.1`); lo que se abre a la red es la app. La decisión
 está en [ADR-015](../architecture/adr/ADR-015-local-embedded-postgresql.md).
+
+## Si olvidaste tu usuario o contraseña
+
+No hace falta apartar `.datos/` ni empezar con una base nueva.
+
+Cuando ya hay una cuenta, `npm run local` dice cuál:
+
+```text
+Ya hay una cuenta: usuario <el usuario>
+```
+
+Si hay varias, las lista. No imprime la contraseña ni su hash.
+
+Para poner una contraseña nueva, con el servidor detenido:
+
+```bash
+npm run contrasena
+```
+
+Abre `.datos/pglite`, la misma carpeta que `npm run local`. Pide la contraseña
+nueva sin mostrarla. Si hay varias cuentas, pregunta cuál. Al cambiarla:
+
+- la contraseña anterior deja de servir;
+- se cierran las sesiones abiertas de esa cuenta;
+- se quita el bloqueo por intentos fallidos.
+
+Se niega si `NODE_ENV=production`, en el proceso o en el `.env`, igual que
+`npm run local`. No recupera la cuenta por correo ni por teléfono: es para
+esta laptop. No crea una cuenta si no hay ninguna; para la primera sigue
+siendo `npm run local`.
 
 ## Lo que hace falta para el camino con servidor
 
@@ -267,7 +298,7 @@ pruebas pasarían contra ese proceso y no contra lo recién construido.
 | `db:reset solo corre contra una base local` | Apuntaste a un host que no es esta máquina | Es a propósito; usa una base local |
 | El navegador dice que no hay conexión | La API no está arriba, o está en otro puerto | Revisa la terminal del proceso; `GET /api/health` debe responder `{"ok":true}` |
 | `GET /api/health/ready` contesta 503 | El proceso vive pero no llega a PostgreSQL | Revisa `DATABASE_URL` y que la base esté arriba; si ya está bien, arranca el proceso de nuevo |
-| `NODE_ENV=production` no puede combinarse con el modo local | Están las dos puestas | Quita una. En producción la cookie lleva `Secure` |
+| `NODE_ENV=production` no puede combinarse con el modo local | Están las dos puestas, en `npm run local` o en `npm run contrasena` | Quita `NODE_ENV=production`. En producción la cookie lleva `Secure`, y estos comandos son de la base local |
 | El celular no abre la dirección | El firewall bloqueó Node, o no es la misma WiFi | Permite Node en el firewall y usa la IP que imprimió la consola |
 | `No pude abrir la base en .datos` | Ya hay un `npm run local` usando esa carpeta | Ciérralo y vuelve a correr. El respaldo y la restauración también la necesitan libre |
 | `npm run respaldo y npm run restaurar no corren cuando NODE_ENV=production` | El proceso o el `.env` están en producción | Estos comandos son de la base local. No los uses contra producción |

@@ -16,6 +16,7 @@
     "db:seed": "tsx src/infrastructure/db/cli-semilla.ts",
     "cuenta:crear": "tsx src/infrastructure/identity/cli-cuenta.ts",
     "local": "tsx src/infrastructure/local/cli.ts",
+    "contrasena": "tsx src/infrastructure/local/cli-contrasena.ts",
     "respaldo": "tsx src/infrastructure/local/cli-respaldo.ts",
     "restaurar": "tsx src/infrastructure/local/cli-restaurar.ts"
   },
