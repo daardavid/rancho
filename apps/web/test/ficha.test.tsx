@@ -234,6 +234,112 @@ describe('Ficha: salida', () => {
     expect(screen.queryByRole('heading', { name: 'Dar de baja' })).toBeNull()
   })
 
+  /**
+   * R-42: el texto de la flecha y su destino son la misma decisión.
+   *
+   * Una ficha dada de baja abierta desde Salidas no puede decir «Regresar al
+   * hato» y aterrizar en Salidas (ni al revés). Se prueban los dos orígenes y
+   * el caso sin origen, que se decide por el animal.
+   */
+  it('en una ficha dada de baja la flecha dice «Regresar a salidas» y lleva a Salidas', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({
+          nombre: 'Canelo',
+          activo: false,
+          version: 2,
+          salida: { motivo: 'sale', fecha: '2026-11-01', nota: null, evidenciaId: null },
+        }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo: false },
+      }),
+      'GET /api/animals?estado=salidas': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/read-models/known-weights': () => ({ estado: 200, cuerpo: { pesos: [] } }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+
+    // Sin saber de dónde se llegó, se decide por el animal: salió, va a Salidas.
+    const flecha = await screen.findByRole('button', { name: 'Regresar a salidas' })
+    // Y no hay ninguna flecha que prometa el hato.
+    expect(screen.queryByRole('button', { name: 'Regresar al hato' })).toBeNull()
+
+    await usuario.click(flecha)
+    expect(await screen.findByRole('heading', { name: 'Salidas' })).toBeDefined()
+  })
+
+  it('una ficha dada de baja abierta desde el hato regresa al hato, y lo dice', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({
+          nombre: 'Canelo',
+          activo: false,
+          version: 2,
+          salida: { motivo: 'sale', fecha: '2026-11-01', nota: null, evidenciaId: null },
+        }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo: false },
+      }),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/read-models/growth-overview': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [],
+          gananciaMediaKilosPorDia: null,
+          pesadosEnLaUltimaVuelta: 0,
+          esperadosEnLaUltimaVuelta: 0,
+          fechaDeLaUltimaVuelta: null,
+        },
+      }),
+    })
+
+    // La URL dice de dónde se llegó: la búsqueda del hato encuentra a quien salió.
+    pintarApp(`#/animal/${ANIMAL}?desde=hato`)
+
+    const flecha = await screen.findByRole('button', { name: 'Regresar al hato' })
+    expect(screen.queryByRole('button', { name: 'Regresar a salidas' })).toBeNull()
+
+    await usuario.click(flecha)
+    expect(await screen.findByRole('heading', { name: 'Hato' })).toBeDefined()
+  })
+
+  it('una ficha activa abierta desde Salidas regresa a Salidas, sin decir hato', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}?desde=salidas`)
+
+    // Aunque el animal esté activo, se llegó desde Salidas: se regresa ahí.
+    expect(await screen.findByRole('button', { name: 'Regresar a salidas' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Regresar al hato' })).toBeNull()
+  })
+
+  it('un origen que no se conoce no deja la flecha sin destino', async () => {
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaConNombre('Canelo') }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
+    })
+
+    pintarApp(`#/animal/${ANIMAL}?desde=otro-lado`)
+
+    // Se ignora el valor raro y se decide por el animal.
+    expect(await screen.findByRole('button', { name: 'Regresar al hato' })).toBeDefined()
+  })
+
   it('al volver a dejarlo activo avisa que regresó al hato, no que salió', async () => {
     const usuario = userEvent.setup()
     let activo = false

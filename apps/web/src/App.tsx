@@ -116,6 +116,7 @@ export function App() {
           key={ruta.animalId}
           animalId={ruta.animalId}
           abrirSalida={ruta.abrirSalida === true}
+          {...(ruta.desde === undefined ? {} : { desde: ruta.desde })}
         />
       ) : null}
       {ruta.nombre === 'pesaje' ? <Pesaje /> : null}
