@@ -38,10 +38,11 @@ test('el nacimiento deja la cría en la familia de la vaca', async ({ page }) =>
 
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
   await expect(page.getByRole('heading', { name: 'Nacimiento' })).toBeVisible()
-  // La madre viene elegida desde su ficha y se ve en el buscador, sin desplegar
-  // una lista: es la misma elección, con el mismo buscador de todas.
+  // La madre viene elegida desde su ficha: se ve su nombre y «Quitar».
+  // El buscador queda escondido hasta quitarla.
   await expect(page.getByText(vaca, { exact: true }).first()).toBeVisible()
-  await expect(page.getByLabel('Buscar la madre')).toHaveValue('')
+  await expect(page.getByRole('button', { name: 'Quitar' })).toBeVisible()
+  await expect(page.getByLabel('Buscar la madre')).toHaveCount(0)
   await expect(page.getByRole('radio', { name: 'La vi' })).not.toBeChecked()
   await page.getByRole('button', { name: 'Registrar nacimiento' }).click()
   await expect(page.getByRole('alert')).toContainText('viste a la madre')
