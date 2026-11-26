@@ -4,7 +4,7 @@
 
 - Status: ACCEPTED PRODUCT DIRECTION GOVERNANCE BASELINE
 - Version: v1
-- Last updated: 2026-11-24
+- Last updated: 2026-11-25
 
 The Master Plan is the canonical repository view of RANCHO's direction and current phase.
 
@@ -55,9 +55,9 @@ Closed at [../checkpoints/governance-v1.md](../checkpoints/governance-v1.md).
 
 ## NOW
 
-The factory (`fabrica/`) has implemented [INC-001](increments/INC-001-ficha-y-pesaje.md) through [INC-004](increments/INC-004-vida-del-hato.md): the animal file and calf weighing, local operation, the experience redesign, and herd life (births, exits, expected place, health notes, last observation, and the Inicio screen).
+[INC-001](increments/INC-001-ficha-y-pesaje.md) through [INC-004](increments/INC-004-vida-del-hato.md) are accepted. David merged them on 2026-11-25: the animal file and calf weighing, local operation, the experience redesign, and herd life (births, exits, expected place, health notes, last observation, and the Inicio screen).
 
-Those increments become accepted when David merges them into `main`. Herd verification stays out (`OQ-COUNT-001`). Feed and money stay out until the interview answers arrive.
+[INC-005](increments/INC-005-listo-para-uso-real.md) is in progress. It is what stands between that build and handing it to the family. Herd verification stays out (`OQ-COUNT-001`). Feed and money stay out until the interview answers arrive.
 
 Done means the whole TO-BE in the end, and the MVP is the first done (David, 2026-11-22). The MVP path and its non-goals are in [mvp-framing.md](mvp-framing.md).
 
@@ -65,7 +65,7 @@ The interview answers that unblock the remaining pains are collected with [../do
 
 ## NEXT
 
-1. David's review of INC-001 through INC-004, and what real use on the ranch teaches.
+1. Finish INC-005, then what real use on the ranch teaches.
 2. A later migration increment publishes the app so it can run off the laptop. It follows local use. Its id is assigned when it is framed.
 3. Feed and profitability, in the order the interview answers allow ([mvp-framing.md](mvp-framing.md), "Proposed MVP path"). Herd verification stays later: its method and cadence are still open (`OQ-COUNT-001`).
 4. Where loading the notebook or Excel history (`OQ-DATA-001`) lands is still open.

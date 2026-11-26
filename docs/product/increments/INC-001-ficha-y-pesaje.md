@@ -1,7 +1,7 @@
 # INC-001 — Ficha del hato y pesaje de becerros
 
 Status:
-DRAFT. Becomes READY when David merges it. It has no blocking unknowns: see "Unknowns".
+ACCEPTED. David merged it on 2026-11-25. It has no blocking unknowns: see "Unknowns".
 
 ## Problem
 
