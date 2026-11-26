@@ -1,17 +1,17 @@
 import type { DesteteEnLaFicha } from '@rancho/api-contracts'
 import { useRef, useState } from 'react'
 
-import { subirFoto } from '../api/evidencia'
 import { useAnotarDestete, useCorregirDestete, useDestete } from '../api/destete'
 import { textoDeCuando, textoDeEdad } from '../dominio/destete'
 import { calidad } from '../dominio/etiquetas'
-import { instanteLegible, kilosLegibles } from '../dominio/fechas'
+import { diaLegible, instanteLegible, kilosLegibles } from '../dominio/fechas'
 import { revisarKilos } from '../dominio/kilos'
 import { esConflictoDeVersion } from '../dominio/mensajes'
 import { AvisoDeError } from '../ui/Avisos'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { useEnfocarAviso } from '../ui/enfocar'
+import { FotoDeLaBascula, FotoVisible } from '../ui/FotoDeLaBascula'
 import { Segmentado } from '../ui/Segmentado'
 
 const PRECISION = [
@@ -112,11 +112,10 @@ export function FormularioDeDestete({
   const [quien, setQuien] = useState('')
   const [kilos, setKilos] = useState('')
   const [calidadElegida, setCalidadElegida] = useState<Calidad>('')
-  const [archivo, setArchivo] = useState<File | null>(null)
+  const [evidenciaId, setEvidenciaId] = useState<string | null>(null)
   const [subiendo, setSubiendo] = useState(false)
-  const [errorDeFoto, setErrorDeFoto] = useState<unknown>(null)
   const seccion = useRef<HTMLElement>(null)
-  useEnfocarAviso(seccion, anotar.isError || errorDeFoto !== null)
+  useEnfocarAviso(seccion, anotar.isError)
 
   const faltaPrecision = precision === ''
   const pideFecha = precision === 'exact' || precision === 'approximate'
@@ -126,18 +125,16 @@ export function FormularioDeDestete({
   const faltaCalidad = quierePeso && calidadElegida === ''
   const faltaDiaDePeso = quierePeso && precision === 'no_se' && fechaDelPeso === ''
   const sinAnimales = animales.length === 0
+  const faltaDatos =
+    faltaPrecision ||
+    faltaFecha ||
+    faltaCalidad ||
+    faltaDiaDePeso ||
+    !kilosRevisados.ok ||
+    sinAnimales
 
   const guardar = (): void => {
-    if (
-      faltaPrecision ||
-      faltaFecha ||
-      faltaCalidad ||
-      faltaDiaDePeso ||
-      !kilosRevisados.ok ||
-      sinAnimales ||
-      anotar.isPending ||
-      subiendo
-    ) {
+    if (faltaDatos || anotar.isPending || subiendo) {
       return
     }
 
@@ -149,32 +146,17 @@ export function FormularioDeDestete({
       kilos: quierePeso ? kilos.trim() : null,
       calidad: quierePeso ? calidadElegida : null,
       fechaDelPeso: quierePeso && precision === 'no_se' ? fechaDelPeso : null,
-      archivo: archivo?.name ?? null,
-      archivoTamano: archivo?.size ?? null,
+      evidenciaId: quierePeso ? evidenciaId : null,
       animales: [...animales].sort(),
     })
 
-    void enviar(contenido)
+    enviar(contenido)
   }
 
-  const enviar = async (contenido: string): Promise<void> => {
+  const enviar = (contenido: string): void => {
     if (pendiente.current !== null && pendiente.current.contenido === contenido) {
       anotar.mutate(pendiente.current.cuerpo, { onSuccess: alGuardar })
       return
-    }
-
-    setErrorDeFoto(null)
-    let evidenciaId: string | null = null
-    if (quierePeso && archivo !== null) {
-      setSubiendo(true)
-      try {
-        evidenciaId = await subirFoto(archivo)
-      } catch (error) {
-        setErrorDeFoto(error)
-        setSubiendo(false)
-        return
-      }
-      setSubiendo(false)
     }
 
     const cuerpo = {
@@ -211,7 +193,6 @@ export function FormularioDeDestete({
         viene marcado.
       </p>
       {anotar.isError ? <AvisoDeError error={anotar.error} /> : null}
-      {errorDeFoto !== null ? <AvisoDeError error={errorDeFoto} /> : null}
 
       <Segmentado
         etiqueta="¿Qué día se destetó?"
@@ -265,18 +246,11 @@ export function FormularioDeDestete({
                   alCambiar={setFechaDelPeso}
                 />
               ) : null}
-              <label className="campo">
-                <span className="campo__etiqueta">Foto de la báscula, si hay</span>
-                <input
-                  className="campo__entrada"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(evento) => {
-                    setArchivo(evento.target.files?.[0] ?? null)
-                  }}
-                />
-              </label>
+              <FotoDeLaBascula
+                evidenciaId={evidenciaId}
+                alCambiar={setEvidenciaId}
+                alOcuparse={setSubiendo}
+              />
             </>
           ) : null}
         </>
@@ -287,10 +261,10 @@ export function FormularioDeDestete({
       )}
 
       <div className="barra">
-        <BotonPrincipal alTocar={guardar}>
+        <BotonPrincipal alTocar={guardar} deshabilitado={faltaDatos || anotar.isPending || subiendo}>
           {anotar.isPending || subiendo ? 'Guardando…' : 'Guardar destete'}
         </BotonPrincipal>
-        <BotonSecundario tono="tinta" alTocar={alCancelar}>
+        <BotonSecundario tono="tinta" alTocar={alCancelar} deshabilitado={anotar.isPending}>
           Cancelar
         </BotonSecundario>
       </div>
@@ -338,6 +312,7 @@ function Lectura({
           ? 'Sin peso al destete.'
           : `${kilosLegibles(destete.peso.kilos)}, ${calidad(destete.peso.calidad)}.`}
       </p>
+      <FotoVisible evidenciaId={destete.peso?.evidenciaId} />
       <p className="campo__ayuda">{textoDeEdad(destete.edad)}</p>
       <p className="campo__ayuda">
         {destete.reportedBy === null ? 'No se anotó quién lo dijo.' : `Lo dijo ${destete.reportedBy}.`}
@@ -356,7 +331,7 @@ function Lectura({
           {destete.correcciones.map((correccion, indice) => (
             <li key={`${correccion.campo}-${correccion.correctedAt}-${indice}`}>
               <p className="campo__ayuda">
-                {campo(correccion.campo)}: antes decía «{correccion.valorAnterior ?? 'nada'}»
+                {campo(correccion.campo)}: antes decía «{textoAnterior(correccion.campo, correccion.valorAnterior)}»
               </p>
               <p className="campo__ayuda">Por qué: {correccion.motivo}</p>
               <p className="campo__ayuda">{instanteLegible(correccion.correctedAt)}</p>
@@ -392,8 +367,9 @@ function Correccion({
   useEnfocarAviso(seccion, corregir.isError)
 
   const pideFecha = precision === 'exact' || precision === 'approximate'
+  const faltaDatos = motivo.trim() === '' || precision === '' || (pideFecha && fecha === '')
   const guardar = (): void => {
-    if (motivo.trim() === '' || precision === '' || (pideFecha && fecha === '') || corregir.isPending) {
+    if (faltaDatos || corregir.isPending) {
       return
     }
     const contenido = JSON.stringify({ precision, fecha, nota, quien, motivo: motivo.trim() })
@@ -433,13 +409,37 @@ function Correccion({
       <CampoDeArea etiqueta="Nota" valor={nota} alCambiar={setNota} maxLength={LARGO_DE_NOTA} />
       <CampoDeTexto etiqueta="¿Por qué se corrige?" valor={motivo} alCambiar={setMotivo} maxLength={LARGO_DE_NOTA} />
       <div className="barra">
-        <BotonPrincipal alTocar={guardar}>{corregir.isPending ? 'Guardando…' : 'Guardar corrección'}</BotonPrincipal>
-        <BotonSecundario tono="tinta" alTocar={alCancelar}>
+        <BotonPrincipal alTocar={guardar} deshabilitado={faltaDatos || corregir.isPending}>
+          {corregir.isPending ? 'Guardando…' : 'Guardar corrección'}
+        </BotonPrincipal>
+        <BotonSecundario tono="tinta" alTocar={alCancelar} deshabilitado={corregir.isPending}>
           Cancelar
         </BotonSecundario>
       </div>
     </section>
   )
+}
+
+/** El valor anterior, en palabras del rancho. `null` es que no se había anotado. */
+function textoAnterior(campoCorregido: string, valorAnterior: string | null): string {
+  if (valorAnterior === null) {
+    return 'no se anotó'
+  }
+  if (campoCorregido === 'fecha') {
+    return diaLegible(valorAnterior)
+  }
+  if (campoCorregido === 'precision') {
+    if (valorAnterior === 'exact') {
+      return 'Fecha exacta'
+    }
+    if (valorAnterior === 'approximate') {
+      return 'Aproximada'
+    }
+    if (valorAnterior === 'no_se') {
+      return 'No sé'
+    }
+  }
+  return valorAnterior
 }
 
 function campo(codigo: string): string {
