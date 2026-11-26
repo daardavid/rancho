@@ -1,9 +1,17 @@
-import type { AnimalDelInicio, AnimalSinVerse, CambioDelPeriodo, FilaDeCrecimiento } from '@rancho/api-contracts'
+import type {
+  AnimalDelInicio,
+  AnimalSinVerse,
+  CambioDelPeriodo,
+  FilaDeCrecimiento,
+  NotaDelPeriodo,
+  PendienteDelInicio,
+} from '@rancho/api-contracts'
 import { useMemo, useState } from 'react'
 
 import { useResumenDelHato } from '../api/hato'
 import { useInicio } from '../api/inicio'
 import { ordenarCrecimiento } from '../dominio/crecimiento'
+import { textoDePrecision, textoDeTipo } from '../dominio/bitacora'
 import { categoria } from '../dominio/etiquetas'
 import { diaLegible, diaMas, hoyEnElRancho } from '../dominio/fechas'
 import { eventoDelOrigen, haceCuantosDias } from '../dominio/observacion'
@@ -99,7 +107,14 @@ export function Inicio() {
           <p className="inicio__vacio">
             Cuando haya animales, aquí se ve a quién hay que revisar.
           </p>
+          <PendientesDelInicio pendientes={revisar.pendientes} />
         </section>
+        {datos.cambios.notasDeBitacora.length === 0 ? null : (
+          <section className="ficha__seccion" aria-label="Bitácora del periodo">
+            <h2 className="ficha__titulo">Bitácora</h2>
+            <ListaDeBitacora notas={datos.cambios.notasDeBitacora} />
+          </section>
+        )}
       </main>
     )
   }
@@ -158,6 +173,7 @@ export function Inicio() {
 
       <section className="ficha__seccion" aria-label="Para revisar">
         <h2 className="ficha__titulo">Para revisar</h2>
+        <PendientesDelInicio pendientes={revisar.pendientes} />
 
         {hayAnimales ? (
           <>
@@ -251,6 +267,14 @@ export function Inicio() {
             cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
           ]}
         />
+        <section aria-label="Bitácora">
+          <h3 className="inicio__grupo">Bitácora</h3>
+          {datos.cambios.notasDeBitacora.length === 0 ? (
+            <p className="inicio__vacio">Ninguna nota en este periodo.</p>
+          ) : (
+            <ListaDeBitacora notas={datos.cambios.notasDeBitacora} />
+          )}
+        </section>
         {datos.cambios.nacimientosSinFecha === 0 ? null : (
           <p className="inicio__vacio">
             {datos.cambios.nacimientosSinFecha === 1
@@ -392,6 +416,55 @@ function Lista({ animales }: { readonly animales: readonly AnimalDelInicio[] }) 
           >
             <span>{nombreDe(animal)}</span>
             <span className="inicio__meta">{categoria(animal.categoria)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function PendientesDelInicio({
+  pendientes,
+}: {
+  readonly pendientes: readonly PendienteDelInicio[]
+}) {
+  return (
+    <>
+      <h3 className="inicio__grupo">Pendientes</h3>
+      {pendientes.length === 0 ? (
+        <p className="inicio__vacio">Ninguno vencido ni para hoy.</p>
+      ) : (
+        <ul className="inicio__lista">
+          {pendientes.map((pendiente) => (
+            <li key={pendiente.id}>
+              <a
+                href={rutaAHash({ nombre: 'pendientes' })}
+                aria-label={`${pendiente.texto}, ${pendiente.vencido ? 'venció' : 'hoy'} el ${diaLegible(pendiente.fecha)}`}
+              >
+                <span>{pendiente.texto}</span>
+                <span className="inicio__meta">
+                  {pendiente.vencido ? `Venció el ${diaLegible(pendiente.fecha)}` : 'Para hoy'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+function ListaDeBitacora({ notas }: { readonly notas: readonly NotaDelPeriodo[] }) {
+  return (
+    <ul className="inicio__lista">
+      {notas.map((nota) => (
+        <li key={nota.id}>
+          <a href={rutaAHash({ nombre: 'bitacora' })}>
+            <span>
+              {textoDeTipo(nota.tipo)}
+              {nota.precision === 'approximate' ? `, ${textoDePrecision(nota.precision)}` : ''}
+            </span>
+            <span className="inicio__meta">{nota.texto}</span>
           </a>
         </li>
       ))}

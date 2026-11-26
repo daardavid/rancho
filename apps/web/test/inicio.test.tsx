@@ -5,7 +5,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from '../src/App'
 import { diaMas, hoyEnElRancho } from '../src/dominio/fechas'
-import { animalDeLista, ANIMAL, fichaDeAnimal, montarApi, pintarApp, sesionAbierta } from './ayudas'
+import {
+  animalDeLista,
+  ANIMAL,
+  CUANDO,
+  CUENTA,
+  fichaDeAnimal,
+  montarApi,
+  pintarApp,
+  sesionAbierta,
+} from './ayudas'
 
 /**
  * Inicio con datos sintéticos. El orden, el vacío y la fecha plegada se leen en
@@ -436,5 +445,101 @@ describe('Inicio', () => {
     expect(enlaces[0]?.textContent).toBe('Inicio')
     expect(enlaces[0]?.getAttribute('href')).toBe('#/')
     expect(within(pestanas).getByRole('link', { name: 'Hato' }).getAttribute('href')).toBe('#/hato')
+  })
+
+  it('un pendiente vencido aparece en Inicio y uno hecho ya no', async () => {
+    const desde = diaMas(hoyEnElRancho(), -7)
+    const pendienteId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    const fecha = diaMas(hoyEnElRancho(), -1)
+    let hecho = false
+    const { peticiones } = montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/read-models/inicio?desde=${desde}`]: () => {
+        const base = vista(desde)()
+        const cuerpo = base.cuerpo as {
+          paraRevisar: { pendientes?: unknown[] }
+        }
+        cuerpo.paraRevisar.pendientes = hecho
+          ? []
+          : [{ id: pendienteId, texto: 'Vacunar el 5', fecha, vencido: true }]
+        return base
+      },
+      'GET /api/read-models/growth-overview': resumen([]),
+      'GET /api/reminders': () => ({
+        estado: 200,
+        cuerpo: {
+          pendientes: [
+            {
+              id: pendienteId,
+              texto: 'Vacunar el 5',
+              fecha,
+              estado: hecho ? 'hecho' : 'pendiente',
+              sujeto: { clase: 'ninguno' },
+              estadoPor: CUENTA,
+              estadoEn: CUANDO,
+              version: hecho ? 2 : 1,
+              recordedBy: CUENTA,
+              recordedAt: CUANDO,
+              correcciones: [],
+              cambiosDeEstado: hecho
+                ? [
+                    {
+                      estadoAnterior: 'pendiente',
+                      estadoNuevo: 'hecho',
+                      changedBy: CUENTA,
+                      changedAt: CUANDO,
+                    },
+                  ]
+                : [],
+            },
+          ],
+        },
+      }),
+      [`POST /api/reminders/${pendienteId}/status`]: () => {
+        hecho = true
+        return {
+          estado: 200,
+          cuerpo: {
+            id: pendienteId,
+            texto: 'Vacunar el 5',
+            fecha,
+            estado: 'hecho',
+            sujeto: { clase: 'ninguno' },
+            estadoPor: CUENTA,
+            estadoEn: CUANDO,
+            version: 2,
+            recordedBy: CUENTA,
+            recordedAt: CUANDO,
+            correcciones: [],
+            cambiosDeEstado: [
+              {
+                estadoAnterior: 'pendiente',
+                estadoNuevo: 'hecho',
+                changedBy: CUENTA,
+                changedAt: CUANDO,
+              },
+            ],
+          },
+        }
+      },
+    })
+
+    pintarApp('#/')
+    const revisar = await screen.findByRole('region', { name: 'Para revisar' })
+    expect(within(revisar).getByRole('link', { name: /Vacunar el 5/ })).toBeDefined()
+
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: 'Menú' }))
+    await usuario.click(screen.getByRole('button', { name: 'Pendientes' }))
+    expect(await screen.findByRole('heading', { name: 'Pendientes' })).toBeDefined()
+    await usuario.click(screen.getByRole('button', { name: 'Hecho' }))
+
+    expect(await screen.findByRole('link', { name: /anótalo en sanidad/ })).toBeDefined()
+    expect(peticiones.some((peticion) => peticion.ruta.includes('/api/health-notes'))).toBe(false)
+
+    await usuario.click(screen.getByRole('button', { name: 'Regresar al inicio' }))
+    const inicio = await screen.findByRole('heading', { name: 'Inicio' })
+    expect(inicio).toBeDefined()
+    expect(screen.queryByRole('link', { name: /Vacunar el 5/ })).toBeNull()
   })
 })
