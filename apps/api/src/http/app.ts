@@ -4,7 +4,12 @@ import type { PuertoDeEvidencia } from '../infrastructure/evidence/puerto'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
-import type { ModelosDeCrecimiento, ModelosDePresencia, ModelosDeTendencias } from '../read-models'
+import type {
+  ModelosDeCrecimiento,
+  ModelosDeCria,
+  ModelosDePresencia,
+  ModelosDeTendencias,
+} from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
@@ -15,6 +20,7 @@ import { registrarRutaDeSalud, type ComprobacionDeBase } from './routes/health'
 import { registrarParserDeFotos, registrarRutasDeEvidencia } from './routes/evidencia'
 import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDePresencia } from './routes/presencia'
+import { registrarRutasDeCria, registrarRutasDePrenez } from './routes/cria'
 import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
 import { registrarRutasDeTendencias } from './routes/tendencias'
@@ -38,6 +44,8 @@ export type OpcionesApp = {
   readonly presencia?: ModelosDePresencia
   /** Si falta, la lectura de tendencias no se monta. */
   readonly tendencias?: ModelosDeTendencias
+  /** Si falta, el historial de cría y la lista de vacas no se montan. */
+  readonly cria?: ModelosDeCria
   /**
    * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
    * base corren así; el proceso de verdad siempre la monta.
@@ -101,6 +109,7 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
     registrarRutasDeNacimientos(app, opciones.herd)
     registrarRutasDeLugar(app, opciones.herd)
     registrarRutasDeSalud(app, opciones.herd)
+    registrarRutasDePrenez(app, opciones.herd)
   }
   if (opciones.growth !== undefined) {
     registrarRutasDePesaje(app, opciones.growth)
@@ -117,6 +126,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.tendencias !== undefined) {
     registrarRutasDeTendencias(app, opciones.tendencias)
+  }
+  if (opciones.cria !== undefined) {
+    registrarRutasDeCria(app, opciones.cria)
   }
 
   return app

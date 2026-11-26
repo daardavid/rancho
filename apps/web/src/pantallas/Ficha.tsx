@@ -30,6 +30,7 @@ import { Etiqueta, type TonoDeEtiqueta } from '../ui/Etiqueta'
 import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
+import { CriaDelAnimal } from './Cria'
 import { Familia } from './Familia'
 import { FormularioDeCorreccion } from './FormularioDeCorreccion'
 import { LugarDelAnimalEnLaFicha } from './LugarDelAnimal'
@@ -185,6 +186,8 @@ export function Ficha({
       )}
 
       <Familia animal={animal} />
+
+      <CriaDelAnimal animal={animal} />
 
       {dandoDeBaja ? (
         <section className="ficha__seccion">

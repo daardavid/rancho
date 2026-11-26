@@ -69,6 +69,20 @@ export function montarApi(rutas: Record<string, RutaFalsa>): {
       if (metodo === 'GET' && ruta === '/api/read-models/known-weights') {
         return Response.json({ pesos: [] }, { status: 200 })
       }
+      // La ficha de una hembra pide su cría. Sin partos la API responde vacío.
+      if (metodo === 'GET' && /^\/api\/read-models\/cria\/[^/]+$/.test(ruta)) {
+        return Response.json(
+          {
+            animalId: ruta.split('/').pop(),
+            partos: [],
+            intervalos: [],
+            partosSinFecha: 0,
+            diasDesdeElUltimoParto: null,
+            diagnosticos: [],
+          },
+          { status: 200 },
+        )
+      }
       if (metodo === 'GET' && /^\/api\/read-models\/ultima-observacion\/[^/]+$/.test(ruta)) {
         return Response.json(
           { animalId: ruta.split('/').pop(), observacion: null },

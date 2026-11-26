@@ -30,6 +30,8 @@ export type Ruta =
   | { readonly nombre: 'ficha'; readonly animalId: string; readonly abrirSalida?: boolean }
   | { readonly nombre: 'pesaje' }
   | { readonly nombre: 'crecimiento' }
+  /** Vacas por días desde el último parto. No es una pestaña. */
+  | { readonly nombre: 'vacas' }
   /** Gráficas de la revisión. No es una pestaña: se abre con un botón. */
   | { readonly nombre: 'tendencias' }
   /** Elegir qué animal sale del hato, desde el acceso directo de Inicio. */
@@ -70,6 +72,9 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/crecimiento') {
     return { nombre: 'crecimiento' }
+  }
+  if (limpio === '/vacas') {
+    return { nombre: 'vacas' }
   }
   if (limpio === '/tendencias') {
     return { nombre: 'tendencias' }
@@ -120,6 +125,8 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/pesaje'
     case 'crecimiento':
       return '#/crecimiento'
+    case 'vacas':
+      return '#/vacas'
     case 'tendencias':
       return '#/tendencias'
     case 'salida':

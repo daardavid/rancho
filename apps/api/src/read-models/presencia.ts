@@ -13,6 +13,7 @@ import type { RanchId } from '../shared-kernel/ids'
  *
  * - un pesaje (`weighed`); un hueco no cuenta
  * - una nota de sanidad con `saw_animal` en sí; «No se vio» y «No sé» no cuentan
+ * - un diagnóstico de preñez con `saw_animal` en sí; «No se vio» y «No sé» no cuentan
  * - un nacimiento con fecha cuya madre está en «La vi» (`observed`); ese día
  *   es observación de la cría y de la madre. Inferida o «No sé» no cuentan.
  *
@@ -25,7 +26,7 @@ import type { RanchId } from '../shared-kernel/ids'
  */
 
 export type Categoria = 'calf' | 'cow' | 'bull' | 'other' | 'unknown'
-export type OrigenDeObservacion = 'pesaje' | 'sanidad' | 'nacimiento'
+export type OrigenDeObservacion = 'pesaje' | 'sanidad' | 'nacimiento' | 'diagnostico'
 
 export type Observacion = {
   readonly fecha: string
@@ -93,7 +94,7 @@ export type ModelosDePresencia = {
 }
 
 const CATEGORIAS: readonly Categoria[] = ['calf', 'cow', 'bull', 'other', 'unknown']
-const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad', 'nacimiento']
+const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad', 'nacimiento', 'diagnostico']
 const ZONA_DEL_RANCHO = 'America/Mexico_City'
 
 type FilaDeAnimal = {
@@ -422,6 +423,16 @@ function observacionesDe(ranchId: RanchId): SQL {
       FROM herd.health_event nota
       WHERE nota.ranch_id = ${ranchId}
         AND nota.saw_animal IS TRUE
+      UNION ALL
+      SELECT
+        diagnostico.animal_id,
+        diagnostico.occurred_on AS fecha,
+        'diagnostico' AS origen,
+        diagnostico.id AS origen_id,
+        diagnostico.recorded_at AS registrado_en
+      FROM herd.pregnancy_check diagnostico
+      WHERE diagnostico.ranch_id = ${ranchId}
+        AND diagnostico.saw_animal IS TRUE
       UNION ALL
       SELECT
         filiacion.offspring_id AS animal_id,

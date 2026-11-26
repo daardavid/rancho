@@ -141,6 +141,22 @@ export const PRECISIONES_DE_FECHA: readonly Etiquetado[] = [
   { codigo: 'unknown', texto: 'No sé' },
 ]
 
+export const RESULTADOS_DE_PRENEZ: readonly Etiquetado[] = [
+  { codigo: 'prenada', texto: 'Preñada' },
+  { codigo: 'vacia', texto: 'Vacía' },
+  { codigo: 'no_se', texto: 'No sé' },
+]
+
+export const CAMPOS_DE_DIAGNOSTICO: readonly Etiquetado[] = [
+  { codigo: 'resultado', texto: 'Resultado' },
+  { codigo: 'fecha', texto: 'Fecha' },
+  { codigo: 'reportedBy', texto: 'Quién lo dijo' },
+  { codigo: 'nota', texto: 'Nota' },
+  { codigo: 'vioAlAnimal', texto: 'Si se vio' },
+]
+
+export const resultadoDePrenez = (codigo: string): string => textoDe(RESULTADOS_DE_PRENEZ, codigo)
+export const campoDeDiagnostico = (codigo: string): string => textoDe(CAMPOS_DE_DIAGNOSTICO, codigo)
 export const certezaDeFiliacion = (codigo: string): string => textoDe(CERTEZAS_DE_FILIACION, codigo)
 export const motivoDeInferencia = (codigo: string): string => {
   if (codigo === 'unico_toro') {
