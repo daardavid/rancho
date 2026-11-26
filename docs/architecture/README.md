@@ -83,6 +83,7 @@ Rejected as standalone contexts: Reproduction, Health, Presence, Security, Land,
 | [adr/ADR-013-ranch-scope.md](adr/ADR-013-ranch-scope.md) | `RanchId` from the first persistence version. Not SaaS |
 | [adr/ADR-014-local-test-database.md](adr/ADR-014-local-test-database.md) | Proposed. Persistence tests on embedded PostgreSQL locally, one fresh database per test file on the PostgreSQL service in CI |
 | [adr/ADR-015-local-embedded-postgresql.md](adr/ADR-015-local-embedded-postgresql.md) | Proposed. Single-user local mode runs on embedded PostgreSQL with a data folder. Production stays managed PostgreSQL (ADR-007) |
+| [adr/ADR-016-publicacion.md](adr/ADR-016-publicacion.md) | Proposed. Free publication: Render web service plus Neon Postgres. Does not publish, and does not close AQ-P1-006 until accepted |
 
 Physical ADRs are accepted as the Physical Architecture v1 baseline. They do not scaffold the application.
 
