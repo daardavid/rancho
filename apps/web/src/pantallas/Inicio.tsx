@@ -296,7 +296,7 @@ export function Inicio() {
         */}
         <p className="inicio__compartir">
           <a href={rutaAHash({ nombre: 'resumen', desde: datos.desde })}>
-            Compartir resumen de la semana
+            Compartir resumen
           </a>
         </p>
       </section>

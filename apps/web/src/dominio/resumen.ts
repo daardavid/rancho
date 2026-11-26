@@ -129,7 +129,7 @@ function vanAtras(crecimiento: CrecimientoDelHato | null): string {
   const resto = atras.length - nombrados.length
   const lineas = nombrados.map((animal) => `· ${animal.nombre}: ${animal.motivo}`)
   if (resto > 0) {
-    lineas.push(`· y ${String(resto)} ${resto === 1 ? 'más' : 'más'}`)
+    lineas.push(`· y ${String(resto)} más`)
   }
   return ['Van atrás (por sus propios pesos):', ...lineas].join('\n')
 }

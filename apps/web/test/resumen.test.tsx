@@ -280,7 +280,7 @@ describe('resumen de la semana', () => {
     })
 
     pintarApp('#/')
-    const enlace = await screen.findByRole('link', { name: 'Compartir resumen de la semana' })
+    const enlace = await screen.findByRole('link', { name: 'Compartir resumen' })
     expect(rutaPedida).toBe(`/api/read-models/inicio?desde=${desde}`)
     expect(enlace.getAttribute('href')).toBe(`#/resumen/${desde}`)
   })

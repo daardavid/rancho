@@ -155,8 +155,8 @@ function Contenido({
               <p className="resumen__detalle">Ninguno con sus propios pesos.</p>
             ) : (
               <ul className="resumen__lista">
-                {atras.map((animal) => (
-                  <li key={animal.nombre}>
+                {atras.map((animal, indice) => (
+                  <li key={`${animal.nombre}-${String(indice)}`}>
                     {animal.nombre}: {animal.motivo}
                   </li>
                 ))}
@@ -170,8 +170,8 @@ function Contenido({
           <p className="resumen__dato">Nadie tiene una observación todavía.</p>
         ) : (
           <ul className="resumen__lista">
-            {datos.revisar.porDiasSinVerse.map((animal) => (
-              <li key={`${animal.nombre ?? 'sin-nombre'}-${String(animal.dias)}`}>
+            {datos.revisar.porDiasSinVerse.map((animal, indice) => (
+              <li key={`${animal.nombre ?? 'sin-nombre'}-${String(indice)}`}>
                 {animal.nombre ?? 'Sin nombre o seña'}: {haceCuantosDias(animal.dias)}
               </li>
             ))}
