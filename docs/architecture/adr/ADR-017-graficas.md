@@ -20,7 +20,7 @@ The numbers are a read model. Gain per round uses the same pair rule as Crecimie
 
 Use Apache ECharts, and only the modules the screen draws: line, bar, grid, tooltip, legend, and the canvas renderer. Do not import the full package.
 
-Put that code in chunks that the initial page does not request. The screen module is loaded with a dynamic `import()` when the route `#/tendencias` opens. While those bytes download, the screen says «Preparando las gráficas…». If the download fails, it says so and offers another try.
+Put that code in one chunk that the initial page does not request. The screen module is loaded with a dynamic `import()` when the route `#/tendencias` opens, and the chart modules travel with it. While those bytes download, the screen says «Preparando las gráficas…». If the download fails, it says so and offers another try.
 
 The build of R-35 measured:
 
