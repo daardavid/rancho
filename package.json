@@ -22,6 +22,7 @@
     "build:api": "npm run build -w @rancho/api",
     "start": "npm start -w @rancho/api",
     "local": "npm run local -w @rancho/api",
+    "contrasena": "npm run contrasena -w @rancho/api",
     "respaldo": "npm run respaldo -w @rancho/api",
     "restaurar": "npm run restaurar -w @rancho/api",
     "test:e2e": "npm run build && playwright test",
