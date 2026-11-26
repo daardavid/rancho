@@ -6,6 +6,7 @@ import type { Readable, Writable } from 'node:stream'
 import { esEntradaDirecta } from '../identity/cli-cuenta'
 import { raizDelRepo } from './construir'
 import {
+  AVISO_FOTOS_FUERA_DEL_SQL,
   CONFIRMACION_DE_RESTAURACION,
   afirmarRespaldoPermitido,
   asegurarBaseLibre,
@@ -33,12 +34,9 @@ async function main(): Promise<void> {
   const { datos, respaldos } = rutasDeLaBaseLocal(raiz)
   await asegurarBaseLibre(datos)
 
-  console.log('Vas a reemplazar la base local (.datos/) con este archivo:')
-  console.log(`  ${archivo}`)
-  console.log('')
-  console.log('Se borra lo que hay ahora en los esquemas de la app y se pone lo del archivo.')
-  console.log('Si ya había base, antes se guarda una copia en respaldos/.')
-  console.log('')
+  for (const linea of lineasAntesDeRestaurar(archivo)) {
+    console.log(linea)
+  }
   exigirTerminal(process.stdin)
   const respuesta = await preguntar(
     process.stdin,
@@ -62,6 +60,19 @@ async function main(): Promise<void> {
     return
   }
   console.log(`Lo que había antes quedó en ${mostrar(raiz, resultado.respaldoPrevio)}.`)
+}
+
+/** Lo que `npm run restaurar` imprime antes de pedir la confirmación. */
+export function lineasAntesDeRestaurar(archivo: string): readonly string[] {
+  return [
+    'Vas a reemplazar la base local (.datos/) con este archivo:',
+    `  ${archivo}`,
+    '',
+    'Se borra lo que hay ahora en los esquemas de la app y se pone lo del archivo.',
+    'Si ya había base, antes se guarda una copia en respaldos/.',
+    AVISO_FOTOS_FUERA_DEL_SQL,
+    '',
+  ]
 }
 
 function exigirTerminal(entrada: Readable): void {

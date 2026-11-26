@@ -18,7 +18,8 @@ import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearPuertoDeEvidencia } from '../../src/infrastructure/evidence/puerto'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { abrirBaseLocal, exponerBaseLocal } from '../../src/infrastructure/local/base'
-import { preguntar } from '../../src/infrastructure/local/cli-restaurar'
+import { lineasTrasElRespaldo } from '../../src/infrastructure/local/cli-respaldo'
+import { lineasAntesDeRestaurar, preguntar } from '../../src/infrastructure/local/cli-restaurar'
 import {
   afirmarRespaldoPermitido,
   aplicarRespaldo,
@@ -45,6 +46,16 @@ describe('el comando se niega fuera de su lugar', () => {
     expect(() => afirmarRespaldoPermitido('production')).toThrow(/production/)
     expect(() => afirmarRespaldoPermitido(undefined, 'production')).toThrow(/production/)
     expect(() => afirmarRespaldoPermitido('test', undefined)).not.toThrow()
+  })
+
+  it('respaldo y restaurar dicen que el SQL no trae los bytes de las fotos', () => {
+    const aviso = /bytes se quedan en la carpeta de evidencia/
+    expect(lineasTrasElRespaldo('respaldos/rancho.sql').join('\n')).toMatch(aviso)
+    expect(lineasTrasElRespaldo('respaldos/rancho.sql').join('\n')).toMatch(/archivo SQL/)
+    expect(lineasAntesDeRestaurar('C:/rancho/respaldos/rancho.sql').join('\n')).toMatch(aviso)
+    expect(lineasAntesDeRestaurar('C:/rancho/respaldos/rancho.sql').join('\n')).toMatch(
+      /solo sus datos/,
+    )
   })
 
   it('la confirmación es la palabra RESTAURAR', () => {
