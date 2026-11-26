@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
 import { useAsignarLugar, useLugares, usePotreros, useRegistrarPotrero } from '../api/lugar'
-import { useUltimaSesion } from '../api/pesajes'
+import { usePesosConocidos, useUltimaSesion } from '../api/pesajes'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
 import { diaLegible, diasLegibles, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
 import {
@@ -12,6 +12,7 @@ import {
   motivoDeSalida,
   tipoDeMarca,
 } from '../dominio/etiquetas'
+import { ultimosKilos } from '../dominio/ultimoPeso'
 import { etiquetaDeGanancia, type TonoDeGanancia } from '../dominio/revision'
 import type { Animal } from '../dominio/tipos'
 import { irA, rutaAHash } from '../ruta'
@@ -88,6 +89,11 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
   // mentira, y la búsqueda es la forma de encontrarlo desde esta pantalla.
   const sinActivos = hato.isSuccess && (hato.data?.animales.length ?? 0) === 0
   const salidas = useSalidas(buscando || sinActivos)
+  const pesosDeSalida = usePesosConocidos({ habilitada: buscando || sinActivos })
+  const kilosDeSalida = useMemo(
+    () => ultimosKilos(pesosDeSalida.data?.pesos ?? []),
+    [pesosDeSalida.data],
+  )
 
   const porAnimal = useMemo(() => {
     const mapa = new Map<string, FilaDeCrecimiento>()
@@ -415,14 +421,17 @@ export function Hato({ modoInicial = null }: { readonly modoInicial?: 'sanidad' 
               <ul className="hato__lista">
                 {salidasVisibles.map((animal) => (
                   <li key={animal.id}>
-                    <FilaDeSalidaEnElHato animal={animal} />
+                    <FilaDeSalidaEnElHato
+                      animal={animal}
+                      kilos={kilosDeSalida.get(animal.id) ?? null}
+                    />
                   </li>
                 ))}
               </ul>
             </section>
           )}
 
-          {vacio ? null : (
+          {vacio || modo !== null ? null : (
             <BotonFlotante icono={<IconoBascula />} href="#/pesaje">
               Registrar pesaje
             </BotonFlotante>
@@ -790,7 +799,13 @@ function FilaDeHato({
 }
 
 /** Un animal dado de baja que la búsqueda del hato sí puede encontrar. */
-function FilaDeSalidaEnElHato({ animal }: { readonly animal: Animal }) {
+function FilaDeSalidaEnElHato({
+  animal,
+  kilos,
+}: {
+  readonly animal: Animal
+  readonly kilos: string | null
+}) {
   const salida = animal.salida
   const motivo = salida === null ? 'Salió' : motivoDeSalida(salida.motivo)
   const fecha = salida === null ? '' : ` · ${diaLegible(salida.fecha)}`
@@ -799,7 +814,7 @@ function FilaDeSalidaEnElHato({ animal }: { readonly animal: Animal }) {
     <FilaDeAnimal
       nombre={nombreVisible(animal)}
       detalle={`${motivo}${fecha}`}
-      peso="—"
+      peso={kilos === null ? '—' : kilosLegibles(kilos)}
       ganancia="Salió"
       tono="revisar"
       categoria={categoriaVisual(animal.categoria)}

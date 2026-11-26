@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 
 import { useSalidas } from '../api/hato'
+import { usePesosConocidos } from '../api/pesajes'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
-import { diaLegible } from '../dominio/fechas'
+import { diaLegible, kilosLegibles } from '../dominio/fechas'
+import { ultimosKilos } from '../dominio/ultimoPeso'
 import { motivoDeSalida, tipoDeMarca } from '../dominio/etiquetas'
 import type { Animal } from '../dominio/tipos'
 import { irA } from '../ruta'
@@ -18,7 +20,9 @@ import { IconoBuscar } from '../ui/iconos'
  */
 export function Salidas() {
   const salidas = useSalidas()
+  const pesos = usePesosConocidos()
   const [busqueda, setBusqueda] = useState('')
+  const porKilos = useMemo(() => ultimosKilos(pesos.data?.pesos ?? []), [pesos.data])
 
   const animales = useMemo(() => salidas.data?.animales ?? [], [salidas.data])
   const visibles = useMemo(() => {
@@ -97,7 +101,7 @@ export function Salidas() {
             <ul className="hato__lista">
               {visibles.map((animal) => (
                 <li key={animal.id}>
-                  <FilaDeSalida animal={animal} />
+                  <FilaDeSalida animal={animal} kilos={porKilos.get(animal.id) ?? null} />
                 </li>
               ))}
             </ul>
@@ -108,7 +112,13 @@ export function Salidas() {
   )
 }
 
-function FilaDeSalida({ animal }: { readonly animal: Animal }) {
+function FilaDeSalida({
+  animal,
+  kilos,
+}: {
+  readonly animal: Animal
+  readonly kilos: string | null
+}) {
   const arete = areteVigente(animal)
   const salida = animal.salida
   const motivo = salida === null ? 'Sin motivo' : motivoDeSalida(salida.motivo)
@@ -120,7 +130,7 @@ function FilaDeSalida({ animal }: { readonly animal: Animal }) {
       detalle={`${motivo} · se supo el ${fecha}${
         arete === null ? '' : ` · ${tipoDeMarca(arete.tipo)} ${arete.valor}`
       }`}
-      peso="—"
+      peso={kilos === null ? '—' : kilosLegibles(kilos)}
       ganancia="Salió"
       tono="revisar"
       categoria={categoriaVisual(animal.categoria)}
