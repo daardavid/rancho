@@ -4,7 +4,7 @@ import type { PuertoDeEvidencia } from '../infrastructure/evidence/puerto'
 import type { Growth } from '../modules/growth'
 import type { Herd } from '../modules/herd'
 import type { IdentidadHttp } from '../infrastructure/identity/identidad'
-import type { ModelosDeCrecimiento, ModelosDePresencia } from '../read-models'
+import type { ModelosDeCrecimiento, ModelosDePresencia, ModelosDeTendencias } from '../read-models'
 import { registrarResolucionDeSesion } from './guardia'
 import { idDePeticion } from './request-id'
 import { registrarRutasDeAnimales } from './routes/animales'
@@ -17,6 +17,7 @@ import { registrarRutasDePesaje } from './routes/pesajes'
 import { registrarRutasDePresencia } from './routes/presencia'
 import { registrarRutasDeSalud } from './routes/salud'
 import { registrarRutasDeSesion } from './routes/sesion'
+import { registrarRutasDeTendencias } from './routes/tendencias'
 
 export type OpcionesApp = {
   /** Baja el nivel de log en las pruebas. */
@@ -35,6 +36,8 @@ export type OpcionesApp = {
   readonly crecimiento?: ModelosDeCrecimiento
   /** Si falta, la última observación y Inicio no se montan. */
   readonly presencia?: ModelosDePresencia
+  /** Si falta, la lectura de tendencias no se monta. */
+  readonly tendencias?: ModelosDeTendencias
   /**
    * Si falta, `GET /api/health/ready` no se monta. Las pruebas del borde sin
    * base corren así; el proceso de verdad siempre la monta.
@@ -111,6 +114,9 @@ export function construirApp(opciones: OpcionesApp = {}): FastifyInstance {
   }
   if (opciones.presencia !== undefined) {
     registrarRutasDePresencia(app, opciones.presencia)
+  }
+  if (opciones.tendencias !== undefined) {
+    registrarRutasDeTendencias(app, opciones.tendencias)
   }
 
   return app

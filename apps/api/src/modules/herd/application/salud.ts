@@ -44,8 +44,8 @@ export type EntradaAnotarSalud = {
   readonly fecha: string
   readonly producto?: string | null
   readonly evidenciaId?: string | null
-  /** Obligatorio. Si no viene, no se guarda «no se vio». */
-  readonly vioAlAnimal?: boolean
+  /** Obligatorio. Si no viene, no se guarda «no se vio». `null` es «No sé». */
+  readonly vioAlAnimal?: boolean | null
   readonly animales: readonly AnimalDeLaNota[]
 }
 
@@ -85,8 +85,8 @@ export type AlcanceDeSalud = {
  * Todo va en una sola transacción: o quedan todas las notas del grupo o
  * ninguna. Cada animal recibe su propia fila, así que corregir la nota de uno
  * no toca la de los demás. No escribe fuera de `herd` y no toca identidad ni
- * tenencia. Una nota no es una observación salvo que diga que se vio al animal:
- * el defecto es falso.
+ * tenencia. Una nota no es una observación salvo que diga que se vio al animal.
+ * «No se vio» y «No sé» no cuentan.
  *
  * El id de cada nota lo acuña el cliente, igual que el de una asignación de
  * lugar: reintentar el mismo comando devuelve lo guardado y no duplica.

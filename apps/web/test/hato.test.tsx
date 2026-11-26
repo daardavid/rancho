@@ -538,6 +538,31 @@ describe('Una sola acción de cada cosa', () => {
     expect(acciones[0]?.className).toContain('ui-boton-flotante')
   })
 
+  it('en modo de selección no está el botón flotante', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen([]),
+      'GET /api/paddocks': () => ({ estado: 200, cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 } }),
+      'GET /api/locations': () => ({ estado: 200, cuerpo: { animales: [] } }),
+    })
+
+    pintarApp('#/hato')
+    await screen.findByText('Canelo')
+    expect(screen.getByRole('link', { name: 'Registrar pesaje' })).toBeDefined()
+
+    await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
+    expect(screen.queryByRole('link', { name: 'Registrar pesaje' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDefined()
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByRole('link', { name: 'Registrar pesaje' })).toBeDefined()
+
+    await usuario.click(screen.getByRole('button', { name: 'Anotar sanidad a varios animales' }))
+    expect(screen.queryByRole('link', { name: 'Registrar pesaje' })).toBeNull()
+  })
+
   it('el alta se ofrece una vez, en el «+» del encabezado', async () => {
     montarApi({
       'GET /api/session': sesionAbierta(),

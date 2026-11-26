@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { construirApp } from '../../src/http/app'
 import { sembrarRancho } from '../../src/infrastructure/db/semilla'
+import { crearModelosDePresencia } from '../../src/read-models'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { crearIdentidad } from '../../src/infrastructure/identity/identidad'
 import { crearHerd } from '../../src/modules/herd'
@@ -50,6 +51,7 @@ describe('notas de sanidad por HTTP', () => {
     app = construirApp({
       identidad: crearIdentidad(db, SECRETO_DE_PRUEBA),
       herd: crearHerd(db),
+      presencia: crearModelosDePresencia(db),
       nivelDeLog: 'silent',
     })
   }, 60_000)
@@ -203,6 +205,42 @@ describe('notas de sanidad por HTTP', () => {
       headers: cabeceras,
     })
     expect(notas.json<{ notas: unknown[] }>().notas).toEqual([])
+  })
+
+  it('«No sé» se guarda y no cuenta como observación', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId, nombre: 'No sé si se vio' },
+    })
+
+    const alta = await app.inject({
+      method: 'POST',
+      url: '/api/health-notes',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        tipo: 'problema',
+        detalle: 'No se sabe si se le vio',
+        fecha: '2026-11-21',
+        vioAlAnimal: null,
+        animales: [{ animalId, notaId: nuevoId() }],
+      },
+    })
+    expect(alta.statusCode).toBe(201)
+    expect(alta.json<{ notas: { vioAlAnimal: boolean | null }[] }>().notas[0]?.vioAlAnimal).toBeNull()
+
+    const observacion = await app.inject({
+      method: 'GET',
+      url: `/api/read-models/ultima-observacion/${animalId}`,
+      headers: cabeceras,
+    })
+    expect(observacion.statusCode).toBe(200)
+    expect(observacion.json<{ observacion: unknown }>().observacion).toBeNull()
   })
 
   it('si se elige «no se vio», eso es lo que queda guardado', async () => {

@@ -112,7 +112,7 @@ describe('Encabezado de las pestañas', () => {
     expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
   })
 
-  it('el menú ofrece nacimiento, potreros, salidas y salir desde cualquier pestaña', async () => {
+  it('el menú ofrece nacimiento, potreros, salidas, tendencias y salir desde cualquier pestaña', async () => {
     const inicio = vistaDelInicio()
     montarApi({
       'GET /api/session': sesionAbierta(),
@@ -130,6 +130,7 @@ describe('Encabezado de las pestañas', () => {
     expect(screen.getByRole('button', { name: 'Registrar nacimiento' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'Potreros' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'Salidas' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Ver tendencias' })).toBeDefined()
     expect(screen.getAllByRole('button', { name: 'Salir' })).toHaveLength(1)
   })
 

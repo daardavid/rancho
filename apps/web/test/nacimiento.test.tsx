@@ -1,7 +1,9 @@
-import { screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { App } from '../src/App'
 import { CUANDO, CUENTA, animalDeLista, fichaDeAnimal, montarApi, pintarApp, sesionAbierta, type Peticion } from './ayudas'
 
 afterEach(() => {
@@ -295,5 +297,139 @@ describe('Nacimiento: el buscador de la madre', () => {
     await usuario.clear(screen.getByLabelText('Buscar la madre'))
     await usuario.type(screen.getByLabelText('Buscar la madre'), 'pinta')
     expect(await screen.findByRole('button', { name: /La Pinta/ })).toBeDefined()
+  })
+
+  it('sin certeza de la madre enfoca el aviso, y el buscador se esconde al elegirla', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [laMadre()] } }),
+      'GET /api/paddocks': () => ({
+        estado: 200,
+        cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 },
+      }),
+      'GET /api/locations': sinLugares(),
+    })
+
+    pintarApp('#/nacimiento')
+    await elegirMadre(usuario, 'La Pinta')
+    expect(screen.queryByLabelText('Buscar la madre')).toBeNull()
+
+    await usuario.click(screen.getByRole('button', { name: 'Quitar' }))
+    expect(screen.getByLabelText('Buscar la madre')).toBeDefined()
+
+    await elegirMadre(usuario, 'La Pinta')
+    await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
+    const aviso = await screen.findByRole('alert')
+    expect(aviso.textContent).toContain('Di si viste a la madre')
+    expect(document.activeElement).toBe(aviso)
+
+    await usuario.click(screen.getByLabelText('Nombre o seña'))
+    expect(document.activeElement).not.toBe(aviso)
+
+    await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByRole('alert'))
+    })
+  })
+})
+
+function vistaDeCrecimiento(animalId: string, nombre: string, categoria: string) {
+  return {
+    animalId,
+    nombre,
+    categoria,
+    activo: true,
+    pesos: [],
+    ultimoPesaje: null,
+    huecos: [],
+  }
+}
+
+describe('Nacimiento: la observación de la madre', () => {
+  it('al volver a la ficha antes de 30 s se vuelve a pedir la última observación', async () => {
+    const usuario = userEvent.setup()
+    const api = montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': () => ({ estado: 200, cuerpo: { animales: [laMadre()] } }),
+      [`GET /api/animals/${MADRE}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({
+          id: MADRE,
+          nombre: 'La Pinta',
+          categoria: 'cow',
+          sexo: 'female',
+          tenencia: 'ranch',
+        }),
+      }),
+      [`GET /api/animals/${CRIA}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ id: CRIA, nombre: 'Cría', categoria: 'calf' }),
+      }),
+      [`GET /api/read-models/animal-growth/${MADRE}`]: () => ({
+        estado: 200,
+        cuerpo: vistaDeCrecimiento(MADRE, 'La Pinta', 'cow'),
+      }),
+      [`GET /api/read-models/animal-growth/${CRIA}`]: () => ({
+        estado: 200,
+        cuerpo: vistaDeCrecimiento(CRIA, 'Cría', 'calf'),
+      }),
+      [`GET /api/read-models/ultima-observacion/${MADRE}`]: () => ({
+        estado: 200,
+        cuerpo: { animalId: MADRE, observacion: null },
+      }),
+      'GET /api/paddocks': () => ({
+        estado: 200,
+        cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 },
+      }),
+      'GET /api/locations': sinLugares(),
+      'POST /api/births': () => ({ estado: 201, cuerpo: nacimientoGuardado('unknown') }),
+    })
+
+    const cliente = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 30_000, refetchOnWindowFocus: false },
+        mutations: { retry: false },
+      },
+    })
+    window.location.hash = `#/animal/${MADRE}`
+    render(
+      <QueryClientProvider client={cliente}>
+        <App />
+      </QueryClientProvider>,
+    )
+
+    const lecturasDeLaMadre = (): Peticion[] =>
+      api.peticiones.filter(
+        (peticion) =>
+          peticion.metodo === 'GET' &&
+          peticion.ruta === `/api/read-models/ultima-observacion/${MADRE}`,
+      )
+
+    expect(await screen.findByText('Sin observación')).toBeDefined()
+    expect(lecturasDeLaMadre()).toHaveLength(1)
+
+    await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
+    expect(await screen.findByRole('heading', { name: 'Nacimiento' })).toBeDefined()
+    await usuario.click(screen.getByRole('radio', { name: 'Fecha exacta' }))
+    fireEvent.change(screen.getByLabelText('Día del parto'), { target: { value: '2026-11-20' } })
+    await usuario.click(screen.getByRole('radio', { name: 'La vi' }))
+    await usuario.click(screen.getByRole('button', { name: 'Registrar nacimiento' }))
+
+    await waitFor(() => {
+      expect(nacimientos(api.peticiones)).toHaveLength(1)
+    })
+    expect(nacimientos(api.peticiones)[0]?.cuerpo).toMatchObject({
+      fechaNacimiento: '2026-11-20',
+      precisionFecha: 'exact',
+      madre: { certeza: 'observed', animalId: MADRE, motivo: null },
+    })
+    expect(lecturasDeLaMadre()).toHaveLength(1)
+
+    window.location.hash = `#/animal/${MADRE}`
+
+    await waitFor(() => {
+      expect(lecturasDeLaMadre()).toHaveLength(2)
+    })
   })
 })

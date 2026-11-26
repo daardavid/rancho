@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react'
-
 import type { LugaresDelHato, PotrerosDelRancho } from '@rancho/api-contracts'
+import { useRef, useState } from 'react'
 
 import { useFicha, useHato } from '../api/hato'
 import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
@@ -20,6 +19,7 @@ import { hoyEnElRancho } from '../dominio/fechas'
 import type { Animal, FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
+import { useEnfocarAviso } from '../ui/enfocar'
 import { BarraDeAccion } from '../ui/BarraDeAccion'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
@@ -142,6 +142,16 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     potreroAceptado: null,
   })
   const [aviso, setAviso] = useState<string | null>(null)
+  // El texto del aviso no cambia si se vuelve a enviar el mismo error. El
+  // contador sí, y así el foco regresa al aviso aunque la cadena sea la misma.
+  const [intentosDeValidacion, setIntentosDeValidacion] = useState(0)
+  const formulario = useRef<HTMLFormElement>(null)
+  const señalDeAviso =
+    aviso ?? (registrar.isError ? 'registrar' : asignar.isError ? 'lugar' : null)
+  useEnfocarAviso(
+    formulario,
+    señalDeAviso === null ? null : `${señalDeAviso}:${String(intentosDeValidacion)}`,
+  )
   const envio = useRef<Envio | null>(null)
   const lugarEnvio = useRef<{ contenido: string; commandId: string; asignacionId: string } | null>(null)
   /**
@@ -232,6 +242,7 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
     const armado = armar(borrador, toroUnico, aLaParte === true)
     if (armado.aviso !== null) {
       setAviso(armado.aviso)
+      setIntentosDeValidacion((actual) => actual + 1)
       return
     }
     if (criaRegistrada.current !== null) {
@@ -299,6 +310,7 @@ function FormularioDeNacimiento({ madre }: { readonly madre: FichaCompleta | nul
       />
 
       <form
+        ref={formulario}
         className="formulario alta"
         onSubmit={(evento) => {
           evento.preventDefault()
@@ -508,7 +520,17 @@ function Madre({
           Se busca por nombre, seña o arete, como en el pesaje. Solo salen las hembras activas y
           las que tienen el sexo en «No sé».
         </p>
-        {elegida === null ? null : (
+        {elegida === null ? (
+          <BuscarMadre
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            encontradas={encontradas}
+            alElegir={(id) => {
+              setBusqueda('')
+              alElegirMadre(id)
+            }}
+          />
+        ) : (
           <div className="eleccion">
             <span className="eleccion__nombre">{nombreVisible(elegida)}</span>
             <button
@@ -522,16 +544,7 @@ function Madre({
             </button>
           </div>
         )}
-        <BuscarMadre
-          valor={busqueda}
-          alCambiar={setBusqueda}
-          encontradas={encontradas}
-          alElegir={(id) => {
-            setBusqueda('')
-            alElegirMadre(id)
-          }}
-        />
-        {limpio !== '' && encontradas.length === 0 ? (
+        {elegida === null && limpio !== '' && encontradas.length === 0 ? (
           <p className="campo__ayuda" role="status">
             Ninguna hembra activa coincide. Revisa cómo se escribe o déjala en «No sé».
           </p>

@@ -10,8 +10,9 @@ import { LARGO_MAXIMO_NOMBRE, LARGO_MAXIMO_NOTA, LARGO_MAXIMO_MOTIVO, diaSchema 
  * flujo de veterinario (`OQ-HEALTH-001`): el contrato no tiene esos campos.
  *
  * `vioAlAnimal` es obligatorio. Si no viene, la nota no se acepta: no se
- * guarda «no se vio» porque el cuerpo lo omitió. Solo cuenta como observación
- * cuando dice que el animal se vio (`TGT-SEC-001`).
+ * guarda «no se vio» porque el cuerpo lo omitió. `true` es «Sí se vio»,
+ * `false` es «No se vio» y `null` es «No sé». Solo cuenta como observación
+ * cuando dice que el animal se vio (`TGT-SEC-001`). «No sé» no cuenta.
  */
 
 export const LARGO_MAXIMO_PRODUCTO = LARGO_MAXIMO_NOMBRE
@@ -38,7 +39,7 @@ export const notaDeSaludSchema = z.strictObject({
   fecha: diaSchema,
   producto: productoSchema.nullable(),
   evidenciaId: z.uuid().nullable(),
-  vioAlAnimal: z.boolean(),
+  vioAlAnimal: z.boolean().nullable(),
   version: z.number().int().nonnegative(),
   recordedBy: z.string().trim().min(1),
   recordedAt: instanteSchema,
@@ -78,8 +79,8 @@ export const anotarSaludSchema = z.strictObject({
   fecha: diaSchema,
   producto: productoSchema.nullable().optional(),
   evidenciaId: z.uuid().nullable().optional(),
-  /** Obligatorio. Omitirlo no se interpreta como «no se vio». */
-  vioAlAnimal: z.boolean(),
+  /** Obligatorio. Omitirlo no se interpreta como «no se vio». `null` es «No sé». */
+  vioAlAnimal: z.boolean().nullable(),
   animales: z.array(notaDelGrupoSchema).min(1),
 })
 
@@ -93,7 +94,7 @@ export const correccionDeNotaSchema = z
     fecha: diaSchema.optional(),
     producto: productoSchema.nullable().optional(),
     evidenciaId: z.uuid().nullable().optional(),
-    vioAlAnimal: z.boolean().optional(),
+    vioAlAnimal: z.boolean().nullable().optional(),
   })
   .superRefine((valor, ctx) => {
     const campos = [

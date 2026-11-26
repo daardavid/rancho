@@ -30,7 +30,8 @@ export function FormularioDeSalida({
 }: {
   readonly ficha: FichaCompleta
   readonly alRecargar: () => void
-  readonly alGuardar: () => void
+  /** `true` solo cuando esta guardada deshizo la salida y el animal volvió. */
+  readonly alGuardar: (volvio: boolean) => void
   readonly alCancelar: () => void
 }) {
   const salida = ficha.salida
@@ -75,9 +76,10 @@ export function FormularioDeSalida({
       comandos.current = { id: crypto.randomUUID(), contenido }
     }
 
+    const volvio = salida !== null && volver
     const alListo = (): void => {
       comandos.current = null
-      alGuardar()
+      alGuardar(volvio)
     }
     if (salida === null && esAlta(cuerpo)) {
       registrar.mutate({ ...cuerpo, commandId: comandos.current.id }, { onSuccess: alListo })
