@@ -18,7 +18,8 @@ import { sembrarRancho } from '../../src/infrastructure/db/semilla'
 import { crearPuertoDeEvidencia } from '../../src/infrastructure/evidence/puerto'
 import { crearCuenta } from '../../src/infrastructure/identity/cuentas'
 import { abrirBaseLocal, exponerBaseLocal } from '../../src/infrastructure/local/base'
-import { preguntar } from '../../src/infrastructure/local/cli-restaurar'
+import { lineasTrasElRespaldo } from '../../src/infrastructure/local/cli-respaldo'
+import { lineasAntesDeRestaurar, preguntar } from '../../src/infrastructure/local/cli-restaurar'
 import {
   afirmarRespaldoPermitido,
   aplicarRespaldo,
@@ -33,6 +34,7 @@ import {
 } from '../../src/infrastructure/local/respaldo'
 import { crearGrowth } from '../../src/modules/growth'
 import { crearHerd } from '../../src/modules/herd'
+import { crearJournal } from '../../src/modules/journal'
 import { recordedBySchema } from '../../src/shared-kernel/actores'
 import { nuevoId, ranchIdSchema, type RanchId } from '../../src/shared-kernel/ids'
 
@@ -44,6 +46,16 @@ describe('el comando se niega fuera de su lugar', () => {
     expect(() => afirmarRespaldoPermitido('production')).toThrow(/production/)
     expect(() => afirmarRespaldoPermitido(undefined, 'production')).toThrow(/production/)
     expect(() => afirmarRespaldoPermitido('test', undefined)).not.toThrow()
+  })
+
+  it('respaldo y restaurar dicen que el SQL no trae los bytes de las fotos', () => {
+    const aviso = /bytes se quedan en la carpeta de evidencia/
+    expect(lineasTrasElRespaldo('respaldos/rancho.sql').join('\n')).toMatch(aviso)
+    expect(lineasTrasElRespaldo('respaldos/rancho.sql').join('\n')).toMatch(/archivo SQL/)
+    expect(lineasAntesDeRestaurar('C:/rancho/respaldos/rancho.sql').join('\n')).toMatch(aviso)
+    expect(lineasAntesDeRestaurar('C:/rancho/respaldos/rancho.sql').join('\n')).toMatch(
+      /solo sus datos/,
+    )
   })
 
   it('la confirmación es la palabra RESTAURAR', () => {
@@ -126,11 +138,21 @@ const TABLAS: ReadonlyArray<readonly [string, string, string]> = [
   ['herd', 'animal_mark', 'id'],
   ['herd', 'health_event', 'id'],
   ['herd', 'health_event_correction', 'id'],
+  ['herd', 'pregnancy_check', 'id'],
+  ['herd', 'pregnancy_check_correction', 'id'],
+  ['herd', 'weaning', 'id'],
+  ['herd', 'weaning_correction', 'id'],
   ['herd', 'parentage_record', 'id'],
   ['herd', 'parentage_correction', 'id'],
   ['growth', 'weighing_session', 'id'],
   ['growth', 'weighing_line', 'id'],
   ['growth', 'weight_correction', 'id'],
+  ['journal', 'note', 'id'],
+  ['journal', 'note_correction', 'id'],
+  ['journal', 'reminder', 'id'],
+  ['journal', 'reminder_animal', 'reminder_id'],
+  ['journal', 'reminder_status_change', 'id'],
+  ['journal', 'reminder_correction', 'id'],
   ['evidence', 'file', 'id'],
   ['public', 'command_idempotency', 'command_id'],
 ]
@@ -246,6 +268,56 @@ describe('ida y vuelta del respaldo', () => {
       version: 1,
       motivo: 'leí de más',
       kilos: '350.000',
+    })
+
+    const journal = crearJournal(db, herd)
+    const notaId = nuevoId()
+    await journal.anotarNota({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: notaId,
+      tipo: 'lluvia',
+      texto: 'Llovió en la prueba',
+      fecha: '2026-04-02',
+      precision: 'approximate',
+      reportedBy: 'vaquero de prueba',
+    })
+    await journal.corregirNota({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      notaId,
+      version: 1,
+      motivo: 'era el pozo, no la lluvia',
+      cambios: { tipo: 'agua', precision: 'exact' },
+    })
+    const pendienteId = nuevoId()
+    await journal.anotarPendiente({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: pendienteId,
+      texto: 'Vacunar el lote de prueba',
+      fecha: '2026-12-05',
+      sujeto: { clase: 'animal', animalId: animalPesado },
+    })
+    await journal.corregirPendiente({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      pendienteId,
+      version: 1,
+      motivo: 'el texto estaba mal',
+      cambios: { texto: 'Vacunar el 5 de diciembre' },
+    })
+    await journal.cambiarEstado({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      pendienteId,
+      version: 2,
+      estado: 'hecho',
     })
 
     fotoOriginal = await fotoDe(db)
@@ -410,6 +482,15 @@ describe('ida y vuelta del respaldo', () => {
     expect(sqlTexto).toContain('INSERT INTO growth.weight_correction')
     expect(sqlTexto).toContain('INSERT INTO identity.account')
     expect(sqlTexto).toContain('INSERT INTO evidence.file')
+    expect(sqlTexto).toContain('CREATE SCHEMA journal')
+    expect(sqlTexto).toContain('INSERT INTO journal.note')
+    expect(sqlTexto).toContain('INSERT INTO journal.note_correction')
+    expect(sqlTexto).toContain('INSERT INTO journal.reminder')
+    expect(sqlTexto).toContain('INSERT INTO journal.reminder_animal')
+    expect(sqlTexto).toContain('INSERT INTO journal.reminder_correction')
+    expect(sqlTexto).toContain('INSERT INTO journal.reminder_status_change')
+    expect(sqlTexto).toContain('Llovió en la prueba')
+    expect(sqlTexto).toContain('Vacunar el 5 de diciembre')
     expect(sqlTexto).not.toMatch(/DROP SCHEMA(?: IF EXISTS)? public\b/)
 
     const url = process.env['TEST_DATABASE_URL']?.trim() ?? ''
@@ -587,6 +668,34 @@ async function comprobarAnimalesPesosYNotas(db: EjecutorSql): Promise<void> {
     await db.execute(sql`SELECT note AS nota FROM growth.weighing_session`),
   )
   expect(notas).toEqual([{ nota: 'manga de prueba' }])
+
+  const bitacora = filasDe<{ tipo: string; texto: string }>(
+    await db.execute(sql`SELECT type AS tipo, body AS texto FROM journal.note`),
+  )
+  expect(bitacora).toEqual([{ tipo: 'agua', texto: 'Llovió en la prueba' }])
+  const correccionesDeNota = filasDe<{ total: string }>(
+    await db.execute(sql`SELECT count(*)::text AS total FROM journal.note_correction`),
+  )
+  expect(correccionesDeNota).toEqual([{ total: '2' }])
+  const pendientes = filasDe<{ texto: string; estado: string }>(
+    await db.execute(sql`SELECT body AS texto, status AS estado FROM journal.reminder`),
+  )
+  expect(pendientes).toEqual([{ texto: 'Vacunar el 5 de diciembre', estado: 'hecho' }])
+  const animalesDelPendiente = filasDe<{ total: string }>(
+    await db.execute(sql`SELECT count(*)::text AS total FROM journal.reminder_animal`),
+  )
+  expect(animalesDelPendiente).toEqual([{ total: '1' }])
+  const correccionesDePendiente = filasDe<{ total: string }>(
+    await db.execute(sql`SELECT count(*)::text AS total FROM journal.reminder_correction`),
+  )
+  expect(correccionesDePendiente).toEqual([{ total: '1' }])
+  const cambiosDeEstado = filasDe<{ anterior: string; nuevo: string }>(
+    await db.execute(sql`
+      SELECT previous_status AS anterior, new_status AS nuevo
+      FROM journal.reminder_status_change
+    `),
+  )
+  expect(cambiosDeEstado).toEqual([{ anterior: 'pendiente', nuevo: 'hecho' }])
 }
 
 async function fotoDe(db: EjecutorSql): Promise<Foto> {

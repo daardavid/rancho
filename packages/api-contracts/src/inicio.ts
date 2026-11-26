@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { LARGO_MAXIMO_NOMBRE, categoriaSchema, diaSchema } from './animales'
+import { notaDelPeriodoSchema, pendienteDelInicioSchema } from './bitacora'
 
 /**
  * Lecturas de presencia: la última observación y la pantalla de Inicio.
@@ -9,15 +10,21 @@ import { LARGO_MAXIMO_NOMBRE, categoriaSchema, diaSchema } from './animales'
  * corrige aquí: si el dato está mal, se corrige el pesaje o la nota que la
  * produjo, o el nacimiento si la madre quedó en «La vi» y hay fecha: ese día
  * cuenta para la cría y para la madre. Un hueco, una asignación de lugar, una
- * nota que no dice que el animal se vio (incluido «No sé») y un parto inferido
- * o en «No sé» no son una observación.
+ * nota que no dice que el animal se vio (incluido «No sé»), un diagnóstico de
+ * preñez que no dice que se vio, y un parto inferido o en «No sé» no son una
+ * observación. Un diagnóstico que dice que sí se vio, sí cuenta.
  *
  * `dias` lo calcula PostgreSQL contra el día del rancho. No hay un umbral de
  * «lleva mucho sin verse»: la lista trae a todos los que tienen observación,
  * ordenados por esos días.
  */
 
-export const origenDeObservacionSchema = z.enum(['pesaje', 'sanidad', 'nacimiento'])
+export const origenDeObservacionSchema = z.enum([
+  'pesaje',
+  'sanidad',
+  'nacimiento',
+  'diagnostico',
+])
 
 export const observacionSchema = z.strictObject({
   fecha: diaSchema,
@@ -73,6 +80,11 @@ export const inicioSchema = z.strictObject({
     salidas: z.array(cambioDelPeriodoSchema),
     pesajes: z.number().int().nonnegative(),
     notasDeSanidad: z.number().int().nonnegative(),
+    /**
+     * Notas de bitácora cuyo día cae en el periodo. No son notas de sanidad
+     * y no se cuentan como observación de un animal.
+     */
+    notasDeBitacora: z.array(notaDelPeriodoSchema).default([]),
   }),
   paraRevisar: z.strictObject({
     /** `null` cuando el rancho no tiene ninguna vuelta. No es «cero huecos». */
@@ -87,6 +99,11 @@ export const inicioSchema = z.strictObject({
     sinObservacion: z.array(animalDelInicioSchema),
     /** Todos los activos con observación, de más días a menos. Sin umbral. */
     porDiasSinVerse: z.array(animalSinVerseSchema),
+    /**
+     * Pendientes que el dueño escribió y que ya vencieron o tocan hoy.
+     * Uno hecho o que todavía no toca no entra: no es un aviso inventado.
+     */
+    pendientes: z.array(pendienteDelInicioSchema).default([]),
   }),
 })
 

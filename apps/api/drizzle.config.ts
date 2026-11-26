@@ -13,6 +13,7 @@ export default defineConfig({
     './src/infrastructure/evidence/tablas.ts',
     './src/modules/herd/persistence/tablas.ts',
     './src/modules/growth/persistence/tablas.ts',
+    './src/modules/journal/persistence/tablas.ts',
   ],
   out: './drizzle',
   dialect: 'postgresql',

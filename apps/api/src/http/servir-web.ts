@@ -20,7 +20,7 @@ import type { FastifyInstance } from 'fastify'
  *
  * `preCompressed: true` hace que un `index-abc.js` viaje como
  * `index-abc.js.br` o `.gz` cuando el navegador lo acepta. Los dos los escribe
- * el build de la web (`apps/web/build/comprimir.ts`), así que el celular con
+ * el build de la web (`apps/web/scripts/comprimir.ts`), así que el celular con
  * señal débil baja alrededor de un tercio de los bytes y el servidor no gasta
  * CPU comprimiendo en cada petición. `@fastify/static` agrega `Vary:
  * Accept-Encoding` solo, que es lo que evita que una caché compartida

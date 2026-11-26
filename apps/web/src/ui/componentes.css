@@ -347,6 +347,15 @@
   color: var(--texto-suave);
 }
 
+.ui-miniatura {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: none;
+  background: var(--neutro-fondo);
+}
+
 .ui-fila__texto {
   flex: 1;
   min-width: 0;
@@ -1437,6 +1446,26 @@
 
 .crecimiento__tendencias {
   margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vacas__fila {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.vacas__fila a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .tendencias__bloque {

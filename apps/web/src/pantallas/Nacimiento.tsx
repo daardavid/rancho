@@ -18,6 +18,7 @@ import {
 import { hoyEnElRancho } from '../dominio/fechas'
 import type { Animal, FichaCompleta } from '../dominio/tipos'
 import { irA } from '../ruta'
+import { Miniatura } from '../ui/Miniatura'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { useEnfocarAviso } from '../ui/enfocar'
 import { BarraDeAccion } from '../ui/BarraDeAccion'
@@ -532,7 +533,10 @@ function Madre({
           />
         ) : (
           <div className="eleccion">
-            <span className="eleccion__nombre">{nombreVisible(elegida)}</span>
+            <span className="eleccion__quien">
+              <Miniatura id={elegida.foto?.miniaturaId} />
+              <span className="eleccion__nombre">{nombreVisible(elegida)}</span>
+            </span>
             <button
               type="button"
               className="enlace"
@@ -613,6 +617,7 @@ function BuscarMadre({
                   alElegir(animal.id)
                 }}
               >
+                <Miniatura id={animal.foto?.miniaturaId} />
                 <span className="pesaje__sugerido-texto">
                   <span className="pesaje__sugerido-nombre">{nombreVisible(animal)}</span>
                   <span className="pesaje__sugerido-datos">{datosDeLaMadre(animal)}</span>

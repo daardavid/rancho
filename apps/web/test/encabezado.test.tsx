@@ -175,6 +175,6 @@ describe('Encabezado de las pestañas', () => {
     const usuario = userEvent.setup()
     await usuario.click(elegido)
 
-    expect(window.location.hash).toBe(`#/animal/${ANIMAL}/salida`)
+    expect(window.location.hash).toBe(`#/animal/${ANIMAL}/salida?desde=inicio`)
   })
 })

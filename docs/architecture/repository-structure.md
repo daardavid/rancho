@@ -15,6 +15,7 @@ apps/
       modules/
         herd/
         growth/
+        journal/         # ranch log and owner reminders. ADR-018, proposed
         feeding/
         inventory/
         finance/
@@ -36,6 +37,8 @@ modules/herd/
   persistence/         # Drizzle tables, repository implementations, factories
   index.ts             # only supported import path
 ```
+
+`journal/` holds the ranch log and the reminders the owner writes for himself ([ADR-018](adr/ADR-018-bitacora.md), proposed). A note there is not a fact about one animal. It may store a paddock id or an animal id as a reference and asks Herd's public index whether they exist. It does not write Herd or Growth. Feeding, inventory, and finance stay unbuilt.
 
 Orchestrators live in `application/`, not in a module and not in the shared kernel. Names already used conceptually: `RecordCattleSale`, `RecordFeedPurchase`, `PrepareFeedBatch`, `RecordCattlePurchase` ([context-map.md](context-map.md)).
 

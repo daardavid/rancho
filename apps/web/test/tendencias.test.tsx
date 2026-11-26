@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -79,6 +79,27 @@ function abrir(vueltas: number) {
 }
 
 describe('lectura de las gráficas', () => {
+  it('tiene el encabezado del rancho, con menú, y regresa a Crecimiento', async () => {
+    abrir(1)
+
+    // Se espera a contenido de la pantalla ya cargada: el encabezado del estado
+    // de espera se reemplaza cuando llegan las tendencias.
+    await screen.findByText('Hay 1 vuelta. La tendencia se ve a partir de 4.')
+
+    const encabezado = screen.getByRole('heading', { name: 'Tendencias' }).closest('header')
+    expect(encabezado).not.toBeNull()
+    if (encabezado === null) {
+      return
+    }
+    expect(within(encabezado).getByText('MI RANCHO')).toBeDefined()
+    expect(within(encabezado).getByRole('button', { name: 'Menú' })).toBeDefined()
+
+    // La flecha regresa a Crecimiento y lo dice: el texto nombra el destino.
+    const flecha = within(encabezado).getByRole('button', { name: 'Regresar a Crecimiento' })
+    await userEvent.setup().click(flecha)
+    expect(window.location.hash).toBe('#/crecimiento')
+  })
+
   it('parte la serie en un hueco y no agrega un punto', () => {
     const pesos = [
       { pesoId: PESO, fecha: '2026-03-01', kilos: '100.000', calidad: 'measured' as const },

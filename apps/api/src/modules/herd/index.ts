@@ -67,6 +67,23 @@ import {
   type EntradaAnotarSalud,
   type EntradaCorregirNota,
 } from './application/salud'
+import {
+  anotarDiagnostico,
+  corregirDiagnosticoDe,
+  type AnimalDelDiagnostico,
+  type DepsDePrenez,
+  type EntradaAnotarDiagnostico,
+  type EntradaCorregirDiagnostico,
+} from './application/prenez'
+import { ponerFotoDe, type EntradaPonerFoto, type FotoPuesta } from './application/foto'
+import {
+  asentarDestetes,
+  corregirDesteteDe,
+  type AlcanceDeDestete,
+  type DepsDeDestete,
+  type EntradaAsentarDestetes,
+  type EntradaCorregirDestete,
+} from './application/destete'
 import type {
   CorreccionDeNotaPublica,
   NotaDeSaludConHistoria,
@@ -74,6 +91,13 @@ import type {
   NotasAnotadasPublicas,
   NotasDelAnimalPublicas,
 } from './application/publicar-salud'
+import type {
+  CorreccionDeDiagnosticoPublica,
+  DiagnosticoConHistoria,
+  DiagnosticoPublico,
+  DiagnosticosAnotadosPublicos,
+} from './application/publicar-prenez'
+import type { DesteteConHistoria } from './application/publicar-destete'
 import type {
   AsignacionPublica,
   FiliacionConHistoria,
@@ -89,6 +113,8 @@ import { crearRepositorioDeAnimales } from './persistence/repositorio'
 import { crearRepositorioDeFiliacion } from './persistence/repositorio-filiacion'
 import { crearRepositorioDeLugar } from './persistence/repositorio-lugar'
 import { crearRepositorioDeSalud } from './persistence/repositorio-salud'
+import { crearRepositorioDePrenez } from './persistence/repositorio-prenez'
+import { crearRepositorioDeDestete } from './persistence/repositorio-destete'
 
 export type {
   AnimalDeLaNota,
@@ -110,10 +136,12 @@ export type {
   EntradaCorregirSalida,
   EntradaRegistrar,
   EntradaRegistrarNacimiento,
+  EntradaPonerFoto,
   EntradaRegistrarSalida,
   EstadoEnRancho,
   FamiliaPublica,
   FichaAnimal,
+  FotoPuesta,
   FichaConHistoria,
   FiliacionConHistoria,
   FiliacionPublica,
@@ -125,6 +153,17 @@ export type {
   NotaDeSaludPublica,
   NotasAnotadasPublicas,
   NotasDelAnimalPublicas,
+  AnimalDelDiagnostico,
+  CorreccionDeDiagnosticoPublica,
+  DiagnosticoConHistoria,
+  DiagnosticoPublico,
+  DiagnosticosAnotadosPublicos,
+  EntradaAnotarDiagnostico,
+  EntradaCorregirDiagnostico,
+  DepsDeDestete,
+  DesteteConHistoria,
+  EntradaAsentarDestetes,
+  EntradaCorregirDestete,
   PotreroConHistoria,
   PotreroEnLaLista,
   PotreroPublico,
@@ -132,6 +171,7 @@ export type {
   ResumenDeAnimal,
 }
 export { RechazoDeHerd } from './domain/errores'
+export { asentarDestetes }
 
 /**
  * Ficha, correcciones, marcas, filiación, potreros y lugar esperado. Quien
@@ -151,6 +191,7 @@ export type Herd = {
   reemplazarMarca(entrada: EntradaReemplazarMarca): Promise<{ anterior: MarcaPublica; nueva: MarcaPublica }>
   marcarPerdida(entrada: EntradaMarcarPerdida): Promise<MarcaPublica>
   registrarSalida(entrada: EntradaRegistrarSalida): Promise<FichaConHistoria>
+  ponerFoto(entrada: EntradaPonerFoto): Promise<FotoPuesta>
   corregirSalida(entrada: EntradaCorregirSalida): Promise<FichaConHistoria>
   listarActivos(ranchId: RanchId): Promise<FichaAnimal[]>
   listarSalidas(ranchId: RanchId): Promise<FichaAnimal[]>
@@ -175,6 +216,9 @@ export type Herd = {
     ranchId: RanchId,
     animalIds: readonly string[],
   ): Promise<readonly NotasDelAnimalPublicas[]>
+  anotarDiagnostico(entrada: EntradaAnotarDiagnostico): Promise<DiagnosticosAnotadosPublicos>
+  corregirDiagnostico(entrada: EntradaCorregirDiagnostico): Promise<DiagnosticoConHistoria>
+  corregirDestete(entrada: EntradaCorregirDestete): Promise<DesteteConHistoria>
 }
 
 /**
@@ -211,6 +255,14 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
     evidencia,
   }
 
+  // Corregir el destete no escribe el peso. El recibo se lee fuera, igual que
+  // la sanidad, para no trabar la base embebida.
+  const destete: AlcanceDeDestete = {
+    leerRecibo: (commandId) =>
+      db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
+    escribir: (trabajo) => correr((repos) => trabajo(desteteDe(repos))),
+  }
+
   return {
     registrar: (entrada) => correr((repos) => registrar(repos, entrada)),
     corregir: (entrada) => correr((repos) => corregir(repos, entrada)),
@@ -218,6 +270,19 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
     reemplazarMarca: (entrada) => correr((repos) => reemplazar(repos, entrada)),
     marcarPerdida: (entrada) => correr((repos) => marcarPerdida(repos, entrada)),
     registrarSalida: (entrada) => registrarSalidaDe(salida, entrada),
+    ponerFoto: (entrada) =>
+      ponerFotoDe(
+        {
+          // El recibo y la foto se leen fuera de la escritura. El puerto de
+          // evidencia no usa la transacción: con ella abierta, en la base
+          // embebida las dos se esperan.
+          leerRecibo: (commandId) =>
+            db.transaction(async (tx) => crearAlmacenDeIdempotencia(tx).buscar(commandId)),
+          escribir: correr,
+          evidencia,
+        },
+        entrada,
+      ),
     corregirSalida: (entrada) => corregirSalidaDe(salida, entrada),
     listarActivos: (ranchId) => correr((repos) => listarActivos(repos.animales, ranchId)),
     listarSalidas: (ranchId) => correr((repos) => listarSalidas(repos.animales, ranchId)),
@@ -243,11 +308,31 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
       correr((repos) => notasDeAnimal(saludDe(repos), ranchId, animalId)),
     notasDeAnimales: (ranchId, animalIds) =>
       correr((repos) => notasDeAnimales(saludDe(repos), ranchId, animalIds)),
+    anotarDiagnostico: (entrada) => correr((repos) => anotarDiagnostico(prenezDe(repos), entrada)),
+    corregirDiagnostico: (entrada) =>
+      correr((repos) => corregirDiagnosticoDe(prenezDe(repos), entrada)),
+    corregirDestete: (entrada) => corregirDesteteDe(destete, entrada),
   }
+}
+
+/** Repositorios de Herd atados a una transacción que abrió el orquestador. */
+export function repositoriosDeHerd(
+  tx: EjecutorSql,
+  evidencia: ConsultaDeEvidencia | null = null,
+): DepsDeHerd {
+  return reposDe(tx, evidencia)
 }
 
 function saludDe(repos: DepsDeHerd): DepsDeSalud {
   return { animales: repos.animales, salud: repos.salud, idempotencia: repos.idempotencia }
+}
+
+function prenezDe(repos: DepsDeHerd): DepsDePrenez {
+  return { animales: repos.animales, prenez: repos.prenez, idempotencia: repos.idempotencia }
+}
+
+function desteteDe(repos: DepsDeHerd): DepsDeDestete {
+  return { animales: repos.animales, destete: repos.destete, idempotencia: repos.idempotencia }
 }
 
 function lugarDe(repos: DepsDeHerd): DepsDeLugar {
@@ -260,6 +345,8 @@ function reposDe(tx: EjecutorSql, evidencia: ConsultaDeEvidencia | null): DepsDe
     filiacion: crearRepositorioDeFiliacion(tx),
     lugar: crearRepositorioDeLugar(tx),
     salud: crearRepositorioDeSalud(tx),
+    prenez: crearRepositorioDePrenez(tx),
+    destete: crearRepositorioDeDestete(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
     evidencia,
   }

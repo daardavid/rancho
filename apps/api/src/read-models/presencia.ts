@@ -13,6 +13,7 @@ import type { RanchId } from '../shared-kernel/ids'
  *
  * - un pesaje (`weighed`); un hueco no cuenta
  * - una nota de sanidad con `saw_animal` en sí; «No se vio» y «No sé» no cuentan
+ * - un diagnóstico de preñez con `saw_animal` en sí; «No se vio» y «No sé» no cuentan
  * - un nacimiento con fecha cuya madre está en «La vi» (`observed`); ese día
  *   es observación de la cría y de la madre. Inferida o «No sé» no cuentan.
  *
@@ -25,7 +26,7 @@ import type { RanchId } from '../shared-kernel/ids'
  */
 
 export type Categoria = 'calf' | 'cow' | 'bull' | 'other' | 'unknown'
-export type OrigenDeObservacion = 'pesaje' | 'sanidad' | 'nacimiento'
+export type OrigenDeObservacion = 'pesaje' | 'sanidad' | 'nacimiento' | 'diagnostico'
 
 export type Observacion = {
   readonly fecha: string
@@ -66,6 +67,13 @@ export type VistaDeInicio = {
     readonly salidas: readonly CambioDelPeriodo[]
     readonly pesajes: number
     readonly notasDeSanidad: number
+    readonly notasDeBitacora: readonly {
+      readonly id: string
+      readonly tipo: 'lluvia' | 'quema' | 'agua' | 'cerca' | 'otro'
+      readonly texto: string
+      readonly fecha: string
+      readonly precision: 'exact' | 'approximate'
+    }[]
   }
   readonly paraRevisar: {
     readonly fechaDeLaUltimaVuelta: string | null
@@ -74,6 +82,12 @@ export type VistaDeInicio = {
     readonly lugarDesconocido: readonly AnimalDelInicio[]
     readonly sinObservacion: readonly AnimalDelInicio[]
     readonly porDiasSinVerse: readonly AnimalSinVerse[]
+    readonly pendientes: readonly {
+      readonly id: string
+      readonly texto: string
+      readonly fecha: string
+      readonly vencido: boolean
+    }[]
   }
 }
 
@@ -93,7 +107,7 @@ export type ModelosDePresencia = {
 }
 
 const CATEGORIAS: readonly Categoria[] = ['calf', 'cow', 'bull', 'other', 'unknown']
-const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad', 'nacimiento']
+const ORIGENES: readonly OrigenDeObservacion[] = ['pesaje', 'sanidad', 'nacimiento', 'diagnostico']
 const ZONA_DEL_RANCHO = 'America/Mexico_City'
 
 type FilaDeAnimal = {
@@ -118,6 +132,21 @@ type FilaDeConteo = {
   cantidad: unknown
 }
 
+type FilaDeNotaDeBitacora = {
+  id: string
+  type: string
+  body: string
+  fecha: string
+  precision: string
+}
+
+type FilaDePendienteDelInicio = {
+  id: string
+  body: string
+  fecha: string
+  vencido: unknown
+}
+
 type FilaDeNumero = {
   cantidad: unknown
 }
@@ -137,7 +166,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
       const filas = filasDe<FilaDeObservacion>(
         await db.execute(sql`
           WITH observaciones AS (
-            ${observacionesDe(ranchId)}
+            ${fuentesDeObservacion(ranchId)}
           )
           SELECT
             animal.id AS animal_id,
@@ -165,7 +194,21 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
     async inicio(ranchId, opciones) {
       const dia = await diaDelRancho(db, opciones?.hoy)
       const desde = await desdeDelPeriodo(db, dia, opciones?.desde)
-      const [categorias, nacimientos, sinFecha, salidas, pesajes, notas, vuelta, huecos, sinLugar, lugarDesconocido, vistos] =
+      const [
+        categorias,
+        nacimientos,
+        sinFecha,
+        salidas,
+        pesajes,
+        notas,
+        vuelta,
+        huecos,
+        sinLugar,
+        lugarDesconocido,
+        vistos,
+        notasDeBitacora,
+        pendientes,
+      ] =
         await Promise.all([
           filasDe<FilaDeConteo>(
             await db.execute(sql`
@@ -318,7 +361,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
           filasDe<FilaDeObservacion>(
             await db.execute(sql`
               WITH observaciones AS (
-                ${observacionesDe(ranchId)}
+                ${fuentesDeObservacion(ranchId)}
               )
               SELECT
                 animal.id AS animal_id,
@@ -340,6 +383,35 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
                 dias DESC NULLS LAST,
                 animal.name NULLS LAST,
                 animal.id
+            `),
+          ),
+          filasDe<FilaDeNotaDeBitacora>(
+            await db.execute(sql`
+              SELECT
+                id,
+                type,
+                body,
+                occurred_on::text AS fecha,
+                date_precision AS precision
+              FROM journal.note
+              WHERE ranch_id = ${ranchId}
+                AND occurred_on >= ${desde}::date
+                AND occurred_on <= ${dia}::date
+              ORDER BY occurred_on, id
+            `),
+          ),
+          filasDe<FilaDePendienteDelInicio>(
+            await db.execute(sql`
+              SELECT
+                id,
+                body,
+                due_on::text AS fecha,
+                (due_on < ${dia}::date) AS vencido
+              FROM journal.reminder
+              WHERE ranch_id = ${ranchId}
+                AND status = 'pendiente'
+                AND due_on <= ${dia}::date
+              ORDER BY due_on, id
             `),
           ),
         ])
@@ -375,6 +447,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
           salidas: salidas.map(cambioDe),
           pesajes: entero(cantidadDePesajes.cantidad),
           notasDeSanidad: entero(cantidadDeNotas.cantidad),
+          notasDeBitacora: notasDeBitacora.map(notaDeBitacora),
         },
         paraRevisar: {
           fechaDeLaUltimaVuelta: vuelta[0]?.fecha ?? null,
@@ -383,6 +456,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
           lugarDesconocido: lugarDesconocido.map(animalDe),
           sinObservacion,
           porDiasSinVerse,
+          pendientes: pendientes.map(pendienteDelInicio),
         },
       }
     },
@@ -392,8 +466,11 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
 /**
  * Una fila por animal: el hecho más reciente que cuenta como haberlo visto.
  * El hueco y la asignación de lugar no están en esta unión.
+ *
+ * La exportación del hato lee esta misma consulta. Si «haberlo visto» se
+ * definiera dos veces, el archivo y la pantalla podrían decir cosas distintas.
  */
-function observacionesDe(ranchId: RanchId): SQL {
+export function fuentesDeObservacion(ranchId: RanchId): SQL {
   return sql`
     SELECT DISTINCT ON (animal_id)
       animal_id,
@@ -422,6 +499,16 @@ function observacionesDe(ranchId: RanchId): SQL {
       FROM herd.health_event nota
       WHERE nota.ranch_id = ${ranchId}
         AND nota.saw_animal IS TRUE
+      UNION ALL
+      SELECT
+        diagnostico.animal_id,
+        diagnostico.occurred_on AS fecha,
+        'diagnostico' AS origen,
+        diagnostico.id AS origen_id,
+        diagnostico.recorded_at AS registrado_en
+      FROM herd.pregnancy_check diagnostico
+      WHERE diagnostico.ranch_id = ${ranchId}
+        AND diagnostico.saw_animal IS TRUE
       UNION ALL
       SELECT
         filiacion.offspring_id AS animal_id,
@@ -480,6 +567,47 @@ async function desdeDelPeriodo(db: EjecutorSql, hoy: string, desde: string | und
     throw new Error('La base no devolvió el inicio del periodo.')
   }
   return fila.dia
+}
+
+const TIPOS_DE_BITACORA = ['lluvia', 'quema', 'agua', 'cerca', 'otro'] as const
+const PRECISIONES = ['exact', 'approximate'] as const
+
+function notaDeBitacora(fila: FilaDeNotaDeBitacora): VistaDeInicio['cambios']['notasDeBitacora'][number] {
+  if (!esUnoDe(fila.type, TIPOS_DE_BITACORA) || !esUnoDe(fila.precision, PRECISIONES)) {
+    throw new Error('La base devolvió una nota de bitácora que no se puede leer.')
+  }
+  return {
+    id: fila.id,
+    tipo: fila.type,
+    texto: fila.body,
+    fecha: fila.fecha,
+    precision: fila.precision,
+  }
+}
+
+function pendienteDelInicio(
+  fila: FilaDePendienteDelInicio,
+): VistaDeInicio['paraRevisar']['pendientes'][number] {
+  return {
+    id: fila.id,
+    texto: fila.body,
+    fecha: fila.fecha,
+    vencido: verdad(fila.vencido),
+  }
+}
+
+function esUnoDe<T extends string>(valor: string, lista: readonly T[]): valor is T {
+  return (lista as readonly string[]).includes(valor)
+}
+
+function verdad(valor: unknown): boolean {
+  if (valor === true || valor === 't' || valor === 'true') {
+    return true
+  }
+  if (valor === false || valor === 'f' || valor === 'false') {
+    return false
+  }
+  throw new Error('La base devolvió un vencido que no se puede leer.')
 }
 
 function animalDe(fila: FilaDeAnimal): AnimalDelInicio {

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { pathToFileURL } from 'node:url'
 
+import { crearCapturaDeDestete } from './application/destete'
 import { construirApp } from './http/app'
 import { carpetaDeLaWeb } from './http/estaticos'
 import { servirLaWeb } from './http/servir-web'
@@ -13,7 +14,15 @@ import { crearPuertoDeEvidencia } from './infrastructure/evidence/puerto'
 import { crearIdentidad } from './infrastructure/identity/identidad'
 import { crearGrowth } from './modules/growth'
 import { crearHerd } from './modules/herd'
-import { crearModelosDeCrecimiento, crearModelosDePresencia, crearModelosDeTendencias } from './read-models'
+import { crearJournal } from './modules/journal'
+import {
+  crearModelosDeCrecimiento,
+  crearModelosDeCria,
+  crearModelosDeExportacion,
+  crearModelosDePresencia,
+  crearModelosDeResumen,
+  crearModelosDeTendencias,
+} from './read-models'
 
 /**
  * El proceso de la aplicación: una base, una sesión y un servidor.
@@ -40,14 +49,20 @@ export async function arrancar(): Promise<FastifyInstance> {
   const cliente = abrirCliente(configuracion.databaseUrl, configuracion.maxConexiones)
   const evidencia = crearPuertoDeEvidencia(cliente.db, carpetaDeEvidencia())
   const herd = crearHerd(cliente.db, evidencia)
+  const presencia = crearModelosDePresencia(cliente.db)
   const app = construirApp({
     identidad: crearIdentidad(cliente.db, configuracion.secretoDeSesion),
     herd,
     growth: crearGrowth(cliente.db, herd, evidencia),
     evidencia,
     crecimiento: crearModelosDeCrecimiento(cliente.db),
-    presencia: crearModelosDePresencia(cliente.db),
+    presencia,
+    resumen: crearModelosDeResumen(cliente.db, presencia),
     tendencias: crearModelosDeTendencias(cliente.db),
+    cria: crearModelosDeCria(cliente.db),
+    destete: crearCapturaDeDestete(cliente.db, evidencia),
+    journal: crearJournal(cliente.db, herd, evidencia),
+    exportacion: crearModelosDeExportacion(cliente.db),
     base: comprobacionDeBase(cliente.db),
     produccion: configuracion.cookieSegura,
   })

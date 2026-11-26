@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { Etiqueta, type TonoDeEtiqueta } from './Etiqueta'
+import { Miniatura } from './Miniatura'
 
 /** Categoría solo para el color del avatar. No es un dato nuevo del animal. */
 export type CategoriaVisual = 'calf' | 'cow' | 'bull' | 'other' | 'unknown'
@@ -29,6 +30,7 @@ function Cuerpo({
   ganancia,
   tono,
   categoria,
+  miniaturaId,
 }: {
   readonly nombre: string
   readonly detalle: string
@@ -36,10 +38,25 @@ function Cuerpo({
   readonly ganancia: string
   readonly tono: TonoDeEtiqueta
   readonly categoria: CategoriaVisual
+  readonly miniaturaId?: string | null
 }) {
+  const [idRoto, setIdRoto] = useState<string | null>(null)
+  const hayMiniatura =
+    miniaturaId !== null && miniaturaId !== undefined && idRoto !== miniaturaId
   return (
     <>
-      <span className={`ui-avatar ui-avatar--${categoria}`}>{iniciales(nombre)}</span>
+      {hayMiniatura ? (
+        <Miniatura
+          id={miniaturaId}
+          alFallar={() => {
+            if (miniaturaId !== null && miniaturaId !== undefined) {
+              setIdRoto(miniaturaId)
+            }
+          }}
+        />
+      ) : (
+        <span className={`ui-avatar ui-avatar--${categoria}`}>{iniciales(nombre)}</span>
+      )}
       <span className="ui-fila__texto">
         <span className="ui-fila__nombre">{nombre}</span>
         <span className="ui-fila__detalle">{detalle}</span>
@@ -59,6 +76,7 @@ export function FilaDeAnimal({
   ganancia,
   tono,
   categoria = 'unknown',
+  miniaturaId = null,
   href,
   alTocar,
   seleccion,
@@ -69,6 +87,8 @@ export function FilaDeAnimal({
   readonly ganancia: string
   readonly tono: TonoDeEtiqueta
   readonly categoria?: CategoriaVisual
+  /** Si hay foto, la fila muestra la miniatura y no las iniciales. */
+  readonly miniaturaId?: string | null
   readonly href?: string
   readonly alTocar?: () => void
   /**
@@ -90,6 +110,7 @@ export function FilaDeAnimal({
       ganancia={ganancia}
       tono={tono}
       categoria={categoria}
+      miniaturaId={miniaturaId}
     />
   )
 

@@ -128,6 +128,34 @@ export const correccionDeAnimal = esquemaHerd.table(
 )
 
 /**
+ * Foto para reconocer al animal. No es un dato de la ficha: no cambia nombre,
+ * sexo, categoría ni calidad de nada. Cada fila es una foto que se puso;
+ * cambiarla agrega otra y la anterior se queda. Los bytes viven en `evidence`
+ * y esta tabla no los borra.
+ */
+export const fotoDeAnimal = esquemaHerd.table(
+  'animal_photo',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    evidenciaId: uuid('evidence_id').notNull(),
+    miniaturaId: uuid('thumbnail_evidence_id').notNull(),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    uniqueIndex('animal_photo_version').on(tabla.animalId, tabla.version),
+    index('animal_photo_ranch').on(tabla.ranchId, tabla.animalId),
+    check('animal_photo_version_positiva', sql`${tabla.version} >= 1`),
+    check('animal_photo_quien', sql`length(btrim(${tabla.recordedBy})) > 0`),
+  ],
+)
+
+/**
  * Salida anterior, cuando se corrige. Una fila por corrección, con el motivo
  * que tenía, el día en que se supo, la nota, la foto, quién corrigió, cuándo
  * y por qué. No se borra al volver a activo.
@@ -492,5 +520,152 @@ export const correccionDeNotaDeSalud = esquemaHerd.table(
       sql`${tabla.campo} in ('tipo', 'detalle', 'fecha', 'producto', 'evidencia', 'vioAlAnimal')`,
     ),
     check('health_event_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
+  ],
+)
+
+/**
+ * Diagnóstico de preñez de una hembra. Hermano de la ficha: no es una columna
+ * de `Animal`, y un diagnóstico a un grupo es una fila por animal.
+ *
+ * El resultado es lo que alguien dijo: Preñada, Vacía o No sé. No hay meta de
+ * días ni calendario. Si alguien viene a palpar o a hacer ultrasonido queda
+ * abierto (`OQ-REPRO-003`). `saw_animal` es explícito, igual que en sanidad:
+ * `true` se vio, `false` no se vio y `null` es «No sé». No hay omisión. Solo
+ * cuenta como observación cuando dice que sí se vio.
+ */
+export const diagnosticoDePrenez = esquemaHerd.table(
+  'pregnancy_check',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    fecha: date('occurred_on', { mode: 'string' }).notNull(),
+    resultado: text('result').notNull(),
+    reportedBy: text('reported_by'),
+    nota: text('note'),
+    vioAlAnimal: boolean('saw_animal'),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('pregnancy_check_animal').on(tabla.animalId, tabla.fecha),
+    index('pregnancy_check_ranch_fecha').on(tabla.ranchId, tabla.fecha),
+    check(
+      'pregnancy_check_resultado_valido',
+      sql`${tabla.resultado} in ('prenada', 'vacia', 'no_se')`,
+    ),
+    check(
+      'pregnancy_check_reported_by_presente',
+      sql`${tabla.reportedBy} is null or length(btrim(${tabla.reportedBy})) > 0`,
+    ),
+    check(
+      'pregnancy_check_nota_presente',
+      sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`,
+    ),
+    check('pregnancy_check_version_positiva', sql`${tabla.version} >= 1`),
+  ],
+)
+
+/**
+ * Valor anterior de una corrección de diagnóstico. Una fila por campo que
+ * cambió, con quién, cuándo y por qué. Corregir no borra el diagnóstico.
+ */
+export const correccionDeDiagnostico = esquemaHerd.table(
+  'pregnancy_check_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    diagnosticoId: uuid('pregnancy_check_id')
+      .notNull()
+      .references(() => diagnosticoDePrenez.id, { onDelete: 'restrict' }),
+    campo: text('field').notNull(),
+    valorAnterior: text('previous_value'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('pregnancy_check_correction_diag').on(tabla.diagnosticoId, tabla.correctedAt),
+    check(
+      'pregnancy_check_correction_campo_valido',
+      sql`${tabla.campo} in ('resultado', 'fecha', 'reportedBy', 'nota', 'vioAlAnimal')`,
+    ),
+    check('pregnancy_check_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
+  ],
+)
+
+/**
+ * Destete de una cría. Hermano de la ficha: no es una columna de `Animal` y
+ * no es una salida. Una cría tiene un destete; corregirlo guarda lo anterior.
+ *
+ * El día es exacto, aproximado o «No sé». «No sé» deja la fecha y la precisión
+ * vacías juntas. `weight_id` es el peso de Growth cuando se anotó: un uuid de
+ * referencia, sin llave al otro esquema. Herd no escribe esos kilos.
+ */
+export const destete = esquemaHerd.table(
+  'weaning',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    fecha: date('occurred_on', { mode: 'string' }),
+    precisionFecha: text('date_precision'),
+    nota: text('note'),
+    reportedBy: text('reported_by'),
+    pesoId: uuid('weight_id'),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    uniqueIndex('weaning_one_per_animal').on(tabla.ranchId, tabla.animalId),
+    index('weaning_ranch').on(tabla.ranchId),
+    check(
+      'weaning_fecha_par',
+      sql`(${tabla.fecha} is null) = (${tabla.precisionFecha} is null)`,
+    ),
+    check(
+      'weaning_precision_valida',
+      sql`${tabla.precisionFecha} is null or ${tabla.precisionFecha} in ('exact', 'approximate')`,
+    ),
+    check('weaning_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
+    check(
+      'weaning_reported_by_presente',
+      sql`${tabla.reportedBy} is null or length(btrim(${tabla.reportedBy})) > 0`,
+    ),
+    check('weaning_version_positiva', sql`${tabla.version} >= 1`),
+  ],
+)
+
+/**
+ * Valor anterior de una corrección de destete. Una fila por campo que cambió.
+ * El peso no se corrige aquí: es un peso de Growth y se corrige como tal.
+ */
+export const correccionDeDestete = esquemaHerd.table(
+  'weaning_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    desteteId: uuid('weaning_id')
+      .notNull()
+      .references(() => destete.id, { onDelete: 'restrict' }),
+    campo: text('field').notNull(),
+    valorAnterior: text('previous_value'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('weaning_correction_destete').on(tabla.desteteId, tabla.correctedAt),
+    check(
+      'weaning_correction_campo_valido',
+      sql`${tabla.campo} in ('fecha', 'precision', 'nota', 'reportedBy')`,
+    ),
+    check('weaning_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
   ],
 )

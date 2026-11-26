@@ -41,10 +41,28 @@ El contexto general está en [ranch-context.md](ranch-context.md). Los huecos es
 | BR-COLOSTRUM-001 | Un objetivo operativo futuro es procurar calostro, idealmente dentro de aproximadamente las primeras 6 horas, en un corral de parto. | Es meta de manejo dicha en la entrevista. No es una regla veterinaria que el software deba imponer en esta etapa. |
 | BR-EVID-001 | A largo plazo se quiere distinguir dato declarado y dato observado, y conservar fotografía, tiempo, persona que registra, origen y dato de aparato cuando exista. | Principio de diseño. No es un control que exista hoy. Véase [data-and-evidence.md](data-and-evidence.md). |
 
+## Registro de la cría
+
+Esto es cómo se anota, no una práctica que el rancho haya confirmado. No se sabe si alguien viene a revisar si las vacas están preñadas (`OQ-REPRO-003`).
+
+Los partos de una vaca se leen de quién es la madre en la filiación. No hay otra lista de partos. Si la madre está vista, se dice vista; si está inferida, se dice inferida. Inferida no es vista.
+
+Los días entre un parto y el siguiente, y los días desde el último parto, se calculan al consultar. No se guardan. Un parto sin fecha se enseña y no entra a esa cuenta; se dice que no entra. No hay una meta de días entre partos ni de días abiertos.
+
+Un diagnóstico de preñez es lo que alguien dijo de una hembra, o de varias en la misma anotación: Preñada, Vacía o No sé, con la fecha, quién lo dijo si se sabe, una nota si hace falta, y si se vio al animal (Sí, No o No sé). Nada de eso viene preelegido. Se corrige y lo anterior queda, con quién, cuándo y por qué. Si dice que se vio al animal, ese día cuenta como que se le vio. Si dice que no, o «No sé», no cuenta.
+
+## Destete
+
+Esto es cómo se anota, no una práctica que el rancho haya confirmado. No se sabe a qué edad o en qué temporada se desteta, ni si se pesa al destetar (`OQ-WEAN-001`).
+
+Un destete es lo que alguien dijo de una cría, o de varias en la misma anotación: el día exacto, un día aproximado, o «No sé», con quién lo dijo si se sabe y una nota si hace falta. Nada de eso viene preelegido. Se corrige y lo anterior queda, con quién, cuándo y por qué. Una cría tiene un destete. No la saca del hato y no es una salida.
+
+Si se anota el peso, es un peso como cualquier otro: medido, observado o declarado, y una foto si la hay. La foto no vuelve el peso medido. Los kilos destetados de una vaca —el total y el promedio— se calculan al consultar, solo con las crías que sí tienen peso. Una cría sin peso se dice y no se rellena. Las crías con madre inferida se marcan y se cuentan aparte de las de madre observada. No hay peso ajustado a 205 días ni una meta de kilos.
+
 ## Estado del documento
 
-- Versión: 0.1
+- Versión: 0.3
 - Estado: Descubrimiento
-- Última actualización: 2026-10-03
-- Fuente: Entrevistas iniciales de descubrimiento del rancho
+- Última actualización: 2026-11-26
+- Fuente: Entrevistas iniciales de descubrimiento del rancho. La v0.2 agrega el registro de la cría: cómo se leen los partos y qué es un diagnóstico de preñez, sin cerrar `OQ-REPRO-003`. La v0.3 agrega cómo se anota un destete y cómo se leen los kilos destetados, sin cerrar `OQ-WEAN-001`.
 - Validación: Pendiente de validación iterativa con el propietario del rancho

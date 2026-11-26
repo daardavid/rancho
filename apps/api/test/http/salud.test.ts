@@ -429,4 +429,18 @@ describe('notas de sanidad por HTTP', () => {
     expect(notas.statusCode).toBe(200)
     expect(notas.json<{ notas: unknown[] }>().notas).toEqual([])
   })
+
+  it('Inicio rechaza un día que no existe en el calendario sin que la base reviente', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+
+    // La forma es correcta y el 31 de febrero no existe: 400, no un 500.
+    const respuesta = await app.inject({
+      method: 'GET',
+      url: '/api/read-models/inicio?desde=2026-02-31',
+      headers: cabeceras,
+    })
+    expect(respuesta.statusCode).toBe(400)
+    expect(respuesta.json<{ codigo: string }>().codigo).toBe('cuerpo_invalido')
+  })
 })

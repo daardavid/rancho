@@ -70,8 +70,10 @@ $env:DATABASE_URL = "pega-aqui-la-cadena-de-neon"
 npm run db:migrate -w @rancho/api
 ```
 
-Las fotos no van en el archivo. En el celular no se van a abrir. El disco
-del servicio gratis se borra cuando la app se duerme.
+Las fotos no van en el archivo: ni la del indicador ni la de cada animal.
+En el celular no se van a abrir. El disco del servicio gratis se borra
+cuando la app se duerme. Publicada, la foto no viaja
+([ADR-016](../architecture/adr/ADR-016-publicacion.md)).
 
 `npm run respaldo` lee la laptop (`.datos/`), no Neon. Lo que después se
 anote en el celular no vuelve solo a la laptop.

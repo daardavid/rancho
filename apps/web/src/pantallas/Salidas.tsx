@@ -134,8 +134,9 @@ function FilaDeSalida({
       ganancia="Salió"
       tono="revisar"
       categoria={categoriaVisual(animal.categoria)}
+      miniaturaId={animal.foto?.miniaturaId ?? null}
       alTocar={() => {
-        irA({ nombre: 'ficha', animalId: animal.id })
+        irA({ nombre: 'ficha', animalId: animal.id, desde: 'salidas' })
       }}
     />
   )

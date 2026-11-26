@@ -34,11 +34,39 @@ export function textoDeUltimaObservacion(observacion: {
 
 export function textoDelOrigen(origen: OrigenDeObservacion, fecha: string): string {
   const dia = diaLegible(fecha)
-  if (origen === 'pesaje') {
-    return `en el pesaje del ${dia}`
+  switch (origen) {
+    case 'pesaje':
+      return `en el pesaje del ${dia}`
+    case 'nacimiento':
+      return `en el nacimiento del ${dia}`
+    case 'diagnostico':
+      return `en el diagnóstico de preñez del ${dia}`
+    case 'sanidad':
+      return `en la nota de sanidad del ${dia}`
+    default: {
+      const agotado: never = origen
+      return agotado
+    }
   }
-  if (origen === 'nacimiento') {
-    return `en el nacimiento del ${dia}`
+}
+
+/**
+ * El origen, corto, en la lista «Días sin verse».
+ * Un diagnóstico en el que se vio al animal no es una nota de sanidad.
+ */
+export function eventoDelOrigen(origen: OrigenDeObservacion): string {
+  switch (origen) {
+    case 'pesaje':
+      return 'pesaje'
+    case 'nacimiento':
+      return 'nacimiento'
+    case 'diagnostico':
+      return 'diagnóstico de preñez'
+    case 'sanidad':
+      return 'nota de sanidad'
+    default: {
+      const agotado: never = origen
+      return agotado
+    }
   }
-  return `en la nota de sanidad del ${dia}`
 }

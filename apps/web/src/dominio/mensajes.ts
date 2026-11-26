@@ -152,7 +152,44 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   fuera_del_hato: {
     quePaso: 'Este animal ya salió del hato.',
-    queHacer: 'No se le anota sanidad ni se le cambia el potrero. Si la salida está mal, corrígela en la ficha.',
+    queHacer:
+      'No se le anota sanidad, un diagnóstico ni un potrero nuevo. Si la salida está mal, corrígela en la ficha.',
+  },
+  no_es_hembra: {
+    quePaso: 'Este animal es macho.',
+    queHacer: 'El diagnóstico de preñez es de una hembra. Si el sexo está mal, corrígelo en la ficha.',
+  },
+  diagnostico_ya_existe: {
+    quePaso: 'Este diagnóstico ya se había guardado.',
+    queHacer: 'Vuelve a abrir la ficha para verlo antes de anotar otro.',
+  },
+  diagnostico_vacio: {
+    quePaso: 'No hay ninguna hembra en el diagnóstico.',
+    queHacer: 'Elige al menos una y vuelve a anotar.',
+  },
+  destete_ya_existe: {
+    quePaso: 'Esta cría ya tiene destete anotado.',
+    queHacer: 'Corrígelo en la ficha si el día estaba mal. No se anota otro encima.',
+  },
+  destete_vacio: {
+    quePaso: 'No hay ninguna cría en el destete.',
+    queHacer: 'Elige al menos una y vuelve a anotar.',
+  },
+  fecha_sin_elegir: {
+    quePaso: 'Falta decir qué día se destetó.',
+    queHacer: 'Elige fecha exacta, aproximada o «No sé». Si no lo eliges, no se guarda.',
+  },
+  fecha_incoherente: {
+    quePaso: 'El día del destete no cuadra con lo que se eligió.',
+    queHacer: 'Si es «No sé», deja el día vacío. Si es exacto o aproximado, pon el día.',
+  },
+  peso_sin_fecha: {
+    quePaso: 'Hay un peso y no se sabe qué día se pesó.',
+    queHacer: 'Pon el día del peso, o deja el peso en blanco.',
+  },
+  resultado_invalido: {
+    quePaso: 'El resultado no es uno de los del rancho.',
+    queHacer: 'Elige Preñada, Vacía o No sé.',
   },
   fila_repetida: {
     quePaso: 'Un renglón de la vuelta se repitió.',
@@ -204,11 +241,55 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   foto_no_es_imagen: {
     quePaso: 'Eso no es una foto JPEG, PNG o WebP.',
-    queHacer: 'Toma la foto del indicador con la cámara del celular.',
+    queHacer: 'Elige una foto JPEG, PNG o WebP del celular.',
   },
   foto_demasiado_grande: {
     quePaso: 'La foto pesa más de 25 MB.',
-    queHacer: 'Toma otra más cerca del indicador.',
+    queHacer: 'Elige una más chica.',
+  },
+  tipo_de_bitacora_invalido: {
+    quePaso: 'Falta decir de qué es la nota.',
+    queHacer: 'Elige lluvia, quema o fuego, agua, cerca o instalación, u otro.',
+  },
+  precision_sin_elegir: {
+    quePaso: 'Falta decir si el día es exacto o aproximado.',
+    queHacer: 'Elige uno. Si no lo eliges, no se guarda como exacto.',
+  },
+  potrero_ausente: {
+    quePaso: 'Ese potrero no está en el rancho.',
+    queHacer: 'Elige uno de la lista, o deja la nota sin potrero.',
+  },
+  animal_de_pendiente_ausente: {
+    quePaso: 'Un animal de este pendiente no está en el rancho.',
+    queHacer: 'Elige animales de la lista, o deja el pendiente sin animal.',
+  },
+  grupo_de_uno: {
+    quePaso: 'Un grupo es de dos o más animales.',
+    queHacer: 'Si es uno solo, elige «Un animal».',
+  },
+  estado_sin_cambio: {
+    quePaso: 'El pendiente ya estaba en ese estado.',
+    queHacer: 'No hace falta marcarlo otra vez.',
+  },
+  bitacora_ya_existe: {
+    quePaso: 'Esta nota ya se había guardado.',
+    queHacer: 'Vuelve a abrir la bitácora para verla.',
+  },
+  animal_repetido_en_pendiente: {
+    quePaso: 'Un animal está dos veces en el grupo.',
+    queHacer: 'Déjalo una sola vez.',
+  },
+  pendiente_ya_existe: {
+    quePaso: 'Este pendiente ya se había guardado.',
+    queHacer: 'Vuelve a abrir Pendientes para verlo.',
+  },
+  sujeto_incoherente: {
+    quePaso: 'El pendiente no puede ser de un animal y de un potrero a la vez.',
+    queHacer: 'Elige una sola cosa, o ninguna.',
+  },
+  estado_invalido: {
+    quePaso: 'Ese estado no es de un pendiente.',
+    queHacer: 'Elige pendiente, hecho o ya no aplica.',
   },
   foto_vacia: {
     quePaso: 'La foto llegó vacía.',

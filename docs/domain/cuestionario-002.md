@@ -44,3 +44,5 @@ Cómo usarlo:
 15. ¿Cuál es el modelo exacto del indicador de la báscula IBN ARGON? Una foto de la etiqueta de atrás sirve. (`OQ-SCALE-001`)
 16. ¿En qué partes del rancho hay señal de celular y de qué compañía? (`OQ-CONN-001`)
 17. ¿El toro está siempre con las vacas o entra por temporadas? (`OQ-REPRO-002`)
+18. ¿Viene alguien a revisar si las vacas están preñadas (palpación, ultrasonido)? ¿Cada cuándo? (`OQ-REPRO-003`)
+19. ¿A qué edad o en qué temporada se desteta? ¿Se pesa al destetar? (`OQ-WEAN-001`)

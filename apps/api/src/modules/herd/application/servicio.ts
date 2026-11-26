@@ -6,6 +6,7 @@ import { ConflictoDeIdempotencia, ConflictoDeVersion } from '../../../shared-ker
 import { z } from 'zod'
 
 import { corregirFicha, registrarAnimal, type Animal, type CambiosDeFicha } from '../domain/animal'
+import type { FotoDeIdentificacion } from '../domain/foto'
 import { crearMarca, perderMarca, reemplazarMarca, type Marca } from '../domain/marca'
 import { RechazoDeHerd } from '../domain/errores'
 import { corregirSalida, registrarSalida, type CambiosDeSalida } from '../domain/salida'
@@ -19,6 +20,8 @@ import type {
 } from '../domain/valores'
 import type { RepositorioDeFiliacion } from './repositorio-filiacion'
 import type { RepositorioDeLugar } from './repositorio-lugar'
+import type { RepositorioDePrenez } from './repositorio-prenez'
+import type { RepositorioDeDestete } from './repositorio-destete'
 import type { RepositorioDeSalud } from './repositorio-salud'
 import type { RepositorioDeAnimales } from './repositorio'
 import {
@@ -45,6 +48,8 @@ export type DepsDeHerd = {
   readonly filiacion: RepositorioDeFiliacion
   readonly lugar: RepositorioDeLugar
   readonly salud: RepositorioDeSalud
+  readonly prenez: RepositorioDePrenez
+  readonly destete: RepositorioDeDestete
   readonly idempotencia: AlmacenDeIdempotencia
   readonly evidencia: ConsultaDeEvidencia | null
 }
@@ -196,7 +201,7 @@ export async function registrar(deps: DepsDeHerd, entrada: EntradaRegistrar): Pr
         ...(entrada.nota !== undefined ? { nota: entrada.nota } : {}),
       })
       await deps.animales.insertar(animal)
-      return { ...publicarAnimal(animal, []), correcciones: [], correccionesDeSalida: [] }
+      return { ...publicarAnimal(animal, [], null), correcciones: [], correccionesDeSalida: [] }
     },
   )
 }
@@ -239,14 +244,7 @@ export async function corregir(deps: DepsDeHerd, entrada: EntradaCorregir): Prom
         correctedBy: entrada.recordedBy,
         correctedAt: new Date(),
       })
-      const marcas = await deps.animales.marcasDe(ranchId, [animalId])
-      const correcciones = await deps.animales.correccionesDe(ranchId, animalId)
-      const correccionesDeSalida = await deps.animales.correccionesDeSalida(ranchId, animalId)
-      return {
-        ...publicarAnimal(corregida.animal, marcas),
-        correcciones: correcciones.map(publicarCorreccion),
-        correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
-      }
+      return await fichaDe(deps, corregida.animal)
     },
   )
 }
@@ -531,8 +529,9 @@ export async function obtenerFicha(
   const marcas = await animales.marcasDe(animal.ranchId, [animal.id])
   const correcciones = await animales.correccionesDe(animal.ranchId, animal.id)
   const correccionesDeSalida = await animales.correccionesDeSalida(animal.ranchId, animal.id)
+  const foto = await animales.fotoVigente(animal.ranchId, animal.id)
   return {
-    ...publicarAnimal(animal, marcas),
+    ...publicarAnimal(animal, marcas, foto),
     correcciones: correcciones.map(publicarCorreccion),
     correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
   }
@@ -542,8 +541,9 @@ async function fichaDe(deps: DepsDeHerd, animal: Animal): Promise<FichaConHistor
   const marcas = await deps.animales.marcasDe(animal.ranchId, [animal.id])
   const correcciones = await deps.animales.correccionesDe(animal.ranchId, animal.id)
   const correccionesDeSalida = await deps.animales.correccionesDeSalida(animal.ranchId, animal.id)
+  const foto = await deps.animales.fotoVigente(animal.ranchId, animal.id)
   return {
-    ...publicarAnimal(animal, marcas),
+    ...publicarAnimal(animal, marcas, foto),
     correcciones: correcciones.map(publicarCorreccion),
     correccionesDeSalida: correccionesDeSalida.map(publicarCorreccionDeSalida),
   }
@@ -683,7 +683,19 @@ async function conMarcas(
       grupo.push(marca)
     }
   }
-  return lista.map((animal) => publicarAnimal(animal, grupos.get(animal.id) ?? []))
+  const fotos = await animales.fotosVigentes(
+    ranchId,
+    lista.map((animal) => animal.id),
+  )
+  const porFoto = new Map<string, FotoDeIdentificacion>(
+    fotos.map((foto) => [
+      foto.animalId,
+      { evidenciaId: foto.evidenciaId, miniaturaId: foto.miniaturaId, version: foto.version },
+    ]),
+  )
+  return lista.map((animal) =>
+    publicarAnimal(animal, grupos.get(animal.id) ?? [], porFoto.get(animal.id) ?? null),
+  )
 }
 
 /**

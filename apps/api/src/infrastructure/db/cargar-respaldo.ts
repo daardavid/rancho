@@ -78,7 +78,7 @@ export async function cargarRespaldoEnPostgres(url: string, sqlTexto: string): P
   try {
     await cliente.query('BEGIN')
     await cliente.query(
-      'DROP SCHEMA IF EXISTS herd, growth, identity, evidence, drizzle CASCADE',
+      'DROP SCHEMA IF EXISTS herd, growth, identity, evidence, journal, drizzle CASCADE',
     )
     await cliente.query('DROP TABLE IF EXISTS public.command_idempotency')
     await cliente.query(sqlTexto)

@@ -63,6 +63,7 @@ describe('migración inicial', () => {
       'animal_correction',
       'animal_exit_correction',
       'animal_mark',
+      'animal_photo',
       'health_event',
       'health_event_correction',
       'location_assignment',
@@ -70,6 +71,10 @@ describe('migración inicial', () => {
       'paddock_correction',
       'parentage_correction',
       'parentage_record',
+      'pregnancy_check',
+      'pregnancy_check_correction',
+      'weaning',
+      'weaning_correction',
     ])
     expect(tablasGrowth.map((fila) => fila.table_name).sort()).toEqual([
       'weighing_line',

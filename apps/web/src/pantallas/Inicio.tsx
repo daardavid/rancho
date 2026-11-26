@@ -1,12 +1,20 @@
-import type { AnimalDelInicio, AnimalSinVerse, CambioDelPeriodo, FilaDeCrecimiento } from '@rancho/api-contracts'
+import type {
+  AnimalDelInicio,
+  AnimalSinVerse,
+  CambioDelPeriodo,
+  FilaDeCrecimiento,
+  NotaDelPeriodo,
+  PendienteDelInicio,
+} from '@rancho/api-contracts'
 import { useMemo, useState } from 'react'
 
 import { useResumenDelHato } from '../api/hato'
 import { useInicio } from '../api/inicio'
 import { ordenarCrecimiento } from '../dominio/crecimiento'
+import { textoDePrecision, textoDeTipo } from '../dominio/bitacora'
 import { categoria } from '../dominio/etiquetas'
 import { diaLegible, diaMas, hoyEnElRancho } from '../dominio/fechas'
-import { haceCuantosDias } from '../dominio/observacion'
+import { eventoDelOrigen, haceCuantosDias } from '../dominio/observacion'
 import { lecturaDeCrecimiento } from '../dominio/revision'
 import { rutaAHash } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
@@ -99,7 +107,14 @@ export function Inicio() {
           <p className="inicio__vacio">
             Cuando haya animales, aquí se ve a quién hay que revisar.
           </p>
+          <PendientesDelInicio pendientes={revisar.pendientes} />
         </section>
+        {datos.cambios.notasDeBitacora.length === 0 ? null : (
+          <section className="ficha__seccion" aria-label="Bitácora del periodo">
+            <h2 className="ficha__titulo">Bitácora</h2>
+            <ListaDeBitacora notas={datos.cambios.notasDeBitacora} />
+          </section>
+        )}
       </main>
     )
   }
@@ -150,8 +165,15 @@ export function Inicio() {
         </a>
       </section>
 
+      {hayAnimales ? (
+        <p className="campo__ayuda">
+          <a href={rutaAHash({ nombre: 'vacas' })}>Vacas por último parto</a>
+        </p>
+      ) : null}
+
       <section className="ficha__seccion" aria-label="Para revisar">
         <h2 className="ficha__titulo">Para revisar</h2>
+        <PendientesDelInicio pendientes={revisar.pendientes} />
 
         {hayAnimales ? (
           <>
@@ -245,6 +267,14 @@ export function Inicio() {
             cuenta('Notas', datos.cambios.notasDeSanidad, 'De sanidad'),
           ]}
         />
+        <section aria-label="Bitácora">
+          <h3 className="inicio__grupo">Bitácora</h3>
+          {datos.cambios.notasDeBitacora.length === 0 ? (
+            <p className="inicio__vacio">Ninguna nota en este periodo.</p>
+          ) : (
+            <ListaDeBitacora notas={datos.cambios.notasDeBitacora} />
+          )}
+        </section>
         {datos.cambios.nacimientosSinFecha === 0 ? null : (
           <p className="inicio__vacio">
             {datos.cambios.nacimientosSinFecha === 1
@@ -283,6 +313,16 @@ export function Inicio() {
             )}
           </section>
         </Desplegable>
+        {/*
+          El resumen de la semana se arma con el mismo periodo que se está
+          viendo: se comparte lo de esta pantalla y no otro rango
+          ([INC-007](../../../../docs/product/increments/INC-007-cria-resumen-y-bitacora.md)).
+        */}
+        <p className="inicio__compartir">
+          <a href={rutaAHash({ nombre: 'resumen', desde: datos.desde })}>
+            Compartir resumen
+          </a>
+        </p>
       </section>
 
       <section className="ficha__seccion" aria-label="Activos">
@@ -311,7 +351,6 @@ export function Inicio() {
     </main>
   )
 }
-
 function cuenta(etiqueta: string, cantidad: number, detalle: string): TarjetaDeResumen {
   return {
     etiqueta,
@@ -384,16 +423,59 @@ function Lista({ animales }: { readonly animales: readonly AnimalDelInicio[] }) 
   )
 }
 
+function PendientesDelInicio({
+  pendientes,
+}: {
+  readonly pendientes: readonly PendienteDelInicio[]
+}) {
+  return (
+    <>
+      <h3 className="inicio__grupo">Pendientes</h3>
+      {pendientes.length === 0 ? (
+        <p className="inicio__vacio">Ninguno vencido ni para hoy.</p>
+      ) : (
+        <ul className="inicio__lista">
+          {pendientes.map((pendiente) => (
+            <li key={pendiente.id}>
+              <a
+                href={rutaAHash({ nombre: 'pendientes' })}
+                aria-label={`${pendiente.texto}, ${pendiente.vencido ? 'venció' : 'hoy'} el ${diaLegible(pendiente.fecha)}`}
+              >
+                <span>{pendiente.texto}</span>
+                <span className="inicio__meta">
+                  {pendiente.vencido ? `Venció el ${diaLegible(pendiente.fecha)}` : 'Para hoy'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+function ListaDeBitacora({ notas }: { readonly notas: readonly NotaDelPeriodo[] }) {
+  return (
+    <ul className="inicio__lista">
+      {notas.map((nota) => (
+        <li key={nota.id}>
+          <a href={rutaAHash({ nombre: 'bitacora' })}>
+            <span>
+              {textoDeTipo(nota.tipo)}
+              {nota.precision === 'approximate' ? `, ${textoDePrecision(nota.precision)}` : ''}
+            </span>
+            <span className="inicio__meta">{nota.texto}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function nombreDe(animal: AnimalDelInicio): string {
   return animal.nombre ?? 'Sin nombre o seña'
 }
 
 function detalleDeDias(animal: AnimalSinVerse): string {
-  const evento =
-    animal.origen === 'pesaje'
-      ? 'pesaje'
-      : animal.origen === 'nacimiento'
-        ? 'nacimiento'
-        : 'nota de sanidad'
-  return `${haceCuantosDias(animal.dias)} · ${evento}`
+  return `${haceCuantosDias(animal.dias)} · ${eventoDelOrigen(animal.origen)}`
 }
