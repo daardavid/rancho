@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline'
 import type { Readable, Writable } from 'node:stream'
 
 import { esEntradaDirecta } from '../identity/cli-cuenta'
-import { resolverArchivoDeRestauracion } from '../local/respaldo'
+import { resolverArchivoDeRestauracion } from '../ruta-de-respaldo'
 import {
   CONFIRMACION_DE_CARGA,
   cargarRespaldoEnPostgres,
