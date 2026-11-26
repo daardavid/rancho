@@ -148,7 +148,7 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   visto_sin_elegir: {
     quePaso: 'Falta decir si se vio al animal.',
-    queHacer: 'Elige «Sí se vio» o «No se vio». Si no lo eliges, no se guarda.',
+    queHacer: 'Elige «Sí se vio», «No se vio» o «No sé». Si no lo eliges, no se guarda.',
   },
   fuera_del_hato: {
     quePaso: 'Este animal ya salió del hato.',

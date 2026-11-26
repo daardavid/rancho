@@ -104,7 +104,13 @@ export function App() {
       {ruta.nombre === 'nacimiento' ? <Nacimiento madreId={ruta.madreId} /> : null}
       {ruta.nombre === 'salida' ? <SalidaPorElegir /> : null}
       {ruta.nombre === 'ficha' ? (
-        <Ficha animalId={ruta.animalId} abrirSalida={ruta.abrirSalida === true} />
+        // La clave remonta la ficha al cambiar de animal: los avisos de una
+        // baja, una corrección o una nota son de ese animal y de esta visita.
+        <Ficha
+          key={ruta.animalId}
+          animalId={ruta.animalId}
+          abrirSalida={ruta.abrirSalida === true}
+        />
       ) : null}
       {ruta.nombre === 'pesaje' ? <Pesaje /> : null}
       {ruta.nombre === 'sesion' ? <Sesion sesionId={ruta.sesionId} /> : null}

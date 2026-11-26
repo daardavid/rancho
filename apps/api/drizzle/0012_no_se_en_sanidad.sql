@@ -1,0 +1,1 @@
+ALTER TABLE "herd"."health_event" ALTER COLUMN "saw_animal" DROP NOT NULL;

@@ -18,7 +18,7 @@ export type NotaDeSaludPublica = {
   readonly producto: string | null
   readonly evidenciaId: string | null
   /** La nota dice que el animal se vio. Si es falso, no cuenta como observación. */
-  readonly vioAlAnimal: boolean
+  readonly vioAlAnimal: boolean | null
   readonly version: number
   readonly recordedBy: string
   readonly recordedAt: string

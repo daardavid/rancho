@@ -7,9 +7,10 @@ import { LARGO_MAXIMO_NOMBRE, categoriaSchema, diaSchema } from './animales'
  *
  * Son consultas. La última observación no es una columna de `Animal` y no se
  * corrige aquí: si el dato está mal, se corrige el pesaje o la nota que la
- * produjo, o el nacimiento si la madre quedó en «La vi» y hay fecha. Un hueco,
- * una asignación de lugar, una nota que no dice que el animal se vio y un
- * parto inferido o en «No sé» no son una observación.
+ * produjo, o el nacimiento si la madre quedó en «La vi» y hay fecha: ese día
+ * cuenta para la cría y para la madre. Un hueco, una asignación de lugar, una
+ * nota que no dice que el animal se vio (incluido «No sé») y un parto inferido
+ * o en «No sé» no son una observación.
  *
  * `dias` lo calcula PostgreSQL contra el día del rancho. No hay un umbral de
  * «lleva mucho sin verse»: la lista trae a todos los que tienen observación,

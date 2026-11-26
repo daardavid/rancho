@@ -11,6 +11,7 @@ import {
 import { mensajeDeError } from '../dominio/mensajes'
 import { irA } from '../ruta'
 import { AvisoDeError } from '../ui/Avisos'
+import { useEnfocarAviso } from '../ui/enfocar'
 import { BarraDeAccion } from '../ui/BarraDeAccion'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeTexto } from '../ui/Campos'
@@ -102,6 +103,8 @@ export function Alta() {
    * vez de crear otro.
    */
   const envio = useRef<Envio | null>(null)
+  const formulario = useRef<HTMLFormElement>(null)
+  useEnfocarAviso(formulario, registrar.isError || (registrar.isSuccess && ponerArete.isError))
 
   /**
    * El comando del arete, con la huella de su contenido.
@@ -278,6 +281,7 @@ export function Alta() {
       />
 
       <form
+        ref={formulario}
         className="formulario alta"
         onSubmit={(evento) => {
           evento.preventDefault()

@@ -426,8 +426,9 @@ export const asignacionDeLugar = esquemaHerd.table(
  *
  * No hay calendario, dosis, retiro ni veterinario: eso no está aceptado
  * (`OQ-HEALTH-001`, [domain-boundaries](../../../../../../docs/architecture/domain-boundaries.md),
- * «Health, inside Herd»). `saw_animal` es explícito y por omisión falso: una
- * nota no es un avistamiento salvo que lo diga.
+ * «Health, inside Herd»). `saw_animal` es explícito: `true` se vio, `false` no
+ * se vio y `null` es «No sé». No hay omisión ni valor por defecto. Una nota
+ * no es un avistamiento salvo que diga que sí se vio.
  *
  * `evidence_id` es el id de `evidence.file`, sin llave foránea: Herd no escribe
  * esa tabla y no guarda una ruta.
@@ -445,7 +446,7 @@ export const notaDeSalud = esquemaHerd.table(
     fecha: date('occurred_on', { mode: 'string' }).notNull(),
     producto: text('product'),
     evidenciaId: uuid('evidence_id'),
-    vioAlAnimal: boolean('saw_animal').notNull(),
+    vioAlAnimal: boolean('saw_animal'),
     version: integer('version').notNull(),
     recordedBy: text('recorded_by').notNull(),
     recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),

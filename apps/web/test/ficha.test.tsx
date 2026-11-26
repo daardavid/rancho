@@ -290,6 +290,70 @@ describe('Ficha: salida', () => {
     expect(screen.getByText(/La salida anterior quedó en la historia/)).toBeDefined()
     expect(screen.queryByText(/Salida guardada/)).toBeNull()
   })
+
+  it('dar de baja no dice que otro animal volvió, y deshacer la del mismo sí', async () => {
+    const otro = '44444444-4444-4444-8444-444444444444'
+    const usuario = userEvent.setup()
+    let activo = true
+    const activa = fichaDeAnimal({ nombre: 'Prueba 5', activo: true, version: 1 })
+    const inactiva = fichaDeAnimal({
+      nombre: 'Prueba 5',
+      activo: false,
+      version: 2,
+      salida: { motivo: 'sale', fecha: '2026-11-25', nota: null, evidenciaId: null },
+    })
+    const otra = fichaDeAnimal({ id: otro, nombre: 'Prueba 3', activo: true })
+
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: activo ? activa : inactiva }),
+      [`GET /api/animals/${otro}`]: () => ({ estado: 200, cuerpo: otra }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, activo },
+      }),
+      [`GET /api/read-models/animal-growth/${otro}`]: () => ({
+        estado: 200,
+        cuerpo: { ...VISTA_VACIA, animalId: otro, nombre: 'Prueba 3' },
+      }),
+      [`POST /api/animals/${ANIMAL}/exit`]: () => {
+        activo = false
+        return { estado: 200, cuerpo: inactiva }
+      },
+      [`POST /api/animals/${ANIMAL}/exit/corrections`]: () => {
+        activo = true
+        return {
+          estado: 200,
+          cuerpo: fichaDeAnimal({
+            nombre: 'Prueba 5',
+            activo: true,
+            version: 3,
+            salida: null,
+          }),
+        }
+      },
+    })
+
+    pintarApp(`#/animal/${ANIMAL}`)
+    await usuario.click(await screen.findByRole('button', { name: 'Dar de baja' }))
+    await usuario.click(screen.getByRole('button', { name: 'Dar de baja' }))
+
+    expect(await screen.findByText(/Salida guardada/)).toBeDefined()
+    expect(screen.queryByText(/volvió al hato/)).toBeNull()
+
+    window.location.hash = `#/animal/${otro}`
+    expect(await screen.findByRole('heading', { name: 'Prueba 3' })).toBeDefined()
+    expect(screen.queryByText(/volvió al hato/)).toBeNull()
+    expect(screen.queryByText(/Salida guardada/)).toBeNull()
+
+    window.location.hash = `#/animal/${ANIMAL}`
+    await usuario.click(await screen.findByRole('button', { name: 'Corregir la salida' }))
+    await usuario.click(screen.getByRole('button', { name: 'Volver a dejarlo activo' }))
+    await usuario.type(screen.getByLabelText('¿Por qué se corrige?'), 'se había equivocado')
+    await usuario.click(screen.getByRole('button', { name: 'Volver al hato' }))
+
+    expect(await screen.findByText(/volvió al hato activo/)).toBeDefined()
+  })
 })
 
 describe('Ficha: última observación', () => {

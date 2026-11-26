@@ -52,9 +52,10 @@ export function useUltimaSesion(opciones: { readonly habilitada?: boolean } = {}
  * Todos los pesos del rancho, para comparar una captura contra la fecha del
  * borrador y no contra la última vuelta.
  */
-export function usePesosConocidos() {
+export function usePesosConocidos(opciones: { readonly habilitada?: boolean } = {}) {
   return useQuery({
     queryKey: LLAVE_DE_PESOS_CONOCIDOS,
+    enabled: opciones.habilitada ?? true,
     queryFn: () => pedir(pesosConocidosSchema, '/api/read-models/known-weights'),
   })
 }

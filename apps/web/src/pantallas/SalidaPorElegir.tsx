@@ -1,8 +1,10 @@
+import type { FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useMemo, useState } from 'react'
 
-import { useHato } from '../api/hato'
+import { useHato, useResumenDelHato } from '../api/hato'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
 import { categoria, tipoDeMarca } from '../dominio/etiquetas'
+import { kilosLegibles } from '../dominio/fechas'
 import { irA } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
 import { Encabezado } from '../ui/Encabezado'
@@ -21,7 +23,16 @@ import { IconoBuscar } from '../ui/iconos'
  */
 export function SalidaPorElegir() {
   const hato = useHato()
+  const resumen = useResumenDelHato()
   const [busqueda, setBusqueda] = useState('')
+
+  const porAnimal = useMemo(() => {
+    const mapa = new Map<string, FilaDeCrecimiento>()
+    for (const fila of resumen.data?.animales ?? []) {
+      mapa.set(fila.animalId, fila)
+    }
+    return mapa
+  }, [resumen.data])
 
   const animales = useMemo(() => hato.data?.animales ?? [], [hato.data])
   const visibles = useMemo(() => {
@@ -90,6 +101,13 @@ export function SalidaPorElegir() {
             />
           </div>
 
+          {resumen.isError ? (
+            <p className="campo__ayuda hato__sin-peso" role="status">
+              No se pudo traer el último peso. La lista sigue; vuelve a abrir la pantalla para
+              intentarlo otra vez.
+            </p>
+          ) : null}
+
           {visibles.length === 0 ? (
             <section className="vacio">
               <h2 className="vacio__titulo">Ningún animal coincide</h2>
@@ -99,6 +117,7 @@ export function SalidaPorElegir() {
             <ul className="hato__lista">
               {visibles.map((animal) => {
                 const arete = areteVigente(animal)
+                const ultimo = porAnimal.get(animal.id)?.ultimoPeso ?? null
                 return (
                   <li key={animal.id}>
                     <FilaDeAnimal
@@ -106,7 +125,7 @@ export function SalidaPorElegir() {
                       detalle={`${categoria(animal.categoria)} · ${
                         arete === null ? 'sin arete' : `${tipoDeMarca(arete.tipo)} ${arete.valor}`
                       }`}
-                      peso="—"
+                      peso={ultimo === null ? '—' : kilosLegibles(ultimo.kilos)}
                       ganancia="Dar de baja"
                       tono="sinDatos"
                       categoria={categoriaVisual(animal.categoria)}

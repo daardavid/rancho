@@ -6,6 +6,7 @@ import { diaLegible, hoyEnElRancho, instanteLegible } from '../dominio/fechas'
 import { TIPOS_DE_NOTA, campoDeNota, opcionesElegibles, tipoDeNota } from '../dominio/etiquetas'
 import { esConflictoDeVersion } from '../dominio/mensajes'
 import { AvisoDeError } from '../ui/Avisos'
+import { useEnfocarAviso } from '../ui/enfocar'
 import { BotonPrincipal, BotonSecundario } from '../ui/Botones'
 import { CampoDeArea, CampoDeFecha, CampoDeTexto } from '../ui/Campos'
 import { Desplegable } from '../ui/Desplegable'
@@ -14,6 +15,45 @@ import { Mosaicos } from '../ui/Mosaicos'
 import { Segmentado } from '../ui/Segmentado'
 
 const TIPOS = opcionesElegibles(TIPOS_DE_NOTA)
+const VISTO = [
+  { valor: 'si', texto: 'Sí se vio' },
+  { valor: 'no', texto: 'No se vio' },
+  { valor: 'no_se', texto: 'No sé' },
+]
+
+/** `undefined` es «todavía no elige». `null` es «No sé», que sí se guarda. */
+function vistoDelFormulario(valor: string): boolean | null | undefined {
+  if (valor === 'si') {
+    return true
+  }
+  if (valor === 'no') {
+    return false
+  }
+  if (valor === 'no_se') {
+    return null
+  }
+  return undefined
+}
+
+function valorDeVisto(visto: boolean | null): string {
+  if (visto === true) {
+    return 'si'
+  }
+  if (visto === false) {
+    return 'no'
+  }
+  return 'no_se'
+}
+
+function fraseDeVisto(visto: boolean | null): string {
+  if (visto === true) {
+    return 'La nota dice que se vio al animal.'
+  }
+  if (visto === false) {
+    return 'La nota no dice que se viera al animal.'
+  }
+  return 'No se sabe si se vio al animal.'
+}
 /** El mismo tope que el contrato: el producto es un nombre, no un cuaderno. */
 const LARGO_DEL_PRODUCTO = 200
 /** Lo mismo que la nota de la ficha: un ancho de campo, no una regla del rancho. */
@@ -29,8 +69,8 @@ const LARGO_DEL_DETALLE = 2000
  * (`OQ-HEALTH-001`): esos campos no existen aquí.
  *
  * Ni el tipo ni «¿Se vio al animal?» vienen marcados. Si no se eligen, no se
- * guarda: la pantalla no decide «Vacuna» ni «No se vio». El modelo solo admite
- * sí o no para el visto; «No sé» se propone aparte y aquí hay que elegir.
+ * guarda: la pantalla no decide «Vacuna» ni «No se vio». «No sé» es una
+ * respuesta y no cuenta como observación.
  *
  * El `commandId` y los `notaId` se conservan entre intentos mientras el
  * contenido no cambie: si se cae la red después de que la API guardó, el
@@ -57,15 +97,25 @@ export function FormularioDeSanidad({
   const [subiendo, setSubiendo] = useState(false)
   const anotar = useAnotarSalud()
   const pendiente = useRef<{ contenido: string; cuerpo: AnotarSalud } | null>(null)
+  const seccion = useRef<HTMLElement>(null)
+  useEnfocarAviso(seccion, anotar.isError)
 
   const tipoElegido = tipoDeNotaElegido(tipo)
   const faltaDetalle = detalle.trim() === ''
   const faltaTipo = tipoElegido === null
-  const faltaVisto = vioAlAnimal !== 'si' && vioAlAnimal !== 'no'
+  const visto = vistoDelFormulario(vioAlAnimal)
+  const faltaVisto = visto === undefined
   const sinAnimales = animales.length === 0
 
   const guardar = (): void => {
-    if (faltaDetalle || faltaTipo || faltaVisto || sinAnimales || anotar.isPending || subiendo) {
+    if (
+      faltaDetalle ||
+      faltaTipo ||
+      visto === undefined ||
+      sinAnimales ||
+      anotar.isPending ||
+      subiendo
+    ) {
       return
     }
     if (tipoElegido === null) {
@@ -81,7 +131,7 @@ export function FormularioDeSanidad({
       fecha,
       producto: conProducto === '' ? null : conProducto,
       evidenciaId,
-      vioAlAnimal: vioAlAnimal === 'si',
+      vioAlAnimal: visto,
       animales: [...animales].sort(),
     })
     if (pendiente.current === null || pendiente.current.contenido !== contenido) {
@@ -94,7 +144,7 @@ export function FormularioDeSanidad({
           fecha,
           ...(conProducto === '' ? {} : { producto: conProducto }),
           ...(evidenciaId === null ? {} : { evidenciaId }),
-          vioAlAnimal: vioAlAnimal === 'si',
+          vioAlAnimal: visto,
           animales: animales.map((animalId) => ({ animalId, notaId: crypto.randomUUID() })),
         },
       }
@@ -109,7 +159,7 @@ export function FormularioDeSanidad({
   }
 
   return (
-    <section className="mover">
+    <section className="mover" ref={seccion}>
       <h2 className="ficha__titulo">Anotar sanidad · {nombreDelGrupo}</h2>
       <p className="campo__ayuda">
         Se anota qué se hizo o se vio, el día y el producto si se sabe. No es un calendario ni
@@ -131,16 +181,13 @@ export function FormularioDeSanidad({
 
       <Segmentado
         etiqueta="¿Se vio al animal?"
-        opciones={[
-          { valor: 'si', texto: 'Sí se vio' },
-          { valor: 'no', texto: 'No se vio' },
-        ]}
+        opciones={VISTO}
         valor={vioAlAnimal}
         alElegir={setVioAlAnimal}
       />
       <p className="campo__ayuda">
-        Solo si se le vio se cuenta como que se le vio ese día. Una nota no cambia su último
-        pesaje.
+        Solo «Sí se vio» cuenta como que se le vio ese día. «No sé» no cuenta. Una nota no cambia
+        su último pesaje.
       </p>
 
       <Desplegable titulo="Más datos" resumen="producto y foto">
@@ -226,11 +273,7 @@ export function SanidadDelAnimal({
                 {diaLegible(nota.fecha)}
                 {nota.producto === null ? '' : ` · ${nota.producto}`}
               </p>
-              <p className="campo__ayuda">
-                {nota.vioAlAnimal
-                  ? 'La nota dice que se vio al animal.'
-                  : 'La nota no dice que se viera al animal.'}
-              </p>
+              <p className="campo__ayuda">{fraseDeVisto(nota.vioAlAnimal)}</p>
               <FotoVisible evidenciaId={nota.evidenciaId} alt="Foto de la nota de sanidad" />
               {corrigiendo === nota.id ? (
                 <CorreccionDeNota
@@ -296,10 +339,12 @@ function CorreccionDeNota({
   const [fecha, setFecha] = useState(nota.fecha)
   const [producto, setProducto] = useState(nota.producto ?? '')
   const [evidenciaId, setEvidenciaId] = useState<string | null>(nota.evidenciaId)
-  const [vioAlAnimal, setVioAlAnimal] = useState(nota.vioAlAnimal ? 'si' : 'no')
+  const [vioAlAnimal, setVioAlAnimal] = useState(valorDeVisto(nota.vioAlAnimal))
   const [motivo, setMotivo] = useState('')
   const [subiendo, setSubiendo] = useState(false)
   const corregir = useCorregirNotaDeSalud(nota.id, nota.animalId)
+  const formulario = useRef<HTMLFormElement>(null)
+  useEnfocarAviso(formulario, corregir.isError)
   const pendiente = useRef<{ contenido: string; cuerpo: Parameters<typeof corregir.mutate>[0] } | null>(
     null,
   )
@@ -324,7 +369,7 @@ function CorreccionDeNota({
       fecha,
       producto: conProducto === '' ? null : conProducto,
       evidenciaId,
-      vioAlAnimal: vioAlAnimal === 'si',
+      vioAlAnimal: vistoDelFormulario(vioAlAnimal) ?? null,
     }
     const contenido = JSON.stringify(capturado)
     if (pendiente.current === null || pendiente.current.contenido !== contenido) {
@@ -353,6 +398,7 @@ function CorreccionDeNota({
 
   return (
     <form
+      ref={formulario}
       className="formulario"
       onSubmit={(evento) => {
         evento.preventDefault()
@@ -369,10 +415,7 @@ function CorreccionDeNota({
       <CampoDeFecha etiqueta="¿Cuándo?" valor={fecha} alCambiar={setFecha} />
       <Segmentado
         etiqueta="¿Se vio al animal?"
-        opciones={[
-          { valor: 'no', texto: 'No se vio' },
-          { valor: 'si', texto: 'Sí se vio' },
-        ]}
+        opciones={VISTO}
         valor={vioAlAnimal}
         alElegir={setVioAlAnimal}
       />
@@ -423,7 +466,13 @@ function textoAnterior(correccion: NotaConHistoria['correcciones'][number]): str
     return diaLegible(correccion.valorAnterior)
   }
   if (correccion.campo === 'vioAlAnimal') {
-    return correccion.valorAnterior === 'si' ? 'sí se vio' : 'no se vio'
+    if (correccion.valorAnterior === 'si') {
+      return 'sí se vio'
+    }
+    if (correccion.valorAnterior === 'no_se') {
+      return 'no sé'
+    }
+    return 'no se vio'
   }
   if (correccion.campo === 'evidencia') {
     return 'tenía una foto'

@@ -337,34 +337,18 @@ test('Potreros abre arriba y el botón flotante no tapa la lista', async ({ page
     expect(ultima.y + ultima.height).toBeLessThanOrEqual(flotante.y)
   }
 
-  // Y lo mismo con el panel de «Mover a…» abierto: su último botón tampoco
-  // queda debajo del flotante.
+  // Al elegir animales el flotante se va: no puede tapar «Cancelar» ni «Sí se vio».
   await page.getByRole('button', { name: 'Mover animales a un potrero' }).click()
-  await page.evaluate(() => {
-    window.scrollTo(0, document.body.scrollHeight)
-  })
-  const flotanteEnMover = await page.getByRole('link', { name: 'Registrar pesaje' }).boundingBox()
-  const cancelar = await page.getByRole('button', { name: 'Cancelar' }).boundingBox()
-  expect(flotanteEnMover).not.toBeNull()
-  expect(cancelar).not.toBeNull()
-  if (flotanteEnMover !== null && cancelar !== null) {
-    expect(cancelar.y + cancelar.height).toBeLessThanOrEqual(flotanteEnMover.y)
-  }
+  await expect(page.getByRole('link', { name: 'Registrar pesaje' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible()
 
-  // Y con el panel de sanidad, que es el otro que se abre desde el hato.
   await page.getByRole('button', { name: 'Cancelar' }).click()
+  await expect(page.getByRole('link', { name: 'Registrar pesaje' })).toBeVisible()
   await page.getByRole('button', { name: 'Anotar sanidad a varios animales' }).click()
+  await expect(page.getByRole('link', { name: 'Registrar pesaje' })).toHaveCount(0)
   await page.getByRole('checkbox', { name: /Elegir a Arriba/ }).first().check()
-  await page.evaluate(() => {
-    window.scrollTo(0, document.body.scrollHeight)
-  })
-  const flotanteEnSanidad = await page.getByRole('link', { name: 'Registrar pesaje' }).boundingBox()
-  const cancelarSanidad = await page.getByRole('button', { name: 'Cancelar' }).boundingBox()
-  expect(flotanteEnSanidad).not.toBeNull()
-  expect(cancelarSanidad).not.toBeNull()
-  if (flotanteEnSanidad !== null && cancelarSanidad !== null) {
-    expect(cancelarSanidad.y + cancelarSanidad.height).toBeLessThanOrEqual(flotanteEnSanidad.y)
-  }
+  await expect(page.getByRole('radio', { name: 'Sí se vio' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible()
 })
 
 test('al abrir el formulario de potrero nuevo, la tarjeta de «Empieza con un potrero» se va', async ({
