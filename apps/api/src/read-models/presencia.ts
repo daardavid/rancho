@@ -290,6 +290,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
               SELECT weighed_on::text AS fecha
               FROM growth.weighing_session
               WHERE ranch_id = ${ranchId}
+                AND kind = 'vuelta'
               ORDER BY weighed_on DESC, recorded_at DESC, id DESC
               LIMIT 1
             `),
@@ -300,6 +301,7 @@ export function crearModelosDePresencia(db: EjecutorSql): ModelosDePresencia {
                 SELECT id
                 FROM growth.weighing_session
                 WHERE ranch_id = ${ranchId}
+                  AND kind = 'vuelta'
                 ORDER BY weighed_on DESC, recorded_at DESC, id DESC
                 LIMIT 1
               )

@@ -36,6 +36,19 @@ function conConsultas(nodo: ReactNode) {
   return <QueryClientProvider client={cliente}>{nodo}</QueryClientProvider>
 }
 
+describe('foto del animal', () => {
+  it('el control es un botón y el archivo no se ve como el selector del navegador', () => {
+    const sinFoto: Animal = { ...ANIMAL, foto: null }
+    const vista = render(conConsultas(<FotoDelAnimal animal={sinFoto} />))
+
+    expect(screen.getByRole('button', { name: 'Agregar foto' })).toBeDefined()
+    const archivo = vista.container.querySelector('input[type="file"]')
+    expect(archivo).toBeInstanceOf(HTMLInputElement)
+    expect(archivo?.className).toContain('ui-sr')
+    expect(archivo?.className).not.toContain('campo__entrada')
+  })
+})
+
 describe('foto del animal cuando el archivo no está', () => {
   it('en la ficha dice que la foto se registró pero no se encuentra', () => {
     const vista = render(conConsultas(<FotoDelAnimal animal={ANIMAL} />))

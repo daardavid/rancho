@@ -34,10 +34,19 @@ export type FilaHueco = {
 
 export type FilaDeSesion = FilaPesada | FilaHueco
 
+/**
+ * Una vuelta es el paso del hato por la báscula. Un peso suelto es un peso
+ * tomado en otro momento —hoy, el del destete—. Sigue siendo un peso del
+ * animal, con su calidad, y no reemplaza a la última vuelta.
+ */
+export const CLASES_DE_SESION = ['vuelta', 'suelto'] as const
+export type ClaseDeSesion = (typeof CLASES_DE_SESION)[number]
+
 export type SesionDePesaje = {
   readonly id: string
   readonly ranchId: RanchId
   readonly fecha: string
+  readonly clase: ClaseDeSesion
   readonly nota: string | null
   readonly reportedBy: ReportedBy | null
   readonly recordedBy: RecordedBy
@@ -70,6 +79,8 @@ export type EntradaDeSesion = {
   readonly recordedBy: RecordedBy
   readonly recordedAt: Date
   readonly commandId: string
+  /** Si no se dice, es una vuelta: así se captura en Pesaje. */
+  readonly clase?: ClaseDeSesion
   readonly filas: readonly EntradaDeFila[]
 }
 
@@ -109,6 +120,7 @@ export function registrarSesion(entrada: EntradaDeSesion): SesionDePesaje {
     id: entrada.id,
     ranchId: entrada.ranchId,
     fecha,
+    clase: entrada.clase ?? 'vuelta',
     nota: textoOpcional(entrada.nota, LARGO_MAXIMO_NOTA),
     reportedBy: quienReporto(entrada.reportedBy),
     recordedBy: entrada.recordedBy,

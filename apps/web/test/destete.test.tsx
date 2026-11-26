@@ -230,6 +230,7 @@ describe('Destete en la ficha', () => {
 
     await usuario.click(await screen.findByRole('button', { name: 'Anotar destete' }))
     const guardar = screen.getByRole('button', { name: 'Guardar destete' })
+    expect(guardar.parentElement?.className).toContain('formulario__acciones')
     expect((guardar as HTMLButtonElement).disabled).toBe(true)
 
     await usuario.click(screen.getByRole('radio', { name: 'Fecha exacta' }))

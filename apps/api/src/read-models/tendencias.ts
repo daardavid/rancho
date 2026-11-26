@@ -11,7 +11,8 @@ import type { SourceQuality } from '../shared-kernel/source-quality'
  * Consulta `herd` y `growth` y no escribe nada. No hay tabla de lo derivado.
  * La ganancia media de cada vuelta usa la misma cuenta que Crecimiento: pares
  * de pesos consecutivos del mismo animal, kilos por día en `numeric`, y la
- * media solo de quienes tienen par. Un intervalo de cero días no entra. Un
+ * media solo de quienes tienen par. Un peso suelto entra en el par —es un peso
+ * del animal— y no cuenta como vuelta. Un intervalo de cero días no entra. Un
  * hueco no es un peso y no se convierte en punto.
  *
  * Los kilos salen como texto. El mes de un nacimiento o una salida sale de su
@@ -228,6 +229,7 @@ function sqlDeVueltas(ranchId: RanchId) {
     FROM growth.weighing_session sesion
     LEFT JOIN por_dia ON por_dia.sesion_id = sesion.id
     WHERE sesion.ranch_id = ${ranchId}
+      AND sesion.kind = 'vuelta'
     GROUP BY sesion.id, sesion.weighed_on, sesion.recorded_at
     ORDER BY sesion.weighed_on, sesion.recorded_at, sesion.id
   `
