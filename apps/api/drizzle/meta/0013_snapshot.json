@@ -1,0 +1,2759 @@
+{
+  "id": "e4e20e45-68e9-4535-9a52-18d27ec19418",
+  "prevId": "3eb6fa10-47c3-4b49-8314-c4d985a3e4ba",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "identity.account": {
+      "name": "account",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usuario": {
+          "name": "usuario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_usuario_unique": {
+          "name": "account_usuario_unique",
+          "columns": [
+            {
+              "expression": "usuario",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_ranch_id_ranch_id_fk": {
+          "name": "account_ranch_id_ranch_id_fk",
+          "tableFrom": "account",
+          "tableTo": "ranch",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "ranch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "account_rol_valido": {
+          "name": "account_rol_valido",
+          "value": "\"identity\".\"account\".\"rol\" in ('owner', 'support')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "identity.login_attempt": {
+      "name": "login_attempt",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "usuario": {
+          "name": "usuario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direccion": {
+          "name": "direccion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "login_attempt_usuario_direccion_ocurrido": {
+          "name": "login_attempt_usuario_direccion_ocurrido",
+          "columns": [
+            {
+              "expression": "usuario",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "direccion",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "login_attempt_direccion_ocurrido": {
+          "name": "login_attempt_direccion_ocurrido",
+          "columns": [
+            {
+              "expression": "direccion",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.ranch": {
+      "name": "ranch",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.command_idempotency": {
+      "name": "command_idempotency",
+      "schema": "",
+      "columns": {
+        "command_id": {
+          "name": "command_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "identity.session": {
+      "name": "session",
+      "schema": "identity",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_token_hash_unique": {
+          "name": "session_token_hash_unique",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_account_id_account_id_fk": {
+          "name": "session_account_id_account_id_fk",
+          "tableFrom": "session",
+          "tableTo": "account",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "session_ranch_id_ranch_id_fk": {
+          "name": "session_ranch_id_ranch_id_fk",
+          "tableFrom": "session",
+          "tableTo": "ranch",
+          "schemaTo": "identity",
+          "columnsFrom": [
+            "ranch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "session_rol_valido": {
+          "name": "session_rol_valido",
+          "value": "\"identity\".\"session\".\"rol\" in ('owner', 'support')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "evidence.file": {
+      "name": "file",
+      "schema": "evidence",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byte_size": {
+          "name": "byte_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_filename": {
+          "name": "original_filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "evidence_file_clave": {
+          "name": "evidence_file_clave",
+          "columns": [
+            {
+              "expression": "storage_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "evidence_file_ranch": {
+          "name": "evidence_file_ranch",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "evidence_file_clave_forma": {
+          "name": "evidence_file_clave_forma",
+          "value": "\"evidence\".\"file\".\"storage_key\" = (\"evidence\".\"file\".\"ranch_id\")::text || '/' || (\"evidence\".\"file\".\"id\")::text"
+        },
+        "evidence_file_tipo_imagen": {
+          "name": "evidence_file_tipo_imagen",
+          "value": "\"evidence\".\"file\".\"content_type\" in ('image/jpeg', 'image/png', 'image/webp')"
+        },
+        "evidence_file_tamano": {
+          "name": "evidence_file_tamano",
+          "value": "\"evidence\".\"file\".\"byte_size\" > 0 and \"evidence\".\"file\".\"byte_size\" <= 26214400"
+        },
+        "evidence_file_sha": {
+          "name": "evidence_file_sha",
+          "value": "\"evidence\".\"file\".\"sha256\" ~ '^[0-9a-f]{64}$'"
+        },
+        "evidence_file_nombre": {
+          "name": "evidence_file_nombre",
+          "value": "\"evidence\".\"file\".\"original_filename\" is null or length(btrim(\"evidence\".\"file\".\"original_filename\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal": {
+      "name": "animal",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sex": {
+          "name": "sex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_detail": {
+          "name": "category_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tenure": {
+          "name": "tenure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "economic_participation": {
+          "name": "economic_participation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arrangement_note": {
+          "name": "arrangement_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exit_reason": {
+          "name": "exit_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exit_known_on": {
+          "name": "exit_known_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exit_note": {
+          "name": "exit_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exit_evidence_id": {
+          "name": "exit_evidence_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_ranch_activo": {
+          "name": "animal_ranch_activo",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_sexo_valido": {
+          "name": "animal_sexo_valido",
+          "value": "\"herd\".\"animal\".\"sex\" in ('female', 'male', 'unknown')"
+        },
+        "animal_categoria_valida": {
+          "name": "animal_categoria_valida",
+          "value": "\"herd\".\"animal\".\"category\" in ('calf', 'cow', 'bull', 'other', 'unknown')"
+        },
+        "animal_tenencia_valida": {
+          "name": "animal_tenencia_valida",
+          "value": "\"herd\".\"animal\".\"tenure\" in ('ranch', 'a_la_parte', 'third_party', 'unknown')"
+        },
+        "animal_participacion_valida": {
+          "name": "animal_participacion_valida",
+          "value": "\"herd\".\"animal\".\"economic_participation\" in ('known', 'partially_known', 'unknown')"
+        },
+        "animal_detalle_solo_en_other": {
+          "name": "animal_detalle_solo_en_other",
+          "value": "\"herd\".\"animal\".\"category_detail\" is null or \"herd\".\"animal\".\"category\" = 'other'"
+        },
+        "animal_detalle_presente": {
+          "name": "animal_detalle_presente",
+          "value": "\"herd\".\"animal\".\"category_detail\" is null or length(btrim(\"herd\".\"animal\".\"category_detail\")) > 0"
+        },
+        "animal_version_positiva": {
+          "name": "animal_version_positiva",
+          "value": "\"herd\".\"animal\".\"version\" >= 1"
+        },
+        "animal_nombre_presente": {
+          "name": "animal_nombre_presente",
+          "value": "\"herd\".\"animal\".\"name\" is null or length(btrim(\"herd\".\"animal\".\"name\")) > 0"
+        },
+        "animal_nota_arreglo_presente": {
+          "name": "animal_nota_arreglo_presente",
+          "value": "\"herd\".\"animal\".\"arrangement_note\" is null or length(btrim(\"herd\".\"animal\".\"arrangement_note\")) > 0"
+        },
+        "animal_nota_presente": {
+          "name": "animal_nota_presente",
+          "value": "\"herd\".\"animal\".\"note\" is null or length(btrim(\"herd\".\"animal\".\"note\")) > 0"
+        },
+        "animal_motivo_salida": {
+          "name": "animal_motivo_salida",
+          "value": "\"herd\".\"animal\".\"exit_reason\" is null or \"herd\".\"animal\".\"exit_reason\" in ('sale', 'death', 'confirmed_missing', 'other', 'unknown')"
+        },
+        "animal_nota_salida_presente": {
+          "name": "animal_nota_salida_presente",
+          "value": "\"herd\".\"animal\".\"exit_note\" is null or length(btrim(\"herd\".\"animal\".\"exit_note\")) > 0"
+        },
+        "animal_salida_coherente": {
+          "name": "animal_salida_coherente",
+          "value": "(\n        \"herd\".\"animal\".\"active\" = true\n        and \"herd\".\"animal\".\"exit_reason\" is null\n        and \"herd\".\"animal\".\"exit_known_on\" is null\n        and \"herd\".\"animal\".\"exit_note\" is null\n        and \"herd\".\"animal\".\"exit_evidence_id\" is null\n      ) or (\n        \"herd\".\"animal\".\"active\" = false\n        and \"herd\".\"animal\".\"exit_reason\" is not null\n        and \"herd\".\"animal\".\"exit_known_on\" is not null\n      )"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.location_assignment": {
+      "name": "location_assignment",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paddock_id": {
+          "name": "paddock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reported_by": {
+          "name": "reported_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "location_assignment_animal": {
+          "name": "location_assignment_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "valid_from",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "location_assignment_ranch_potrero": {
+          "name": "location_assignment_ranch_potrero",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "paddock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "location_assignment_animal_id_animal_id_fk": {
+          "name": "location_assignment_animal_id_animal_id_fk",
+          "tableFrom": "location_assignment",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "location_assignment_paddock_id_paddock_id_fk": {
+          "name": "location_assignment_paddock_id_paddock_id_fk",
+          "tableFrom": "location_assignment",
+          "tableTo": "paddock",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "paddock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "location_assignment_nota_presente": {
+          "name": "location_assignment_nota_presente",
+          "value": "\"herd\".\"location_assignment\".\"note\" is null or length(btrim(\"herd\".\"location_assignment\".\"note\")) > 0"
+        },
+        "location_assignment_reported_presente": {
+          "name": "location_assignment_reported_presente",
+          "value": "\"herd\".\"location_assignment\".\"reported_by\" is null or length(btrim(\"herd\".\"location_assignment\".\"reported_by\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal_correction": {
+      "name": "animal_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_correction_animal": {
+          "name": "animal_correction_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "animal_correction_animal_id_animal_id_fk": {
+          "name": "animal_correction_animal_id_animal_id_fk",
+          "tableFrom": "animal_correction",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_correction_campo_valido": {
+          "name": "animal_correction_campo_valido",
+          "value": "\"herd\".\"animal_correction\".\"field\" in ('nombre', 'sexo', 'categoria', 'detalleCategoria', 'tenencia', 'participacionEconomica', 'notaDelArreglo', 'nota')"
+        },
+        "animal_correction_motivo_presente": {
+          "name": "animal_correction_motivo_presente",
+          "value": "length(btrim(\"herd\".\"animal_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.pregnancy_check_correction": {
+      "name": "pregnancy_check_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pregnancy_check_id": {
+          "name": "pregnancy_check_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pregnancy_check_correction_diag": {
+          "name": "pregnancy_check_correction_diag",
+          "columns": [
+            {
+              "expression": "pregnancy_check_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pregnancy_check_correction_pregnancy_check_id_pregnancy_check_id_fk": {
+          "name": "pregnancy_check_correction_pregnancy_check_id_pregnancy_check_id_fk",
+          "tableFrom": "pregnancy_check_correction",
+          "tableTo": "pregnancy_check",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "pregnancy_check_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pregnancy_check_correction_campo_valido": {
+          "name": "pregnancy_check_correction_campo_valido",
+          "value": "\"herd\".\"pregnancy_check_correction\".\"field\" in ('resultado', 'fecha', 'reportedBy', 'nota', 'vioAlAnimal')"
+        },
+        "pregnancy_check_correction_motivo_presente": {
+          "name": "pregnancy_check_correction_motivo_presente",
+          "value": "length(btrim(\"herd\".\"pregnancy_check_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.parentage_correction": {
+      "name": "parentage_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parentage_id": {
+          "name": "parentage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "offspring_id": {
+          "name": "offspring_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_dam_certainty": {
+          "name": "previous_dam_certainty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_dam_id": {
+          "name": "previous_dam_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_dam_reason": {
+          "name": "previous_dam_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_sire_certainty": {
+          "name": "previous_sire_certainty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_sire_id": {
+          "name": "previous_sire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_sire_reason": {
+          "name": "previous_sire_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_note": {
+          "name": "previous_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_birth_date": {
+          "name": "previous_birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_birth_date_precision": {
+          "name": "previous_birth_date_precision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "parentage_correction_record": {
+          "name": "parentage_correction_record",
+          "columns": [
+            {
+              "expression": "parentage_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parentage_correction_parentage_id_parentage_record_id_fk": {
+          "name": "parentage_correction_parentage_id_parentage_record_id_fk",
+          "tableFrom": "parentage_correction",
+          "tableTo": "parentage_record",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "parentage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "parentage_correction_offspring_id_animal_id_fk": {
+          "name": "parentage_correction_offspring_id_animal_id_fk",
+          "tableFrom": "parentage_correction",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "offspring_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "parentage_correction_motivo": {
+          "name": "parentage_correction_motivo",
+          "value": "length(btrim(\"herd\".\"parentage_correction\".\"reason\")) > 0"
+        },
+        "parentage_correction_dam_certainty": {
+          "name": "parentage_correction_dam_certainty",
+          "value": "\"herd\".\"parentage_correction\".\"previous_dam_certainty\" in ('observed', 'inferred', 'unknown')"
+        },
+        "parentage_correction_sire_certainty": {
+          "name": "parentage_correction_sire_certainty",
+          "value": "\"herd\".\"parentage_correction\".\"previous_sire_certainty\" in ('observed', 'inferred', 'unknown')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.health_event_correction": {
+      "name": "health_event_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "health_event_id": {
+          "name": "health_event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "health_event_correction_nota": {
+          "name": "health_event_correction_nota",
+          "columns": [
+            {
+              "expression": "health_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "health_event_correction_health_event_id_health_event_id_fk": {
+          "name": "health_event_correction_health_event_id_health_event_id_fk",
+          "tableFrom": "health_event_correction",
+          "tableTo": "health_event",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "health_event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "health_event_correction_campo_valido": {
+          "name": "health_event_correction_campo_valido",
+          "value": "\"herd\".\"health_event_correction\".\"field\" in ('tipo', 'detalle', 'fecha', 'producto', 'evidencia', 'vioAlAnimal')"
+        },
+        "health_event_correction_motivo_presente": {
+          "name": "health_event_correction_motivo_presente",
+          "value": "length(btrim(\"herd\".\"health_event_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.paddock_correction": {
+      "name": "paddock_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paddock_id": {
+          "name": "paddock_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "paddock_correction_potrero": {
+          "name": "paddock_correction_potrero",
+          "columns": [
+            {
+              "expression": "paddock_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "paddock_correction_paddock_id_paddock_id_fk": {
+          "name": "paddock_correction_paddock_id_paddock_id_fk",
+          "tableFrom": "paddock_correction",
+          "tableTo": "paddock",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "paddock_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "paddock_correction_campo_valido": {
+          "name": "paddock_correction_campo_valido",
+          "value": "\"herd\".\"paddock_correction\".\"field\" in ('nombre', 'nota')"
+        },
+        "paddock_correction_motivo_presente": {
+          "name": "paddock_correction_motivo_presente",
+          "value": "length(btrim(\"herd\".\"paddock_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal_exit_correction": {
+      "name": "animal_exit_correction",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_reason": {
+          "name": "previous_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_known_on": {
+          "name": "previous_known_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_note": {
+          "name": "previous_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_evidence_id": {
+          "name": "previous_evidence_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_exit_correction_animal": {
+          "name": "animal_exit_correction_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "animal_exit_correction_animal_id_animal_id_fk": {
+          "name": "animal_exit_correction_animal_id_animal_id_fk",
+          "tableFrom": "animal_exit_correction",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_exit_correction_motivo_anterior": {
+          "name": "animal_exit_correction_motivo_anterior",
+          "value": "\"herd\".\"animal_exit_correction\".\"previous_reason\" in ('sale', 'death', 'confirmed_missing', 'other', 'unknown')"
+        },
+        "animal_exit_correction_motivo": {
+          "name": "animal_exit_correction_motivo",
+          "value": "length(btrim(\"herd\".\"animal_exit_correction\".\"reason\")) > 0"
+        },
+        "animal_exit_correction_nota": {
+          "name": "animal_exit_correction_nota",
+          "value": "\"herd\".\"animal_exit_correction\".\"previous_note\" is null or length(btrim(\"herd\".\"animal_exit_correction\".\"previous_note\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.pregnancy_check": {
+      "name": "pregnancy_check",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_on": {
+          "name": "occurred_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reported_by": {
+          "name": "reported_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "saw_animal": {
+          "name": "saw_animal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pregnancy_check_animal": {
+          "name": "pregnancy_check_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pregnancy_check_ranch_fecha": {
+          "name": "pregnancy_check_ranch_fecha",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pregnancy_check_animal_id_animal_id_fk": {
+          "name": "pregnancy_check_animal_id_animal_id_fk",
+          "tableFrom": "pregnancy_check",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pregnancy_check_resultado_valido": {
+          "name": "pregnancy_check_resultado_valido",
+          "value": "\"herd\".\"pregnancy_check\".\"result\" in ('prenada', 'vacia', 'no_se')"
+        },
+        "pregnancy_check_reported_by_presente": {
+          "name": "pregnancy_check_reported_by_presente",
+          "value": "\"herd\".\"pregnancy_check\".\"reported_by\" is null or length(btrim(\"herd\".\"pregnancy_check\".\"reported_by\")) > 0"
+        },
+        "pregnancy_check_nota_presente": {
+          "name": "pregnancy_check_nota_presente",
+          "value": "\"herd\".\"pregnancy_check\".\"note\" is null or length(btrim(\"herd\".\"pregnancy_check\".\"note\")) > 0"
+        },
+        "pregnancy_check_version_positiva": {
+          "name": "pregnancy_check_version_positiva",
+          "value": "\"herd\".\"pregnancy_check\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.parentage_record": {
+      "name": "parentage_record",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "offspring_id": {
+          "name": "offspring_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dam_certainty": {
+          "name": "dam_certainty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dam_id": {
+          "name": "dam_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dam_reason": {
+          "name": "dam_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sire_certainty": {
+          "name": "sire_certainty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sire_id": {
+          "name": "sire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sire_reason": {
+          "name": "sire_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date_precision": {
+          "name": "birth_date_precision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "parentage_offspring": {
+          "name": "parentage_offspring",
+          "columns": [
+            {
+              "expression": "offspring_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parentage_ranch_dam": {
+          "name": "parentage_ranch_dam",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dam_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parentage_ranch_sire": {
+          "name": "parentage_ranch_sire",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sire_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parentage_record_offspring_id_animal_id_fk": {
+          "name": "parentage_record_offspring_id_animal_id_fk",
+          "tableFrom": "parentage_record",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "offspring_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "parentage_record_dam_id_animal_id_fk": {
+          "name": "parentage_record_dam_id_animal_id_fk",
+          "tableFrom": "parentage_record",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "dam_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "parentage_record_sire_id_animal_id_fk": {
+          "name": "parentage_record_sire_id_animal_id_fk",
+          "tableFrom": "parentage_record",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "sire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "parentage_dam_certainty": {
+          "name": "parentage_dam_certainty",
+          "value": "\"herd\".\"parentage_record\".\"dam_certainty\" in ('observed', 'inferred', 'unknown')"
+        },
+        "parentage_sire_certainty": {
+          "name": "parentage_sire_certainty",
+          "value": "\"herd\".\"parentage_record\".\"sire_certainty\" in ('observed', 'inferred', 'unknown')"
+        },
+        "parentage_dam_unknown_id": {
+          "name": "parentage_dam_unknown_id",
+          "value": "(\"herd\".\"parentage_record\".\"dam_certainty\" = 'unknown') = (\"herd\".\"parentage_record\".\"dam_id\" is null)"
+        },
+        "parentage_sire_unknown_id": {
+          "name": "parentage_sire_unknown_id",
+          "value": "(\"herd\".\"parentage_record\".\"sire_certainty\" = 'unknown') = (\"herd\".\"parentage_record\".\"sire_id\" is null)"
+        },
+        "parentage_dam_inferred_reason": {
+          "name": "parentage_dam_inferred_reason",
+          "value": "(\"herd\".\"parentage_record\".\"dam_certainty\" = 'inferred') = (\"herd\".\"parentage_record\".\"dam_reason\" is not null)"
+        },
+        "parentage_sire_inferred_reason": {
+          "name": "parentage_sire_inferred_reason",
+          "value": "(\"herd\".\"parentage_record\".\"sire_certainty\" = 'inferred') = (\"herd\".\"parentage_record\".\"sire_reason\" is not null)"
+        },
+        "parentage_dam_reason_valida": {
+          "name": "parentage_dam_reason_valida",
+          "value": "\"herd\".\"parentage_record\".\"dam_reason\" is null or \"herd\".\"parentage_record\".\"dam_reason\" in ('parto_visto', 'dicho_de_trabajador', 'otro')"
+        },
+        "parentage_sire_reason_valida": {
+          "name": "parentage_sire_reason_valida",
+          "value": "\"herd\".\"parentage_record\".\"sire_reason\" is null or \"herd\".\"parentage_record\".\"sire_reason\" in ('parto_visto', 'dicho_de_trabajador', 'unico_toro', 'otro')"
+        },
+        "parentage_birth_date_pair": {
+          "name": "parentage_birth_date_pair",
+          "value": "(\"herd\".\"parentage_record\".\"birth_date\" is null) = (\"herd\".\"parentage_record\".\"birth_date_precision\" is null)"
+        },
+        "parentage_birth_precision": {
+          "name": "parentage_birth_precision",
+          "value": "\"herd\".\"parentage_record\".\"birth_date_precision\" is null or \"herd\".\"parentage_record\".\"birth_date_precision\" in ('exact', 'approximate')"
+        },
+        "parentage_version_positiva": {
+          "name": "parentage_version_positiva",
+          "value": "\"herd\".\"parentage_record\".\"version\" >= 1"
+        },
+        "parentage_note_presente": {
+          "name": "parentage_note_presente",
+          "value": "\"herd\".\"parentage_record\".\"note\" is null or length(btrim(\"herd\".\"parentage_record\".\"note\")) > 0"
+        },
+        "parentage_not_self_dam": {
+          "name": "parentage_not_self_dam",
+          "value": "\"herd\".\"parentage_record\".\"dam_id\" is null or \"herd\".\"parentage_record\".\"dam_id\" <> \"herd\".\"parentage_record\".\"offspring_id\""
+        },
+        "parentage_not_self_sire": {
+          "name": "parentage_not_self_sire",
+          "value": "\"herd\".\"parentage_record\".\"sire_id\" is null or \"herd\".\"parentage_record\".\"sire_id\" <> \"herd\".\"parentage_record\".\"offspring_id\""
+        },
+        "parentage_parents_differ": {
+          "name": "parentage_parents_differ",
+          "value": "\"herd\".\"parentage_record\".\"dam_id\" is null or \"herd\".\"parentage_record\".\"sire_id\" is null or \"herd\".\"parentage_record\".\"dam_id\" <> \"herd\".\"parentage_record\".\"sire_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.animal_mark": {
+      "name": "animal_mark",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_on": {
+          "name": "changed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "animal_mark_ranch_valor": {
+          "name": "animal_mark_ranch_valor",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "animal_mark_animal": {
+          "name": "animal_mark_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "animal_mark_siniiga_activa": {
+          "name": "animal_mark_siniiga_activa",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"herd\".\"animal_mark\".\"type\" = 'siniiga' and \"herd\".\"animal_mark\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "animal_mark_animal_id_animal_id_fk": {
+          "name": "animal_mark_animal_id_animal_id_fk",
+          "tableFrom": "animal_mark",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "animal_mark_tipo_valido": {
+          "name": "animal_mark_tipo_valido",
+          "value": "\"herd\".\"animal_mark\".\"type\" in ('siniiga', 'other')"
+        },
+        "animal_mark_estado_valido": {
+          "name": "animal_mark_estado_valido",
+          "value": "\"herd\".\"animal_mark\".\"status\" in ('active', 'replaced', 'lost')"
+        },
+        "animal_mark_valor_presente": {
+          "name": "animal_mark_valor_presente",
+          "value": "length(btrim(\"herd\".\"animal_mark\".\"value\")) > 0"
+        },
+        "animal_mark_vigente_sin_cierre": {
+          "name": "animal_mark_vigente_sin_cierre",
+          "value": "\"herd\".\"animal_mark\".\"status\" <> 'active' or \"herd\".\"animal_mark\".\"changed_on\" is null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.health_event": {
+      "name": "health_event",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detail": {
+          "name": "detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_on": {
+          "name": "occurred_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product": {
+          "name": "product",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidence_id": {
+          "name": "evidence_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "saw_animal": {
+          "name": "saw_animal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "health_event_animal": {
+          "name": "health_event_animal",
+          "columns": [
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "health_event_ranch_fecha": {
+          "name": "health_event_ranch_fecha",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "health_event_animal_id_animal_id_fk": {
+          "name": "health_event_animal_id_animal_id_fk",
+          "tableFrom": "health_event",
+          "tableTo": "animal",
+          "schemaTo": "herd",
+          "columnsFrom": [
+            "animal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "health_event_tipo_valido": {
+          "name": "health_event_tipo_valido",
+          "value": "\"herd\".\"health_event\".\"type\" in ('vacuna', 'medicamento', 'bano', 'problema', 'otro')"
+        },
+        "health_event_detalle_presente": {
+          "name": "health_event_detalle_presente",
+          "value": "length(btrim(\"herd\".\"health_event\".\"detail\")) > 0"
+        },
+        "health_event_producto_presente": {
+          "name": "health_event_producto_presente",
+          "value": "\"herd\".\"health_event\".\"product\" is null or length(btrim(\"herd\".\"health_event\".\"product\")) > 0"
+        },
+        "health_event_version_positiva": {
+          "name": "health_event_version_positiva",
+          "value": "\"herd\".\"health_event\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "herd.paddock": {
+      "name": "paddock",
+      "schema": "herd",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "paddock_ranch": {
+          "name": "paddock_ranch",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "paddock_version_positiva": {
+          "name": "paddock_version_positiva",
+          "value": "\"herd\".\"paddock\".\"version\" >= 1"
+        },
+        "paddock_nombre_presente": {
+          "name": "paddock_nombre_presente",
+          "value": "\"herd\".\"paddock\".\"name\" is null or length(btrim(\"herd\".\"paddock\".\"name\")) > 0"
+        },
+        "paddock_nota_presente": {
+          "name": "paddock_nota_presente",
+          "value": "\"herd\".\"paddock\".\"note\" is null or length(btrim(\"herd\".\"paddock\".\"note\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "growth.weight_correction": {
+      "name": "weight_correction",
+      "schema": "growth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_value": {
+          "name": "previous_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_by": {
+          "name": "corrected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corrected_at": {
+          "name": "corrected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "weight_correction_line": {
+          "name": "weight_correction_line",
+          "columns": [
+            {
+              "expression": "line_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "corrected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "weight_correction_line_id_weighing_line_id_fk": {
+          "name": "weight_correction_line_id_weighing_line_id_fk",
+          "tableFrom": "weight_correction",
+          "tableTo": "weighing_line",
+          "schemaTo": "growth",
+          "columnsFrom": [
+            "line_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "weight_correction_campo_valido": {
+          "name": "weight_correction_campo_valido",
+          "value": "\"growth\".\"weight_correction\".\"field\" in ('kilos', 'calidad', 'evidencia')"
+        },
+        "weight_correction_valor_presente": {
+          "name": "weight_correction_valor_presente",
+          "value": "length(btrim(\"growth\".\"weight_correction\".\"previous_value\")) > 0"
+        },
+        "weight_correction_motivo_presente": {
+          "name": "weight_correction_motivo_presente",
+          "value": "length(btrim(\"growth\".\"weight_correction\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "growth.weighing_line": {
+      "name": "weighing_line",
+      "schema": "growth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animal_id": {
+          "name": "animal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kilos": {
+          "name": "kilos",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quality": {
+          "name": "quality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidence_id": {
+          "name": "evidence_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "weighing_line_session_animal": {
+          "name": "weighing_line_session_animal",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weighing_line_session_position": {
+          "name": "weighing_line_session_position",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weighing_line_animal": {
+          "name": "weighing_line_animal",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "animal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "weighing_line_session_id_weighing_session_id_fk": {
+          "name": "weighing_line_session_id_weighing_session_id_fk",
+          "tableFrom": "weighing_line",
+          "tableTo": "weighing_session",
+          "schemaTo": "growth",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "weighing_line_resultado_valido": {
+          "name": "weighing_line_resultado_valido",
+          "value": "\"growth\".\"weighing_line\".\"result\" in ('weighed', 'gap')"
+        },
+        "weighing_line_posicion_valida": {
+          "name": "weighing_line_posicion_valida",
+          "value": "\"growth\".\"weighing_line\".\"position\" >= 0"
+        },
+        "weighing_line_forma_valida": {
+          "name": "weighing_line_forma_valida",
+          "value": "(\n        \"growth\".\"weighing_line\".\"result\" = 'weighed'\n        and \"growth\".\"weighing_line\".\"kilos\" is not null\n        and \"growth\".\"weighing_line\".\"quality\" in ('measured', 'observed', 'declared')\n        and \"growth\".\"weighing_line\".\"version\" >= 1\n      ) or (\n        \"growth\".\"weighing_line\".\"result\" = 'gap'\n        and \"growth\".\"weighing_line\".\"kilos\" is null\n        and \"growth\".\"weighing_line\".\"quality\" is null\n        and \"growth\".\"weighing_line\".\"version\" is null\n        and \"growth\".\"weighing_line\".\"evidence_id\" is null\n      )"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "growth.weighing_session": {
+      "name": "weighing_session",
+      "schema": "growth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ranch_id": {
+          "name": "ranch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weighed_on": {
+          "name": "weighed_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reported_by": {
+          "name": "reported_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command_id": {
+          "name": "command_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "weighing_session_command": {
+          "name": "weighing_session_command",
+          "columns": [
+            {
+              "expression": "command_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weighing_session_ranch_fecha": {
+          "name": "weighing_session_ranch_fecha",
+          "columns": [
+            {
+              "expression": "ranch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "weighed_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "weighing_session_nota_presente": {
+          "name": "weighing_session_nota_presente",
+          "value": "\"growth\".\"weighing_session\".\"note\" is null or length(btrim(\"growth\".\"weighing_session\".\"note\")) > 0"
+        },
+        "weighing_session_reported_presente": {
+          "name": "weighing_session_reported_presente",
+          "value": "\"growth\".\"weighing_session\".\"reported_by\" is null or length(btrim(\"growth\".\"weighing_session\".\"reported_by\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "evidence": "evidence",
+    "growth": "growth",
+    "herd": "herd",
+    "identity": "identity"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

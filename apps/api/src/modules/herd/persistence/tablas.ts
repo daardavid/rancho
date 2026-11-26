@@ -494,3 +494,77 @@ export const correccionDeNotaDeSalud = esquemaHerd.table(
     check('health_event_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
   ],
 )
+
+/**
+ * Diagnóstico de preñez de una hembra. Hermano de la ficha: no es una columna
+ * de `Animal`, y un diagnóstico a un grupo es una fila por animal.
+ *
+ * El resultado es lo que alguien dijo: Preñada, Vacía o No sé. No hay meta de
+ * días ni calendario. Si alguien viene a palpar o a hacer ultrasonido queda
+ * abierto (`OQ-REPRO-003`). `saw_animal` es explícito, igual que en sanidad:
+ * `true` se vio, `false` no se vio y `null` es «No sé». No hay omisión. Solo
+ * cuenta como observación cuando dice que sí se vio.
+ */
+export const diagnosticoDePrenez = esquemaHerd.table(
+  'pregnancy_check',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    animalId: uuid('animal_id')
+      .notNull()
+      .references(() => animal.id, { onDelete: 'restrict' }),
+    fecha: date('occurred_on', { mode: 'string' }).notNull(),
+    resultado: text('result').notNull(),
+    reportedBy: text('reported_by'),
+    nota: text('note'),
+    vioAlAnimal: boolean('saw_animal'),
+    version: integer('version').notNull(),
+    recordedBy: text('recorded_by').notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('pregnancy_check_animal').on(tabla.animalId, tabla.fecha),
+    index('pregnancy_check_ranch_fecha').on(tabla.ranchId, tabla.fecha),
+    check(
+      'pregnancy_check_resultado_valido',
+      sql`${tabla.resultado} in ('prenada', 'vacia', 'no_se')`,
+    ),
+    check(
+      'pregnancy_check_reported_by_presente',
+      sql`${tabla.reportedBy} is null or length(btrim(${tabla.reportedBy})) > 0`,
+    ),
+    check(
+      'pregnancy_check_nota_presente',
+      sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`,
+    ),
+    check('pregnancy_check_version_positiva', sql`${tabla.version} >= 1`),
+  ],
+)
+
+/**
+ * Valor anterior de una corrección de diagnóstico. Una fila por campo que
+ * cambió, con quién, cuándo y por qué. Corregir no borra el diagnóstico.
+ */
+export const correccionDeDiagnostico = esquemaHerd.table(
+  'pregnancy_check_correction',
+  {
+    id: uuid('id').primaryKey(),
+    ranchId: uuid('ranch_id').notNull(),
+    diagnosticoId: uuid('pregnancy_check_id')
+      .notNull()
+      .references(() => diagnosticoDePrenez.id, { onDelete: 'restrict' }),
+    campo: text('field').notNull(),
+    valorAnterior: text('previous_value'),
+    motivo: text('reason').notNull(),
+    correctedBy: text('corrected_by').notNull(),
+    correctedAt: timestamp('corrected_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (tabla) => [
+    index('pregnancy_check_correction_diag').on(tabla.diagnosticoId, tabla.correctedAt),
+    check(
+      'pregnancy_check_correction_campo_valido',
+      sql`${tabla.campo} in ('resultado', 'fecha', 'reportedBy', 'nota', 'vioAlAnimal')`,
+    ),
+    check('pregnancy_check_correction_motivo_presente', sql`length(btrim(${tabla.motivo})) > 0`),
+  ],
+)

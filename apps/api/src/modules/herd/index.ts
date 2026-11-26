@@ -67,6 +67,14 @@ import {
   type EntradaAnotarSalud,
   type EntradaCorregirNota,
 } from './application/salud'
+import {
+  anotarDiagnostico,
+  corregirDiagnosticoDe,
+  type AnimalDelDiagnostico,
+  type DepsDePrenez,
+  type EntradaAnotarDiagnostico,
+  type EntradaCorregirDiagnostico,
+} from './application/prenez'
 import type {
   CorreccionDeNotaPublica,
   NotaDeSaludConHistoria,
@@ -74,6 +82,12 @@ import type {
   NotasAnotadasPublicas,
   NotasDelAnimalPublicas,
 } from './application/publicar-salud'
+import type {
+  CorreccionDeDiagnosticoPublica,
+  DiagnosticoConHistoria,
+  DiagnosticoPublico,
+  DiagnosticosAnotadosPublicos,
+} from './application/publicar-prenez'
 import type {
   AsignacionPublica,
   FiliacionConHistoria,
@@ -89,6 +103,7 @@ import { crearRepositorioDeAnimales } from './persistence/repositorio'
 import { crearRepositorioDeFiliacion } from './persistence/repositorio-filiacion'
 import { crearRepositorioDeLugar } from './persistence/repositorio-lugar'
 import { crearRepositorioDeSalud } from './persistence/repositorio-salud'
+import { crearRepositorioDePrenez } from './persistence/repositorio-prenez'
 
 export type {
   AnimalDeLaNota,
@@ -125,6 +140,13 @@ export type {
   NotaDeSaludPublica,
   NotasAnotadasPublicas,
   NotasDelAnimalPublicas,
+  AnimalDelDiagnostico,
+  CorreccionDeDiagnosticoPublica,
+  DiagnosticoConHistoria,
+  DiagnosticoPublico,
+  DiagnosticosAnotadosPublicos,
+  EntradaAnotarDiagnostico,
+  EntradaCorregirDiagnostico,
   PotreroConHistoria,
   PotreroEnLaLista,
   PotreroPublico,
@@ -175,6 +197,8 @@ export type Herd = {
     ranchId: RanchId,
     animalIds: readonly string[],
   ): Promise<readonly NotasDelAnimalPublicas[]>
+  anotarDiagnostico(entrada: EntradaAnotarDiagnostico): Promise<DiagnosticosAnotadosPublicos>
+  corregirDiagnostico(entrada: EntradaCorregirDiagnostico): Promise<DiagnosticoConHistoria>
 }
 
 /**
@@ -243,11 +267,18 @@ export function crearHerd(db: ClienteDeHerd, evidencia: ConsultaDeEvidencia | nu
       correr((repos) => notasDeAnimal(saludDe(repos), ranchId, animalId)),
     notasDeAnimales: (ranchId, animalIds) =>
       correr((repos) => notasDeAnimales(saludDe(repos), ranchId, animalIds)),
+    anotarDiagnostico: (entrada) => correr((repos) => anotarDiagnostico(prenezDe(repos), entrada)),
+    corregirDiagnostico: (entrada) =>
+      correr((repos) => corregirDiagnosticoDe(prenezDe(repos), entrada)),
   }
 }
 
 function saludDe(repos: DepsDeHerd): DepsDeSalud {
   return { animales: repos.animales, salud: repos.salud, idempotencia: repos.idempotencia }
+}
+
+function prenezDe(repos: DepsDeHerd): DepsDePrenez {
+  return { animales: repos.animales, prenez: repos.prenez, idempotencia: repos.idempotencia }
 }
 
 function lugarDe(repos: DepsDeHerd): DepsDeLugar {
@@ -260,6 +291,7 @@ function reposDe(tx: EjecutorSql, evidencia: ConsultaDeEvidencia | null): DepsDe
     filiacion: crearRepositorioDeFiliacion(tx),
     lugar: crearRepositorioDeLugar(tx),
     salud: crearRepositorioDeSalud(tx),
+    prenez: crearRepositorioDePrenez(tx),
     idempotencia: crearAlmacenDeIdempotencia(tx),
     evidencia,
   }
