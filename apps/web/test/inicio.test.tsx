@@ -19,6 +19,7 @@ const SIN_DATOS = '44444444-4444-4444-8444-444444444444'
 const ATRASADO = '55555555-5555-4555-8555-555555555555'
 
 const SESION_DE_PESO = '66666666-6666-4666-8666-666666666666'
+const EN_DIAGNOSTICO = '99999999-9999-4999-8999-999999999999'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -70,6 +71,15 @@ function vista(desde: string, cambios: Record<string, unknown> = {}): () => {
             fecha: hoy,
             origen: 'sanidad',
             origenId: '88888888-8888-4888-8888-888888888888',
+          },
+          {
+            animalId: EN_DIAGNOSTICO,
+            nombre: 'Vista en el diagnóstico',
+            categoria: 'cow',
+            dias: 12,
+            fecha: '2026-11-01',
+            origen: 'diagnostico',
+            origenId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           },
         ],
       },
@@ -204,7 +214,11 @@ describe('Inicio', () => {
     expect(nombres[0]).toContain('hace 40 días')
     expect(nombres[1]).toContain('Visto hoy')
     expect(nombres[1]).toContain('hoy')
-    expect(nombres).toHaveLength(2)
+    expect(nombres).toHaveLength(3)
+
+    const enDiagnostico = within(dias).getByRole('link', { name: /Vista en el diagnóstico/ })
+    expect(enDiagnostico.textContent).toContain('diagnóstico de preñez')
+    expect(enDiagnostico.textContent).not.toContain('nota de sanidad')
   })
 
   it('sin animales invita a dar de alta el primero y no afirma nada de «todos» o «nadie»', async () => {

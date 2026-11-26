@@ -6,7 +6,7 @@ import { useInicio } from '../api/inicio'
 import { ordenarCrecimiento } from '../dominio/crecimiento'
 import { categoria } from '../dominio/etiquetas'
 import { diaLegible, diaMas, hoyEnElRancho } from '../dominio/fechas'
-import { haceCuantosDias } from '../dominio/observacion'
+import { eventoDelOrigen, haceCuantosDias } from '../dominio/observacion'
 import { lecturaDeCrecimiento } from '../dominio/revision'
 import { rutaAHash } from '../ruta'
 import { AvisoDeError, Cargando } from '../ui/Avisos'
@@ -395,11 +395,5 @@ function nombreDe(animal: AnimalDelInicio): string {
 }
 
 function detalleDeDias(animal: AnimalSinVerse): string {
-  const evento =
-    animal.origen === 'pesaje'
-      ? 'pesaje'
-      : animal.origen === 'nacimiento'
-        ? 'nacimiento'
-        : 'nota de sanidad'
-  return `${haceCuantosDias(animal.dias)} · ${evento}`
+  return `${haceCuantosDias(animal.dias)} · ${eventoDelOrigen(animal.origen)}`
 }
