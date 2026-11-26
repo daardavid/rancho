@@ -241,11 +241,11 @@ const MENSAJES: Record<string, { quePaso: string; queHacer: string }> = {
   },
   foto_no_es_imagen: {
     quePaso: 'Eso no es una foto JPEG, PNG o WebP.',
-    queHacer: 'Toma la foto del indicador con la cámara del celular.',
+    queHacer: 'Elige una foto JPEG, PNG o WebP del celular.',
   },
   foto_demasiado_grande: {
     quePaso: 'La foto pesa más de 25 MB.',
-    queHacer: 'Toma otra más cerca del indicador.',
+    queHacer: 'Elige una más chica.',
   },
   tipo_de_bitacora_invalido: {
     quePaso: 'Falta decir de qué es la nota.',

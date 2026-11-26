@@ -974,6 +974,27 @@ label.ui-fila {
   background: var(--espera-fondo);
 }
 
+.foto-animal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ficha__foto {
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  background: var(--espera-fondo);
+}
+
+.eleccion__quien {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 /* Campos con algo que corregir ---------------------------------------- */
 
 .campo__entrada--mal {

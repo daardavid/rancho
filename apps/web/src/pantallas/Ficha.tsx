@@ -27,6 +27,7 @@ import { BotonSecundario } from '../ui/Botones'
 import { Desplegable } from '../ui/Desplegable'
 import { Encabezado } from '../ui/Encabezado'
 import { Etiqueta, type TonoDeEtiqueta } from '../ui/Etiqueta'
+import { FotoDelAnimal } from '../ui/FotoDelAnimal'
 import { FotoVisible } from '../ui/FotoDeLaBascula'
 import { Aretes } from './Aretes'
 import { CorreccionDePeso } from './CorreccionDePeso'
@@ -166,6 +167,8 @@ export function Ficha({
         )}
         {animal.activo ? null : <Etiqueta tono="revisar">Dado de baja</Etiqueta>}
       </div>
+
+      <FotoDelAnimal animal={animal} />
 
       {observacion.isSuccess ? (
         <p className={observacion.data.observacion === null ? 'inicio__vacio' : 'ficha__visto'}>
