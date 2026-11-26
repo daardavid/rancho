@@ -1,4 +1,9 @@
-import { errorDeInicioSchema, inicioSchema, ultimaObservacionSchema } from '@rancho/api-contracts'
+import {
+  diaSchema,
+  errorDeInicioSchema,
+  inicioSchema,
+  ultimaObservacionSchema,
+} from '@rancho/api-contracts'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
@@ -8,10 +13,9 @@ import { exigirRol } from '../guardia'
 const ROLES = ['owner', 'support'] as const
 const paramsDeAnimal = z.strictObject({ id: z.uuid() })
 const consultaDeInicio = z.strictObject({
-  desde: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  // El 31 de febrero se rechaza aquí y no llega a PostgreSQL como un `::date`
+  // que revienta con un 500 (la misma regla que el resumen).
+  desde: diaSchema.optional(),
 })
 
 /**

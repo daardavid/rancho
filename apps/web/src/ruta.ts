@@ -36,6 +36,11 @@ export type Ruta =
   | { readonly nombre: 'tendencias' }
   /** Elegir qué animal sale del hato, desde el acceso directo de Inicio. */
   | { readonly nombre: 'salida' }
+  /**
+   * El resumen de la semana para compartir. Llega con el día desde el que se
+   * cuenta, para abrir el mismo periodo que se estaba viendo en Inicio.
+   */
+  | { readonly nombre: 'resumen'; readonly desde: string | null }
   | { readonly nombre: 'sesion'; readonly sesionId: string }
   | { readonly nombre: 'muestra' }
 
@@ -84,6 +89,15 @@ export function leerRuta(hash: string): Ruta {
   }
   if (limpio === '/salida') {
     return { nombre: 'salida' }
+  }
+  if (limpio === '/resumen') {
+    return { nombre: 'resumen', desde: null }
+  }
+  // El resumen abierto desde Inicio trae el mismo día de arranque del periodo:
+  // se comparte lo que se estaba viendo, no otro rango.
+  const resumenConDesde = /^\/resumen\/(\d{4}-\d{2}-\d{2})$/.exec(limpio)
+  if (resumenConDesde !== null && resumenConDesde[1] !== undefined) {
+    return { nombre: 'resumen', desde: resumenConDesde[1] }
   }
   // La muestra de componentes solo existe con el servidor de desarrollo.
   if (limpio === '/muestra' && import.meta.env.DEV) {
@@ -134,6 +148,8 @@ export function rutaAHash(ruta: Ruta): string {
       return '#/tendencias'
     case 'salida':
       return '#/salida'
+    case 'resumen':
+      return ruta.desde === null ? '#/resumen' : `#/resumen/${ruta.desde}`
     case 'muestra':
       return '#/muestra'
     case 'sesion':
