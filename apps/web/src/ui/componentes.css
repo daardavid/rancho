@@ -985,10 +985,12 @@
 
 /*
  * El hato deja respirar abajo: el botón flotante y la barra inferior están
- * fijos al borde de la ventana y taparían la última fila.
+ * fijos al borde de la ventana y taparían la última fila. El aire cubre el
+ * botón completo (56 px), su separación de 12 px, la barra de 72 px y el área
+ * segura del celular, con margen para que un aviso tampoco quede debajo.
  */
 .pantalla--hato {
-  padding-bottom: calc(var(--alto-barra) + 88px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--alto-barra) + 112px + env(safe-area-inset-bottom));
 }
 
 /* Una pestaña sin botón flotante: solo deja aire para la barra de abajo. */
