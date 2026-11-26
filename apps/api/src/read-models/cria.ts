@@ -181,7 +181,9 @@ export function crearModelosDeCria(db: EjecutorSql): ModelosDeCria {
             filiacion.dam_certainty AS certeza,
             filiacion.dam_reason AS motivo
           FROM herd.parentage_record filiacion
-          JOIN herd.animal cria ON cria.id = filiacion.offspring_id
+          JOIN herd.animal cria
+            ON cria.id = filiacion.offspring_id
+            AND cria.ranch_id = filiacion.ranch_id
           WHERE filiacion.ranch_id = ${ranchId}
             AND filiacion.dam_id = ${animalId}
             AND filiacion.dam_certainty IN ('observed', 'inferred')
