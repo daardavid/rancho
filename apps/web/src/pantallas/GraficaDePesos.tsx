@@ -2,6 +2,7 @@ import type { PuntoDeCrecimiento } from '@rancho/api-contracts'
 
 import { diaLegible, kilosLegibles } from '../dominio/fechas'
 import { gramosDe, textoDeGramos } from '../dominio/kilos'
+import { TAMANO_DE_ETIQUETA, anchoDeEtiqueta } from './etiquetasDeGrafica'
 
 /**
  * La serie de pesos de un animal, en una gráfica simple.
@@ -36,11 +37,11 @@ export function GraficaDePesos({ pesos }: { readonly pesos: readonly PuntoDeCrec
     )
   }
 
-  const ancho = 320
   const alto = 160
-  const margen = { arriba: 16, derecha: 12, abajo: 28, izquierda: 44 }
-  const utilAncho = ancho - margen.izquierda - margen.derecha
-  const utilAlto = alto - margen.arriba - margen.abajo
+  const margenArriba = 16
+  const margenDerecha = 12
+  const margenAbajo = 28
+  const anchoDelDibujo = 220
 
   // Gramos enteros: no hay peso de coma flotante ni en el dibujo.
   const gramos = pesos.map((punto) => gramosDe(punto.kilos))
@@ -49,10 +50,23 @@ export function GraficaDePesos({ pesos }: { readonly pesos: readonly PuntoDeCrec
   // Un solo peso con varios registros iguales dejaría el rango en cero.
   const rango = maximo === minimo ? 1 : maximo - minimo
 
-  const x = (indice: number): number =>
-    margen.izquierda + (pesos.length === 1 ? utilAncho / 2 : (utilAncho * indice) / (pesos.length - 1))
+  // Tres renglones de referencia: el mayor, el de en medio y el menor.
+  const medio = Math.round((maximo + minimo) / 2)
+  const niveles = maximo === minimo ? [maximo] : [maximo, medio, minimo]
+  const etiquetas = niveles.map((nivel) => kilosLegibles(textoDeGramos(nivel)))
+  const margenIzquierda =
+    etiquetas.reduce((mayor, texto) => Math.max(mayor, anchoDeEtiqueta(texto)), 0) + 8
+  const ancho = margenIzquierda + anchoDelDibujo + margenDerecha
+  const utilAlto = alto - margenArriba - margenAbajo
+
+  const x = (indice: number): number => {
+    if (pesos.length === 1) {
+      return margenIzquierda + anchoDelDibujo / 2
+    }
+    return margenIzquierda + (anchoDelDibujo * indice) / (pesos.length - 1)
+  }
   const y = (valor: number): number =>
-    margen.arriba + utilAlto - (utilAlto * (valor - minimo)) / rango
+    margenArriba + utilAlto - (utilAlto * (valor - minimo)) / rango
 
   const puntos = gramos.map((valor, indice) => ({
     cx: x(indice),
@@ -61,10 +75,6 @@ export function GraficaDePesos({ pesos }: { readonly pesos: readonly PuntoDeCrec
   }))
 
   const linea = puntos.map((punto) => `${punto.cx.toFixed(1)},${punto.cy.toFixed(1)}`).join(' ')
-
-  // Tres renglones de referencia: el mayor, el de en medio y el menor.
-  const medio = Math.round((maximo + minimo) / 2)
-  const niveles = maximo === minimo ? [maximo] : [maximo, medio, minimo]
 
   const primero = puntos[0]
   const ultimo = puntos.at(-1)
@@ -79,17 +89,23 @@ export function GraficaDePesos({ pesos }: { readonly pesos: readonly PuntoDeCrec
           primero?.punto?.kilos ?? null,
         )} a ${kilosLegibles(ultimo?.punto?.kilos ?? null)}`}
       >
-        {niveles.map((nivel) => (
+        {niveles.map((nivel, indice) => (
           <g key={nivel}>
             <line
               className="grafica__guia"
-              x1={margen.izquierda}
-              x2={ancho - margen.derecha}
+              x1={margenIzquierda}
+              x2={ancho - margenDerecha}
               y1={y(nivel)}
               y2={y(nivel)}
             />
-            <text className="grafica__etiqueta" x={margen.izquierda - 6} y={y(nivel) + 4} textAnchor="end">
-              {kilosLegibles(textoDeGramos(nivel))}
+            <text
+              className="grafica__etiqueta"
+              fontSize={TAMANO_DE_ETIQUETA}
+              x={margenIzquierda - 6}
+              y={y(nivel) + 4}
+              textAnchor="end"
+            >
+              {etiquetas[indice]}
             </text>
           </g>
         ))}
@@ -108,19 +124,33 @@ export function GraficaDePesos({ pesos }: { readonly pesos: readonly PuntoDeCrec
           />
         ))}
         {primero === undefined ? null : (
-          <text className="grafica__etiqueta" x={primero.cx} y={alto - 8} textAnchor="start">
+          <text
+            className="grafica__etiqueta"
+            fontSize={TAMANO_DE_ETIQUETA}
+            x={primero.cx}
+            y={alto - 8}
+            textAnchor="start"
+          >
             {diaLegible(primero.punto?.fecha ?? null)}
           </text>
         )}
         {ultimo === undefined || ultimo === primero ? null : (
-          <text className="grafica__etiqueta" x={ultimo.cx} y={alto - 8} textAnchor="end">
+          <text
+            className="grafica__etiqueta"
+            fontSize={TAMANO_DE_ETIQUETA}
+            x={ultimo.cx}
+            y={alto - 8}
+            textAnchor="end"
+          >
             {diaLegible(ultimo.punto?.fecha ?? null)}
           </text>
         )}
       </svg>
-      <figcaption className="grafica__pie">
-        El punto hueco es un peso que no se midió en la báscula.
-      </figcaption>
+      {pesos.some((punto) => punto.calidad !== 'measured') ? (
+        <figcaption className="grafica__pie">
+          El punto hueco es un peso que no se midió en la báscula.
+        </figcaption>
+      ) : null}
     </figure>
   )
 }

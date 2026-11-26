@@ -2,9 +2,10 @@
 
 ## Status
 
-- Status: PROPOSED. Accepted when David merges this document into `main`
-- Version: v0.3
-- Last updated: 2026-11-24
+- Status: ACCEPTED
+- Version: v0.4
+- Last updated: 2026-11-25
+- Accepted: 2026-11-25, when David merged INC-001 through INC-004
 - Owner of the decision: David (product), with the ranch owner for ranch facts
 
 This document closes MVP Framing. It produces the five outputs proposed at the end of the design conversation (MVP North Star, Decision Map, Value Map, Data Foundation, MVP Boundaries) and, through them, answers the six questions the [Master Plan](master-plan.md) left open. It does not add ranch facts: every ranch statement points to the domain source that holds it, and open sources stay open.
@@ -33,10 +34,13 @@ Decisions the owner already makes or asks about ([ranch-context.md](../domain/ra
 | --- | --- | --- |
 | Which animals do we manage, whose are they, and with which tags? | Roster with identity, tenure, marks | INC-001 |
 | Are the calves gaining weight? Which are behind? Which were not weighed? | Weight series, interval gain, gaps | INC-001 |
-| Is feed being delivered as intended? | Purchase, preparation, delivery, warehouse count, each with its quality | INC-003 |
-| What does raising and selling actually leave? Which activity pays? | Expenses, purchases, sales, explicit allocations | INC-004 |
-| How many cows have calved? Who is the mother? | Births and parentage | INC-005 |
-| Is any animal missing? Does any animal have a problem? | Last observation, verification, health notes, exits | INC-005 |
+| Can the same records be opened on this laptop and on the phone in the same Wi-Fi? | Local operation | INC-002 |
+| Can a capture be filled on the phone? | Experience redesign | INC-003 |
+| How many cows have calved? Who is the mother? | Births and parentage | INC-004 |
+| Who left, where is each animal, and what should this week show? | Exits, expected place, health notes, last observation, Inicio | INC-004 |
+| Is feed being delivered as intended? | Purchase, preparation, delivery, warehouse count, each with its quality | Later |
+| What does raising and selling actually leave? Which activity pays? | Expenses, purchases, sales, explicit allocations | Later |
+| Is any animal missing? | Herd verification | Later |
 | How many cows are in milk, and how many liters? | Milk records | Not in the MVP. Milk is not the current operation (`PP-MILK-001`) |
 
 ## 3. Value Map
@@ -82,20 +86,21 @@ The occasional gravel sale ([ranch-context.md](../domain/ranch-context.md), "Fin
 
 ## Proposed MVP path
 
-INC-001 through INC-004 are implemented by the factory. They become accepted when David merges them. Ranch validation is still open. Feed, money, and herd verification were not those increments: their numbers below are the ones the factory actually built.
+INC-001 through INC-004 are accepted. David merged them on 2026-11-25. Ranch validation with the family is still open. Feed, money, and herd verification stay Later: they were not part of those increments. INC-005 is in progress.
 
 | Increment | Outcome | Depends on |
 | --- | --- | --- |
-| [INC-001](increments/INC-001-ficha-y-pesaje.md) | Animal ficha and calf weighing with growth view, usable by the owner | Nothing blocking. Implemented by the factory. |
-| [INC-002](increments/INC-002-todo-en-local.md) | Todo en local: one command on the laptop, the phone on the same Wi-Fi, backup and restore, photo of the scale | INC-001. Implemented by the factory. |
-| [INC-003](increments/INC-003-rediseno.md) | Experience redesign: the working screens follow the visual guide | INC-002. Implemented by the factory. |
-| [INC-004](increments/INC-004-vida-del-hato.md) | Births, exits, expected place, health notes, last observation and the Inicio screen | Nothing P0 blocking those facts. Implemented by the factory. Herd verification is not included. |
+| [INC-001](increments/INC-001-ficha-y-pesaje.md) | Animal ficha and calf weighing with growth view, usable by the owner | Nothing blocking. Accepted. |
+| [INC-002](increments/INC-002-todo-en-local.md) | Todo en local: one command on the laptop, the phone on the same Wi-Fi, backup and restore, photo of the scale | INC-001. Accepted. |
+| [INC-003](increments/INC-003-rediseno.md) | Experience redesign: the working screens follow the visual guide | INC-002. Accepted. |
+| [INC-004](increments/INC-004-vida-del-hato.md) | Births, exits, expected place, health notes, last observation and the Inicio screen | Nothing P0 blocking those facts. Accepted. Herd verification is not included. |
+| [INC-005](increments/INC-005-listo-para-uso-real.md) | Ready for real use: weighing differences use the previous weight, forms do not invent an answer, Inicio is the weekly review, capture takes fewer steps, and a forgotten user or password can be recovered on the laptop | INC-004. In progress. |
 | Later migration increment | Publication: the app leaves the laptop (hosting). Its id is assigned when it is framed | Local use |
 | Later | Feed: purchase, preparation, delivery, each with its quality, and warehouse count | `OQ-FEED-001`, `OQ-FEED-002` answered |
 | Later | Expenses, purchases, sales, and provisional profitability view | `OQ-OWN-001`, `OQ-OWN-002`, `OQ-TRADE-001` answered |
 | Later | Herd verification and missing-animal risk | `OQ-COUNT-001` answered |
 
-MVP v1 is INC-001 through INC-004 in real use, plus the later feed, money, and verification work as the interview answers allow. Publication is a later migration increment, after local use. Feed, money, and herd verification stay direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
+MVP v1 is INC-001 through INC-004 accepted, with INC-005 in progress so the family can use what was built, plus the later feed, money, and verification work as the interview answers allow. Publication is a later migration increment, after local use. Feed, money, and herd verification stay direction, as the Master Plan's progressive planning requires, and their order can change with the interview answers. After MVP v1, the TO-BE continues in the order learning dictates (camera and connectivity integrations included, when the infrastructure arrives).
 
 ## How the Master Plan's six questions are answered
 

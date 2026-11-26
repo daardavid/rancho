@@ -207,6 +207,74 @@ describe('nacimiento por HTTP', () => {
     })
   })
 
+  it('lo mínimo queda en desconocido: sin sexo, tenencia ni certeza elegidos', async () => {
+    const cookie = await entrar()
+    const criaId = nuevoId()
+    const nacimiento = await app.inject({
+      method: 'POST',
+      url: '/api/births',
+      headers: { cookie },
+      payload: cuerpo(criaId),
+    })
+    expect(nacimiento.statusCode).toBe(201)
+    expect(nacimiento.json()).toMatchObject({
+      animal: { id: criaId, sexo: 'unknown', tenencia: 'unknown' },
+      filiacion: {
+        criaId,
+        fechaNacimiento: null,
+        precisionFecha: null,
+        madre: desconocido,
+        padre: desconocido,
+      },
+    })
+
+    const ficha = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${criaId}`,
+      headers: { cookie },
+    })
+    expect(ficha.statusCode).toBe(200)
+    expect(ficha.json()).toMatchObject({ sexo: 'unknown', tenencia: 'unknown' })
+
+    const familia = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${criaId}/family`,
+      headers: { cookie },
+    })
+    expect(familia.statusCode).toBe(200)
+    expect(familia.json()).toMatchObject({
+      filiacion: { madre: desconocido, padre: desconocido },
+    })
+  })
+
+  it('una madre señalada sin certeza elegida no crea la cría ni la filiación', async () => {
+    const cookie = await entrar()
+    const madreId = nuevoId()
+    const madres = [
+      { certeza: 'unknown', animalId: madreId, motivo: null },
+      { animalId: madreId, motivo: null },
+    ]
+
+    for (const madre of madres) {
+      const criaId = nuevoId()
+      const respuesta = await app.inject({
+        method: 'POST',
+        url: '/api/births',
+        headers: { cookie },
+        payload: { ...cuerpo(criaId), madre },
+      })
+      expect(respuesta.statusCode).toBe(400)
+      expect(respuesta.json()).toEqual({ codigo: 'cuerpo_invalido' })
+
+      const animales = filasDe(await db.execute(sql`SELECT id FROM herd.animal WHERE id = ${criaId}`))
+      expect(animales).toEqual([])
+      const filiaciones = filasDe(
+        await db.execute(sql`SELECT id FROM herd.parentage_record WHERE offspring_id = ${criaId}`),
+      )
+      expect(filiaciones).toEqual([])
+    }
+  })
+
   it('rechaza único toro marcado como observado', async () => {
     const cookie = await entrar()
     const respuesta = await app.inject({

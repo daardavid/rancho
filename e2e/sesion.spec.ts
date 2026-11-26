@@ -1,15 +1,16 @@
 import { expect, test } from '@playwright/test'
 
-import { entrar, salirDesdeElHato } from './ayudas'
+import { entrar, irA, salirDesdeElMenu } from './ayudas'
 
 /**
  * Entrar y salir.
  *
- * Lo que protege: que la cuenta del propietario abra el hato, que la cookie
- * viaje sola en las peticiones siguientes y que cerrar sesión la invalide de
- * verdad (la fila se borra, no solo la cookie).
+ * Lo que protege: que al abrir la app se vea Inicio —lo que hay que revisar, no
+ * el hato—, que la cuenta del propietario alcance su hato desde la barra de
+ * abajo, que la cookie viaje sola en las peticiones siguientes y que cerrar
+ * sesión la invalide de verdad (la fila se borra, no solo la cookie).
  */
-test('el propietario entra, ve su hato y sale', async ({ page, context }) => {
+test('el propietario entra, ve Inicio, alcanza su hato y sale', async ({ page, context }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
@@ -18,8 +19,12 @@ test('el propietario entra, ve su hato y sale', async ({ page, context }) => {
   await page.getByLabel('Contraseña').fill('contrasena-de-prueba-e2e')
   await page.getByRole('button', { name: 'Entrar' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+  // `#/` es Inicio: lo primero es lo que hay que revisar.
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
   await expect(page.getByText('RANCHO').first()).toBeVisible()
+
+  await irA(page, 'Hato')
+  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
 
   // La cookie de sesión es de primera parte, `HttpOnly` y `Secure`: el
   // navegador no la puede leer, y solo viaja por el mismo origen.
@@ -30,16 +35,19 @@ test('el propietario entra, ve su hato y sale', async ({ page, context }) => {
   expect(sesion?.secure).toBe(true)
   expect(sesion?.sameSite).toBe('Lax')
 
-  await salirDesdeElHato(page)
+  await salirDesdeElMenu(page)
 
   // La fila de la sesión se borró: la cookie que quedó ya no sirve.
   const quedan = (await context.cookies()).filter((cookie) => cookie.name === 'rancho_sesion')
   expect(quedan).toHaveLength(0)
 })
 
-test('sin sesión, la aplicación pide entrar y no enseña el hato', async ({ page }) => {
+test('sin sesión, la aplicación pide entrar y no enseña ni Inicio ni el hato', async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeHidden()
   await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeHidden()
 })
 
@@ -50,13 +58,13 @@ test('una contraseña mal puesta no abre la sesión y lo dice', async ({ page })
   await page.getByRole('button', { name: 'Entrar' }).click()
 
   await expect(page.getByRole('alert')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeHidden()
 })
 
 test('al volver a entrar después de salir, la sesión se abre otra vez', async ({ page }) => {
   await entrar(page)
-  await salirDesdeElHato(page)
+  await salirDesdeElMenu(page)
 
   await entrar(page)
-  await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
 })

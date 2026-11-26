@@ -140,7 +140,7 @@ describe('Pantalla de crecimiento', () => {
     pintarApp('#/crecimiento')
 
     expect(await screen.findByRole('heading', { name: 'Crecimiento' })).toBeDefined()
-    expect(screen.getByText('ÚLTIMA VUELTA · 24 NOV')).toBeDefined()
+    expect(screen.getByText('Última vuelta: 24 NOV')).toBeDefined()
     expect(screen.getByText('0.652')).toBeDefined()
     expect(screen.queryByText('5')).toBeNull()
     expect(screen.getByText('7 / 9')).toBeDefined()

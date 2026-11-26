@@ -1,5 +1,6 @@
 import {
   pesoSchema,
+  pesosConocidosSchema,
   pesosDeAnimalSchema,
   sesionDePesajeSchema,
   type CorregirPeso,
@@ -21,6 +22,7 @@ import { LLAVE_DE_INICIO } from './inicio'
  */
 
 export const LLAVE_DE_ULTIMA_SESION = ['sesiones', 'ultima'] as const
+export const LLAVE_DE_PESOS_CONOCIDOS = ['pesos-conocidos'] as const
 
 /**
  * La última sesión del rancho, o `null` si todavía no hay ninguna.
@@ -43,6 +45,17 @@ export function useUltimaSesion(opciones: { readonly habilitada?: boolean } = {}
         throw error
       }
     },
+  })
+}
+
+/**
+ * Todos los pesos del rancho, para comparar una captura contra la fecha del
+ * borrador y no contra la última vuelta.
+ */
+export function usePesosConocidos() {
+  return useQuery({
+    queryKey: LLAVE_DE_PESOS_CONOCIDOS,
+    queryFn: () => pedir(pesosConocidosSchema, '/api/read-models/known-weights'),
   })
 }
 
@@ -101,6 +114,7 @@ export function useCorregirPeso(pesoId: string) {
 function invalidarDespuesDePesar(cache: ReturnType<typeof useQueryClient>): void {
   void cache.invalidateQueries({ queryKey: ['ficha'] })
   void cache.invalidateQueries({ queryKey: ['pesos'] })
+  void cache.invalidateQueries({ queryKey: LLAVE_DE_PESOS_CONOCIDOS })
   void cache.invalidateQueries({ queryKey: ['sesion'] })
   void cache.invalidateQueries({ queryKey: LLAVE_DE_ULTIMA_SESION })
   void cache.invalidateQueries({ queryKey: ['hato'] })

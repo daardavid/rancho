@@ -433,4 +433,52 @@ describe('potreros y lugar esperado por HTTP', () => {
     expect(respuesta.statusCode).toBe(404)
     expect(respuesta.json<{ codigo: string }>().codigo).toBe('no_encontrado')
   })
+
+  it('un animal dado de baja no acepta un lugar y no lo guarda', async () => {
+    const cookie = await entrar()
+    const cabeceras = { cookie }
+    const animalId = nuevoId()
+    const alta = await app.inject({
+      method: 'POST',
+      url: '/api/animals',
+      headers: cabeceras,
+      payload: { commandId: nuevoId(), id: animalId, nombre: 'Salió HTTP lugar' },
+    })
+    expect(alta.statusCode).toBe(201)
+
+    const baja = await app.inject({
+      method: 'POST',
+      url: `/api/animals/${animalId}/exit`,
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        version: alta.json<{ version: number }>().version,
+        motivo: 'sale',
+        fecha: '2026-11-20',
+      },
+    })
+    expect(baja.statusCode).toBe(200)
+
+    const movimiento = await app.inject({
+      method: 'POST',
+      url: '/api/locations',
+      headers: cabeceras,
+      payload: {
+        commandId: nuevoId(),
+        potreroId: null,
+        desde: '2026-11-21',
+        animales: [{ animalId, asignacionId: nuevoId() }],
+      },
+    })
+    expect(movimiento.statusCode).toBe(422)
+    expect(movimiento.json()).toEqual({ codigo: 'fuera_del_hato' })
+
+    const lugar = await app.inject({
+      method: 'GET',
+      url: `/api/animals/${animalId}/location`,
+      headers: cabeceras,
+    })
+    expect(lugar.statusCode).toBe(200)
+    expect(lugar.json()).toEqual({ vigente: null, historia: [] })
+  })
 })

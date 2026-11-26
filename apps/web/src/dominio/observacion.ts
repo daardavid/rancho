@@ -1,3 +1,5 @@
+import type { OrigenDeObservacion } from '@rancho/api-contracts'
+
 import { diaLegible } from './fechas'
 
 /**
@@ -24,11 +26,19 @@ export function haceCuantosDias(dias: number): string {
 export function textoDeUltimaObservacion(observacion: {
   readonly dias: number
   readonly fecha: string
-  readonly origen: 'pesaje' | 'sanidad'
+  readonly origen: OrigenDeObservacion
 }): string {
-  const evento =
-    observacion.origen === 'pesaje'
-      ? `en el pesaje del ${diaLegible(observacion.fecha)}`
-      : `en la nota de sanidad del ${diaLegible(observacion.fecha)}`
+  const evento = textoDelOrigen(observacion.origen, observacion.fecha)
   return `Visto por última vez: ${haceCuantosDias(observacion.dias)}, ${evento}.`
+}
+
+export function textoDelOrigen(origen: OrigenDeObservacion, fecha: string): string {
+  const dia = diaLegible(fecha)
+  if (origen === 'pesaje') {
+    return `en el pesaje del ${dia}`
+  }
+  if (origen === 'nacimiento') {
+    return `en el nacimiento del ${dia}`
+  }
+  return `en la nota de sanidad del ${dia}`
 }

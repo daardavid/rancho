@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { darDeAltaConNombre, entrar, irA, nombreUnico } from './ayudas'
+import { darDeAltaConNombre, entrarAlHato, irA, nombreUnico } from './ayudas'
 
 /**
  * La vuelta por la báscula y lo que se ve después en crecimiento.
@@ -20,7 +20,7 @@ import { darDeAltaConNombre, entrar, irA, nombreUnico } from './ayudas'
 test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en crecimiento', async ({
   page,
 }) => {
-  await entrar(page)
+  await entrarAlHato(page)
 
   // Tres becerros con nombre propio. El nombre es único por corrida porque la
   // base es una sola y el hato no se vacía entre pruebas.
@@ -52,7 +52,7 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
 
   await page.getByRole('button', { name: 'Guardar pesaje (3)' }).click()
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
-  await expect(page.locator('.subtitulo')).toContainText('3 pesados')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('3 pesados')
   await expect(page.getByText('180.5 kg')).toBeVisible()
 
   // La vuelta 2: un mes después. La app propone a los tres de la vuelta
@@ -80,8 +80,8 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
   await expect(page.getByRole('heading', { name: /Pesaje del/ })).toBeVisible()
 
   // Dos pesados y un hueco: el hueco se ve como «No se pesó», no como una baja.
-  await expect(page.locator('.subtitulo')).toContainText('2 pesados')
-  await expect(page.locator('.subtitulo')).toContainText('1 no se pesó')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('2 pesados')
+  await expect(page.locator('.ui-encabezado__subtitulo')).toContainText('1 no se pesó')
   await expect(page.getByText('215.5 kg')).toBeVisible()
   await expect(page.getByRole('img', { name: 'Foto de la báscula' })).toBeVisible()
 
@@ -101,7 +101,7 @@ test('una vuelta de 3 animales con un hueco, una corrección y la ganancia en cr
 })
 
 test('corregir un peso mal anotado guarda el valor anterior en la historia', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   const nombre = nombreUnico('Becerro a corregir')
   await darDeAltaConNombre(page, nombre)
   await irA(page, 'Pesaje')
@@ -127,7 +127,7 @@ test('corregir un peso mal anotado guarda el valor anterior en la historia', asy
   // su valor anterior, quién lo cambió y por qué.
   await expect(page.getByText('205.25 kg')).toBeVisible()
 
-  await page.getByRole('button', { name: '← Hato' }).click()
+  await page.getByRole('button', { name: 'Regresar al hato' }).click()
   await expect(page.getByRole('heading', { name: 'Hato', exact: true })).toBeVisible()
   await page.getByRole('button', { name: new RegExp(nombre) }).click()
 
@@ -141,7 +141,7 @@ test('corregir un peso mal anotado guarda el valor anterior en la historia', asy
 test('un peso con calidad «me lo dijeron» se guarda y se ve distinto de uno medido', async ({
   page,
 }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   const nombre = nombreUnico('Becerro declarado')
   await darDeAltaConNombre(page, nombre)
   await irA(page, 'Pesaje')
@@ -163,7 +163,7 @@ test('un peso con calidad «me lo dijeron» se guarda y se ve distinto de uno me
 })
 
 test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
   await irA(page, 'Pesaje')
   await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
 
@@ -176,6 +176,7 @@ test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) 
   const antes = await page.evaluate(() => window.localStorage.getItem('rancho.pesaje.borrador'))
   expect(antes).not.toBeNull()
 
+  await page.getByRole('button', { name: 'Menú' }).click()
   await page.getByRole('button', { name: 'Salir' }).click()
   await expect(page.getByRole('heading', { name: 'Entra para ver tu hato' })).toBeVisible()
 
@@ -183,14 +184,14 @@ test('cerrar sesión tira la vuelta a medias de este celular', async ({ page }) 
   expect(despues).toBeNull()
 
   // Al volver a entrar, el pesaje empieza limpio: nadie hereda la captura ajena.
-  await entrar(page)
+  await entrarAlHato(page)
   await irA(page, 'Pesaje')
   await expect(page.getByRole('heading', { name: 'Pesaje', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Agregar otro animal' }).click()
   await expect(page.getByLabel('Buscar', { exact: true })).toHaveValue('')
 })
 
-/** Busca el animal en el pesaje y lo agrega a la vuelta. */
+/** Busca el animal en el pesaje, lo marca y lo agrega a la vuelta. */
 async function agregarAlPesaje(
   page: import('@playwright/test').Page,
   nombre: string,
@@ -200,7 +201,9 @@ async function agregarAlPesaje(
     await page.getByRole('button', { name: 'Agregar otro animal' }).click()
   }
   await buscar.fill(nombre)
-  await page.getByRole('button', { name: new RegExp(`\\+ ${escapeRegex(nombre)}`) }).click()
+  // Se marca en la lista y se agrega: la lista admite varios de una vez.
+  await page.getByRole('checkbox', { name: `Elegir a ${nombre}` }).check()
+  await page.getByRole('button', { name: 'Agregar 1 animal' }).click()
   await expect(renglonDe(page, nombre)).toBeVisible()
 }
 

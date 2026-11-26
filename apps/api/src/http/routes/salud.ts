@@ -51,7 +51,7 @@ export function registrarRutasDeSalud(app: FastifyInstance, herd: Herd): void {
         fecha: datos.fecha,
         ...(datos.producto !== undefined ? { producto: datos.producto } : {}),
         ...(datos.evidenciaId !== undefined ? { evidenciaId: datos.evidenciaId } : {}),
-        vioAlAnimal: datos.vioAlAnimal === true,
+        vioAlAnimal: datos.vioAlAnimal,
         animales: datos.animales,
       }),
     )

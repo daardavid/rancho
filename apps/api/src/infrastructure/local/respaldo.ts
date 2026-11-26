@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 
 import type { PGlite } from '@electric-sql/pglite'
 import { pgDump } from '@electric-sql/pglite-tools/pg_dump'
@@ -62,25 +62,7 @@ export function leerArchivoDeRestauracion(argv: readonly string[]): string {
   return archivo
 }
 
-/**
- * Dónde está el archivo que se va a restaurar.
- *
- * `npm run restaurar -w @rancho/api` deja el proceso en `apps/api` y guarda
- * la carpeta desde la que se invocó npm en `INIT_CWD`. Una ruta relativa
- * (la que imprime `npm run respaldo`) se arma contra esa carpeta. Sin ella,
- * contra el directorio actual. Una ruta absoluta se queda igual.
- */
-export function resolverArchivoDeRestauracion(
-  ruta: string,
-  directorioInicial: string | undefined = process.env['INIT_CWD'],
-  directorioActual: string = process.cwd(),
-): string {
-  const base =
-    directorioInicial !== undefined && directorioInicial !== ''
-      ? directorioInicial
-      : directorioActual
-  return resolve(base, ruta)
-}
+export { resolverArchivoDeRestauracion } from '../ruta-de-respaldo'
 
 /** Un archivo de `pg_dump`, no un texto cualquiera. */
 export function esRespaldoSql(texto: string): boolean {

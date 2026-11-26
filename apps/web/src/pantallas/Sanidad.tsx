@@ -28,9 +28,9 @@ const LARGO_DEL_DETALLE = 2000
  * una vez por animal. No hay calendario, dosis, retiro ni flujo de veterinario
  * (`OQ-HEALTH-001`): esos campos no existen aquí.
  *
- * «Se vio al animal» empieza en «No» y hay que tocarlo. Una nota no es una
- * observación salvo que diga que sí (`TGT-SEC-001`); la pantalla no decide por
- * su cuenta que se le vio.
+ * Ni el tipo ni «¿Se vio al animal?» vienen marcados. Si no se eligen, no se
+ * guarda: la pantalla no decide «Vacuna» ni «No se vio». El modelo solo admite
+ * sí o no para el visto; «No sé» se propone aparte y aquí hay que elegir.
  *
  * El `commandId` y los `notaId` se conservan entre intentos mientras el
  * contenido no cambie: si se cae la red después de que la API guardó, el
@@ -48,21 +48,27 @@ export function FormularioDeSanidad({
   readonly alGuardar: () => void
   readonly alCancelar: () => void
 }) {
-  const [tipo, setTipo] = useState('vacuna')
+  const [tipo, setTipo] = useState('')
   const [detalle, setDetalle] = useState('')
   const [fecha, setFecha] = useState(hoyEnElRancho())
   const [producto, setProducto] = useState('')
   const [evidenciaId, setEvidenciaId] = useState<string | null>(null)
-  const [vioAlAnimal, setVioAlAnimal] = useState('no')
+  const [vioAlAnimal, setVioAlAnimal] = useState('')
   const [subiendo, setSubiendo] = useState(false)
   const anotar = useAnotarSalud()
   const pendiente = useRef<{ contenido: string; cuerpo: AnotarSalud } | null>(null)
 
+  const tipoElegido = tipoDeNotaElegido(tipo)
   const faltaDetalle = detalle.trim() === ''
+  const faltaTipo = tipoElegido === null
+  const faltaVisto = vioAlAnimal !== 'si' && vioAlAnimal !== 'no'
   const sinAnimales = animales.length === 0
 
   const guardar = (): void => {
-    if (faltaDetalle || sinAnimales || anotar.isPending || subiendo) {
+    if (faltaDetalle || faltaTipo || faltaVisto || sinAnimales || anotar.isPending || subiendo) {
+      return
+    }
+    if (tipoElegido === null) {
       return
     }
     const limpio = detalle.trim()
@@ -83,7 +89,7 @@ export function FormularioDeSanidad({
         contenido,
         cuerpo: {
           commandId: crypto.randomUUID(),
-          tipo: tipoDe(tipo),
+          tipo: tipoElegido,
           detalle: limpio,
           fecha,
           ...(conProducto === '' ? {} : { producto: conProducto }),
@@ -107,7 +113,8 @@ export function FormularioDeSanidad({
       <h2 className="ficha__titulo">Anotar sanidad · {nombreDelGrupo}</h2>
       <p className="campo__ayuda">
         Se anota qué se hizo o se vio, el día y el producto si se sabe. No es un calendario ni
-        lleva dosis.
+        lleva dosis. Elige qué se anota y si se vio al animal: no viene marcado, y si no lo
+        eliges no se guarda.
       </p>
 
       <Mosaicos etiqueta="¿Qué se anota?" opciones={TIPOS} valor={tipo} alElegir={setTipo} />
@@ -125,8 +132,8 @@ export function FormularioDeSanidad({
       <Segmentado
         etiqueta="¿Se vio al animal?"
         opciones={[
-          { valor: 'no', texto: 'No se vio' },
           { valor: 'si', texto: 'Sí se vio' },
+          { valor: 'no', texto: 'No se vio' },
         ]}
         valor={vioAlAnimal}
         alElegir={setVioAlAnimal}
@@ -159,7 +166,9 @@ export function FormularioDeSanidad({
 
       <BotonPrincipal
         alTocar={guardar}
-        deshabilitado={faltaDetalle || sinAnimales || anotar.isPending || subiendo}
+        deshabilitado={
+          faltaDetalle || faltaTipo || faltaVisto || sinAnimales || anotar.isPending || subiendo
+        }
       >
         {anotar.isPending ? 'Guardando…' : 'Anotar sanidad'}
       </BotonPrincipal>
@@ -178,7 +187,14 @@ export function FormularioDeSanidad({
  * se dice que no se pudo traer, que es lo que pasó; no se afirma que no haya
  * notas.
  */
-export function SanidadDelAnimal({ animalId }: { readonly animalId: string }) {
+export function SanidadDelAnimal({
+  animalId,
+  puedeAnotar,
+}: {
+  readonly animalId: string
+  /** Quien ya salió conserva las notas y no recibe otra. */
+  readonly puedeAnotar: boolean
+}) {
   const notas = useNotasDeSalud(animalId)
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null)
 
@@ -194,8 +210,9 @@ export function SanidadDelAnimal({ animalId }: { readonly animalId: string }) {
       ) : null}
       {notas.data !== undefined && notas.data.notas.length === 0 ? (
         <p className="campo__ayuda">
-          Todavía no se le anotó nada de sanidad. Se anota desde aquí o desde el hato, eligiendo
-          varios animales.
+          {puedeAnotar
+            ? 'Todavía no se le anotó nada de sanidad. Se anota desde aquí o desde el hato, eligiendo varios animales.'
+            : 'No se le anotó sanidad. Ya salió del hato, así que no se le anota otra.'}
         </p>
       ) : null}
 
@@ -414,7 +431,7 @@ function textoAnterior(correccion: NotaConHistoria['correcciones'][number]): str
   return correccion.valorAnterior
 }
 
-function tipoDe(valor: string): AnotarSalud['tipo'] {
+function tipoDeNotaElegido(valor: string): AnotarSalud['tipo'] | null {
   if (
     valor === 'vacuna' ||
     valor === 'medicamento' ||
@@ -424,5 +441,9 @@ function tipoDe(valor: string): AnotarSalud['tipo'] {
   ) {
     return valor
   }
-  return 'otro'
+  return null
+}
+
+function tipoDe(valor: string): AnotarSalud['tipo'] {
+  return tipoDeNotaElegido(valor) ?? 'otro'
 }

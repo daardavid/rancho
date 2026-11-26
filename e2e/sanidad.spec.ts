@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
+import { darDeAltaConNombre, entrarAlHato, nombreUnico } from './ayudas'
 
 /**
  * Notas de sanidad, de punta a punta.
@@ -11,7 +11,7 @@ import { darDeAltaConNombre, entrar, nombreUnico } from './ayudas'
  * corrida, así que los nombres son propios y nadie supone un hato vacío.
  */
 test('anotar sanidad a un animal y a un grupo, y verlo en cada ficha', async ({ page }) => {
-  await entrar(page)
+  await entrarAlHato(page)
 
   const uno = nombreUnico('Sanidad uno')
   const dos = nombreUnico('Sanidad dos')
@@ -30,15 +30,13 @@ test('anotar sanidad a un animal y a un grupo, y verlo en cada ficha', async ({ 
 
   const detalleUno = `Vacuna del ántrax ${String(Date.now()).slice(-5)}`
   await page.getByRole('button', { name: 'Anotar sanidad' }).click()
-  await page
-    .getByRole('radiogroup', { name: '¿Qué se anota?' })
-    .getByRole('radio', { name: 'Vacuna' })
-    .check()
+  const tipo = page.getByRole('radiogroup', { name: '¿Qué se anota?' })
+  await expect(tipo.getByRole('radio', { name: 'Vacuna' })).not.toBeChecked()
+  const visto = page.getByRole('radiogroup', { name: '¿Se vio al animal?' })
+  await expect(visto.getByRole('radio', { name: 'No se vio' })).not.toBeChecked()
+  await tipo.getByRole('radio', { name: 'Vacuna' }).check()
   await page.getByLabel('¿Qué se hizo o se vio?').fill(detalleUno)
-  // Por omisión una nota no dice que se vio al animal.
-  await expect(
-    page.getByRole('radiogroup', { name: '¿Se vio al animal?' }).getByRole('radio', { name: 'No se vio' }),
-  ).toBeChecked()
+  await visto.getByRole('radio', { name: 'No se vio' }).check()
   await page.getByRole('button', { name: 'Anotar sanidad', exact: true }).click()
 
   await expect(page.getByText('Nota de sanidad guardada.')).toBeVisible()

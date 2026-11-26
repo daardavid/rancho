@@ -31,6 +31,8 @@ export const CODIGOS_DE_RECHAZO = [
   'nota_ya_existe',
   'nota_vacia',
   'tipo_invalido',
+  'visto_sin_elegir',
+  'fuera_del_hato',
 ] as const
 
 export type CodigoDeRechazo = (typeof CODIGOS_DE_RECHAZO)[number]

@@ -19,7 +19,8 @@ async function main(): Promise<void> {
   })
   console.log(`Respaldo escrito en ${mostrar(raiz, ruta)}.`)
   console.log('Ese archivo reemplaza la base local, y también se carga en un PostgreSQL de servidor.')
-  console.log('Cómo: docs/development/correr-local.md.')
+  console.log('En la laptop: docs/development/correr-local.md.')
+  console.log('En la base publicada: npm run cargar-respaldo. Pasos en docs/development/publicar.md.')
 }
 
 function mostrar(raiz: string, ruta: string): string {

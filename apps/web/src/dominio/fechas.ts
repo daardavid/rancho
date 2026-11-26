@@ -78,6 +78,19 @@ export function diaLegible(dia: string | null): string {
   return `${Number(partes[3])} ${mes} ${partes[1]}`
 }
 
+/** `"2026-11-25"` → `"25 nov"`. Sin año: cabe en el renglón de la captura. */
+export function diaCorto(dia: string): string {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia)
+  if (partes === null) {
+    return dia
+  }
+  const mes = MESES[Number(partes[2]) - 1]
+  if (mes === undefined) {
+    return dia
+  }
+  return `${Number(partes[3])} ${mes}`
+}
+
 /** Un instante guardado (`ISO`) en la hora del rancho. */
 export function instanteLegible(instante: string): string {
   const fecha = new Date(instante)

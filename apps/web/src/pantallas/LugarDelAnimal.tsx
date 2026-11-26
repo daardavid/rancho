@@ -23,11 +23,14 @@ export type EstadoDePotreros = 'cargando' | 'error' | 'listo'
  */
 export function LugarDelAnimalEnLaFicha({
   animalId,
+  puedeMover,
   potreros,
   estadoDePotreros,
   alRecargarPotreros,
 }: {
   readonly animalId: string
+  /** Quien ya salió no se mueve: no se ofrece «Mover a…». */
+  readonly puedeMover: boolean
   readonly potreros: readonly Pick<Potrero, 'id' | 'nombre'>[]
   readonly estadoDePotreros: EstadoDePotreros
   readonly alRecargarPotreros: () => void
@@ -49,6 +52,7 @@ export function LugarDelAnimalEnLaFicha({
   return (
     <ContenidoDelLugar
       lugar={lugar.data}
+      puedeMover={puedeMover}
       potreros={potreros}
       estadoDePotreros={estadoDePotreros}
       alRecargarPotreros={alRecargarPotreros}
@@ -58,11 +62,13 @@ export function LugarDelAnimalEnLaFicha({
 
 function ContenidoDelLugar({
   lugar,
+  puedeMover,
   potreros,
   estadoDePotreros,
   alRecargarPotreros,
 }: {
   readonly lugar: LugarDelAnimal
+  readonly puedeMover: boolean
   readonly potreros: readonly Pick<Potrero, 'id' | 'nombre'>[]
   readonly estadoDePotreros: EstadoDePotreros
   readonly alRecargarPotreros: () => void
@@ -72,7 +78,9 @@ function ContenidoDelLugar({
   if (lugar.vigente === null) {
     return (
       <p className="campo__ayuda">
-        Todavía no se le anotó un potrero. En el hato se elige el animal y se usa «Mover a…».
+        {puedeMover
+          ? 'Todavía no se le anotó un potrero. En el hato se elige el animal y se usa «Mover a…».'
+          : 'Ya salió del hato. No se le asigna potrero.'}
       </p>
     )
   }
@@ -142,7 +150,7 @@ function textoDe(
   estadoDePotreros: EstadoDePotreros,
 ): string {
   if (asignacion.potreroId === null) {
-    return 'No sé'
+    return 'Lugar: no sé'
   }
   return textoDePotrero(asignacion.potreroId, nombres, estadoDePotreros)
 }

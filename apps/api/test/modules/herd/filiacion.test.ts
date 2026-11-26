@@ -28,7 +28,7 @@ function abrir(parcial: Parameters<typeof abrirFiliacion>[0] = {
 }
 
 describe('filiación', () => {
-  it('acepta madre y padre desconocidos, y una fecha aproximada', () => {
+  it('lo mínimo, madre y padre en «No sé», no inventa una certeza', () => {
     const filiacion = abrir({
       id: '66666666-6666-4666-8666-666666666666',
       ranchId,

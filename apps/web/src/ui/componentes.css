@@ -424,6 +424,17 @@
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  /*
+   * En escritorio la barra de desplazamiento horizontal se ve como una franja
+   * fea debajo de las píldoras. El arrastre sigue: con el dedo o con la rueda
+   * horizontal, que es como se usa en el celular.
+   */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ui-filtros::-webkit-scrollbar {
+  display: none;
 }
 
 .ui-filtro {
@@ -781,6 +792,18 @@
   margin-bottom: 12px;
 }
 
+.pantalla--sesion {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.pantalla--sesion .ui-encabezado {
+  margin-bottom: 16px;
+}
+
+.pantalla--sesion .ui-boton-principal {
+  margin-top: 8px;
+}
+
 .crecimiento__seccion {
   margin-top: 16px;
 }
@@ -962,18 +985,25 @@
 
 /*
  * El hato deja respirar abajo: el botón flotante y la barra inferior están
- * fijos al borde de la ventana y taparían la última fila.
+ * fijos al borde de la ventana y taparían la última fila. El aire cubre el
+ * botón completo (56 px), su separación de 12 px, la barra de 72 px y el área
+ * segura del celular, con margen para que un aviso tampoco quede debajo.
  */
 .pantalla--hato {
-  padding-bottom: calc(var(--alto-barra) + 88px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--alto-barra) + 112px + env(safe-area-inset-bottom));
 }
 
-.hato__encabezado {
+/* Una pestaña sin botón flotante: solo deja aire para la barra de abajo. */
+.pantalla--pestana {
+  padding-bottom: calc(var(--alto-barra) + 24px + env(safe-area-inset-bottom));
+}
+
+.encabezado-rancho {
   position: relative;
   margin-bottom: 14px;
 }
 
-.hato__menu {
+.encabezado-rancho__menu {
   position: absolute;
   z-index: 30;
   top: calc(100% - 4px);
@@ -986,7 +1016,7 @@
   box-shadow: 0 8px 20px rgba(28, 31, 26, 0.14);
 }
 
-.hato__menu-opcion {
+.encabezado-rancho__opcion {
   width: 100%;
   min-height: 44px;
   padding: 0 12px;
@@ -1000,8 +1030,42 @@
   cursor: pointer;
 }
 
-.hato__menu-opcion:hover {
+.encabezado-rancho__opcion:hover {
   background: var(--fondo);
+}
+
+.encabezado-rancho__opcion:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+/* Accesos directos de Inicio: cuatro capturas, sin pasar por el hato. */
+.inicio__accesos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-tarjetas);
+  margin: 0 0 var(--espacio-secciones);
+}
+
+.inicio__acceso {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.inicio__acceso:hover {
+  color: var(--texto);
+  border-color: var(--borde-campo);
 }
 
 .hato__filtros {
@@ -1074,19 +1138,15 @@
   outline-offset: 2px;
 }
 
-.hato__menu-opcion:focus-visible {
-  outline: 3px solid var(--texto);
-  outline-offset: 2px;
-}
-
 /* Pesaje --------------------------------------------------------------- */
 
 /*
  * La barra de guardar está fija encima de la navegación. Este aire es para
- * que la última fila no quede debajo de ella.
+ * que la última fila no quede debajo de ella: el botón, su nota y sus márgenes
+ * suman más de los 72 px de la navegación, y antes se quedaba corto.
  */
 .pantalla--pesaje {
-  padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--alto-barra) + 130px + env(safe-area-inset-bottom));
 }
 
 .pesaje__fecha {
@@ -1305,6 +1365,9 @@
 }
 
 .pesaje__sugerido {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--borde-tarjeta);
@@ -1315,6 +1378,26 @@
   text-align: left;
   padding: 10px 14px;
   cursor: pointer;
+}
+
+.pesaje__sugerido--marcado {
+  border-color: var(--verde);
+  background: var(--verde-fondo);
+}
+
+/* La casilla se ve: marca varios y se agregan de una vez. Tamaño del pulgar. */
+.pesaje__sugerido-casilla {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--verde);
+}
+
+.pesaje__sugerido-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .pesaje__sugerido-nombre {
@@ -1342,8 +1425,12 @@
 .pesaje__siguiente:focus-visible,
 .pesaje__agregar:focus-visible,
 .pesaje__fila:focus-visible,
-.pesaje__calidad:focus-visible,
-.pesaje__sugerido:focus-visible {
+.pesaje__calidad:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+.pesaje__sugerido:has(.pesaje__sugerido-casilla:focus-visible) {
   outline: 3px solid var(--texto);
   outline-offset: 2px;
 }

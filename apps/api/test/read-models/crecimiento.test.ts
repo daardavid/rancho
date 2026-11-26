@@ -478,6 +478,61 @@ describe('media de la última vuelta', () => {
   })
 })
 
+describe('pesos conocidos para comparar una captura', () => {
+  it('trae fecha y kilos en orden, y un hueco no entra', async () => {
+    const animalId = await animal()
+    const octubre = nuevoId()
+    const noviembre = nuevoId()
+
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-11-25',
+      filas: [
+        {
+          id: noviembre,
+          animalId,
+          resultado: 'pesado',
+          kilos: '152.500',
+          calidad: 'measured',
+        },
+      ],
+    })
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-10-01',
+      filas: [
+        {
+          id: octubre,
+          animalId,
+          resultado: 'pesado',
+          kilos: '120.000',
+          calidad: 'measured',
+        },
+      ],
+    })
+    await growth.registrar({
+      commandId: nuevoId(),
+      ranchId,
+      recordedBy,
+      id: nuevoId(),
+      fecha: '2026-12-01',
+      filas: [{ id: nuevoId(), animalId, resultado: 'hueco' }],
+    })
+
+    const deEste = (await modelos.pesosConocidos(ranchId)).filter((peso) => peso.animalId === animalId)
+    expect(deEste).toEqual([
+      { animalId, fecha: '2026-10-01', kilos: '120.000' },
+      { animalId, fecha: '2026-11-25', kilos: '152.500' },
+    ])
+  })
+})
+
 describe('lo derivado no se guarda', () => {
   it('ninguna tabla de la base guarda la ganancia de peso', async () => {
     const columnas = filasDe<{ table_schema: string; table_name: string; column_name: string }>(

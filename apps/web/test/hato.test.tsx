@@ -155,7 +155,7 @@ describe('Filtros del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     await screen.findByText('Canelo')
 
@@ -176,7 +176,7 @@ describe('Filtros del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.click(screen.getByRole('radio', { name: 'Becerros 2' }))
@@ -200,7 +200,7 @@ describe('Filtros del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.type(screen.getByLabelText('Buscar'), 'canelo')
@@ -212,6 +212,39 @@ describe('Filtros del hato', () => {
 })
 
 describe('Búsqueda del hato', () => {
+  it('un animal dado de baja no se puede elegir para potrero ni sanidad', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': elHato(),
+      'GET /api/read-models/growth-overview': elResumen([]),
+      'GET /api/paddocks': () => ({ estado: 200, cuerpo: { potreros: [], sinAsignacion: 0, desconocidos: 0 } }),
+      'GET /api/locations': () => ({ estado: 200, cuerpo: { animales: [] } }),
+      'GET /api/animals?estado=salidas': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [
+            animalDeLista({
+              id: '99999999-9999-4999-8999-999999999999',
+              nombre: 'Vendido',
+              categoria: 'bull',
+              activo: false,
+              salida: { motivo: 'sale', fecha: '2026-11-01', nota: null, evidenciaId: null },
+            }),
+          ],
+        },
+      }),
+    })
+
+    pintarApp('#/hato')
+    await screen.findByText('Canelo')
+    await usuario.click(screen.getByRole('button', { name: 'Mover animales a un potrero' }))
+    await usuario.type(screen.getByLabelText('Buscar'), 'Vendido')
+
+    expect(await screen.findByText('Vendido')).toBeDefined()
+    expect(screen.queryByRole('checkbox', { name: 'Elegir a Vendido' })).toBeNull()
+  })
+
   it('encuentra al animal por un arete que ya se cambió', async () => {
     const usuario = userEvent.setup()
     montarApi({
@@ -220,7 +253,7 @@ describe('Búsqueda del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     // En la fila se ve el arete puesto, no el viejo.
@@ -241,7 +274,7 @@ describe('Búsqueda del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
@@ -262,7 +295,7 @@ describe('Búsqueda del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
 
@@ -281,7 +314,7 @@ describe('Búsqueda del hato', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
     await usuario.type(screen.getByLabelText('Buscar'), 'no-hay-nadie')
 
@@ -302,7 +335,7 @@ describe('Aviso de huecos', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('2 animales no se pesaron')).toBeDefined()
     expect(await screen.findByText('En la vuelta del 21 nov 2026')).toBeDefined()
@@ -319,7 +352,7 @@ describe('Aviso de huecos', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     expect(screen.queryByText(/no se pesaron/)).toBeNull()
@@ -336,7 +369,7 @@ describe('Aviso de huecos', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('1 animal no se pesó')).toBeDefined()
   })
@@ -352,7 +385,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const etiqueta = await screen.findByText('+0.92 kg/día')
     expect(etiqueta.className).toContain('ui-etiqueta--bien')
@@ -368,7 +401,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const filaDeCanelo = (await screen.findByText('Canelo')).closest('button')
     expect(filaDeCanelo).not.toBeNull()
@@ -388,7 +421,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const etiqueta = await screen.findByText('Revisar')
     expect(etiqueta.className).toContain('ui-etiqueta--revisar')
@@ -403,7 +436,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const etiqueta = await screen.findByText('Revisar')
     expect(etiqueta.className).toContain('ui-etiqueta--revisar')
@@ -420,7 +453,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const filaDeLaVaca = (await screen.findByText('La Pajarita')).closest('button') as HTMLElement
     const etiqueta = within(filaDeLaVaca).getByText('Sin pesajes')
@@ -437,7 +470,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const etiqueta = await screen.findByText('Falta otro pesaje')
     expect(etiqueta.className).toContain('ui-etiqueta--sin-datos')
@@ -453,7 +486,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const filaDeCanelo = (await screen.findByText('Canelo')).closest('button') as HTMLElement
     // Ser hueco manda sobre «Falta otro pesaje»: el animal se esperaba y no se pesó.
@@ -474,7 +507,7 @@ describe('Etiqueta de ganancia', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     const filaDeLaVaca = (await screen.findByText('La Pajarita')).closest('button') as HTMLElement
     // Ser hueco también manda sobre «Sin pesajes»: no se pesó cuando tocaba.
@@ -493,7 +526,7 @@ describe('Una sola acción de cada cosa', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     // La píldora de «Pesaje» de la barra de abajo es navegación, no la acción.
@@ -512,7 +545,7 @@ describe('Una sola acción de cada cosa', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     const alAlta = screen
@@ -530,7 +563,7 @@ describe('Una sola acción de cada cosa', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('Empieza con el primer animal')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Dar de alta el primer animal' })).toBeDefined()
@@ -548,7 +581,7 @@ describe('Una sola acción de cada cosa', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByRole('button', { name: 'Volver a intentar' })).toBeDefined()
     expect(screen.queryByText('Todavía no hay animales')).toBeNull()
@@ -568,7 +601,7 @@ describe('Una sola acción de cada cosa', () => {
       'GET /api/read-models/growth-overview': elResumen([]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     expect(screen.queryByRole('button', { name: 'Salir' })).toBeNull()
@@ -589,7 +622,7 @@ describe('Una sola acción de cada cosa', () => {
       ]),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
 
     expect(await screen.findByText('MI RANCHO')).toBeDefined()
     expect(screen.getByText('5 animales activos · último pesaje hace 3 días')).toBeDefined()
@@ -606,7 +639,7 @@ describe('Una sola acción de cada cosa', () => {
       }),
     })
 
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     expect(screen.getByText('5 animales activos')).toBeDefined()
@@ -622,7 +655,7 @@ describe('Una sola acción de cada cosa', () => {
     })
 
     const usuario = userEvent.setup()
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.click(screen.getByRole('button', { name: 'Menú' }))
@@ -641,7 +674,7 @@ describe('Una sola acción de cada cosa', () => {
     })
 
     const usuario = userEvent.setup()
-    pintarApp('#/')
+    pintarApp('#/hato')
     await screen.findByText('Canelo')
 
     await usuario.click(screen.getByRole('button', { name: 'Menú' }))

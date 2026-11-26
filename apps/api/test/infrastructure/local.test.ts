@@ -16,6 +16,7 @@ import {
   exponerBaseLocal,
   prepararInstalacionLocal,
 } from '../../src/infrastructure/local/base'
+import { correrLocal, textoDeCuentaExistente } from '../../src/infrastructure/local/cli'
 import { haceFaltaConstruir, raizDelRepo } from '../../src/infrastructure/local/construir'
 import { direccionesIpv4, lineasParaAbrir } from '../../src/infrastructure/local/direcciones'
 import { asegurarSecreto, asegurarSecretoEnArchivo } from '../../src/infrastructure/local/secreto'
@@ -194,6 +195,84 @@ describe('arranque de la base local', () => {
       await segunda.cerrar()
     }
   }, 60_000)
+})
+
+describe('usuario cuando ya hay cuenta', () => {
+  const temporales: string[] = []
+  const nodeEnvAnterior = process.env['NODE_ENV']
+
+  afterEach(() => {
+    if (nodeEnvAnterior === undefined) {
+      delete process.env['NODE_ENV']
+    } else {
+      process.env['NODE_ENV'] = nodeEnvAnterior
+    }
+    for (const dir of temporales.splice(0)) {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    }
+  })
+
+  it('nombra al usuario y, si hay varias, las lista', () => {
+    expect(textoDeCuentaExistente(['soporte-local'])).toBe(
+      'Ya hay una cuenta: usuario soporte-local. No se creó otra ni se cambió la contraseña.',
+    )
+    expect(textoDeCuentaExistente(['soporte-local', 'propietario-prueba'])).toBe(
+      'Ya hay cuentas: usuario soporte-local, usuario propietario-prueba. No se creó otra ni se cambió la contraseña.',
+    )
+    expect(textoDeCuentaExistente(['soporte-local'])).not.toContain(CONTRASENA)
+    expect(textoDeCuentaExistente(['soporte-local'])).not.toContain('$argon2')
+  })
+
+  it('con una cuenta creada, npm run local dice el usuario y no escucha', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rancho-local-usuario-'))
+    temporales.push(dir)
+    writeFileSync(
+      join(dir, '.env'),
+      `SESSION_SECRET=${SECRETO}\nRANCH_NAME=Rancho de prueba\n`,
+      'utf8',
+    )
+    const base = await abrirBaseLocal(join(dir, '.datos', 'pglite'))
+    try {
+      await prepararInstalacionLocal(base.db, {
+        nombreDelRancho: 'Rancho de prueba',
+        pedirCuenta: async () => ({ usuario: 'soporte-local', contrasena: CONTRASENA }),
+      })
+    } finally {
+      await base.cerrar()
+    }
+
+    const lineas: string[] = []
+    await correrLocal({
+      raiz: dir,
+      escuchar: false,
+      anunciar: (linea) => {
+        lineas.push(linea)
+      },
+    })
+    const texto = lineas.join('\n')
+    expect(texto).toContain('Ya hay una cuenta: usuario soporte-local')
+    expect(texto).not.toContain(CONTRASENA)
+    expect(texto).not.toContain('$argon2')
+    expect(texto).not.toContain('En esta máquina')
+  }, 60_000)
+
+  it('se niega con NODE_ENV=production antes de abrir la base', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rancho-local-prod-'))
+    temporales.push(dir)
+    writeFileSync(
+      join(dir, '.env'),
+      `SESSION_SECRET=${SECRETO}\nNODE_ENV=production\n`,
+      'utf8',
+    )
+    await expect(
+      correrLocal({
+        raiz: dir,
+        escuchar: false,
+        anunciar: () => undefined,
+      }),
+    ).rejects.toThrow(/production/)
+    expect(existsSync(join(dir, '.datos'))).toBe(false)
+  })
 })
 
 describe('direcciones y construcción', () => {
