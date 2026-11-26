@@ -78,4 +78,5 @@ function invalidarLecturas(cache: ReturnType<typeof useQueryClient>, peso: boole
   void cache.invalidateQueries({ queryKey: LLAVE_DE_PESOS_CONOCIDOS })
   void cache.invalidateQueries({ queryKey: LLAVE_DE_ULTIMA_SESION })
   void cache.invalidateQueries({ queryKey: ['hato'] })
+  void cache.invalidateQueries({ queryKey: ['observacion'] })
 }
