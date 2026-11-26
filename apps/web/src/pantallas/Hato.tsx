@@ -2,7 +2,7 @@ import type { AsignarLugar, FilaDeCrecimiento } from '@rancho/api-contracts'
 import { useMemo, useRef, useState } from 'react'
 
 import { useHato, useResumenDelHato, useSalidas } from '../api/hato'
-import { useAsignarLugar, useLugares, usePotreros } from '../api/lugar'
+import { useAsignarLugar, useLugares, usePotreros, useRegistrarPotrero } from '../api/lugar'
 import { useUltimaSesion } from '../api/pesajes'
 import { areteVigente, coincide, normalizar, nombreVisible } from '../dominio/animal'
 import { diaLegible, diasLegibles, hoyEnElRancho, kilosLegibles } from '../dominio/fechas'
@@ -467,9 +467,24 @@ function MoverA({
   const [desde, setDesde] = useState(hoyEnElRancho())
   const [nota, setNota] = useState('')
   const [quienLoDijo, setQuienLoDijo] = useState('')
+  const [creandoPotrero, setCreandoPotrero] = useState(false)
+  /**
+   * El potrero que se acaba de crear aquí. Se usa mientras la lista del rancho
+   * no vuelve, para que el destino quede marcado y el botón diga su nombre en
+   * vez de «un potrero».
+   */
+  const [creado, setCreado] = useState<{ readonly id: string; readonly nombre: string | null } | null>(
+    null,
+  )
   const mover = useAsignarLugar()
   const faltanAnimales = elegidos.length === 0
   const pendiente = useRef<{ contenido: string; cuerpo: AsignarLugar } | null>(null)
+  const disponibles =
+    creado === null || potreros.some((potrero) => potrero.id === creado.id)
+      ? potreros
+      : [...potreros, creado]
+  const destinoElegido =
+    destino === DESCONOCIDO ? null : (disponibles.find((potrero) => potrero.id === destino) ?? null)
 
   const guardar = (): void => {
     if (faltanAnimales || mover.isPending) {
@@ -527,14 +542,15 @@ function MoverA({
 
       {potreros.length === 0 ? (
         <p className="campo__ayuda" role="status">
-          Todavía no hay potreros anotados. Se puede dejar en «No sé» o agregarlos en Potreros.
+          Todavía no hay potreros anotados. Se puede crear uno aquí mismo, o dejar el destino en
+          «No sé».
         </p>
       ) : null}
 
       <Mosaicos
         etiqueta="¿A qué potrero?"
         opciones={[
-          ...potreros.map((potrero) => ({
+          ...disponibles.map((potrero) => ({
             valor: potrero.id,
             texto: potrero.nombre ?? 'Sin nombre',
           })),
@@ -543,6 +559,30 @@ function MoverA({
         valor={destino}
         alElegir={setDestino}
       />
+
+      {creandoPotrero ? (
+        <FormularioDePotreroNuevo
+          alCancelar={() => {
+            setCreandoPotrero(false)
+          }}
+          alCrear={(potrero) => {
+            setCreandoPotrero(false)
+            setCreado(potrero)
+            // El potrero recién creado queda elegido: el dueño lo creó para
+            // mover a los animales ahí, no para volver a buscarlo en la lista.
+            setDestino(potrero.id)
+          }}
+        />
+      ) : (
+        <BotonSecundario
+          tono="tinta"
+          alTocar={() => {
+            setCreandoPotrero(true)
+          }}
+        >
+          Crear un potrero nuevo
+        </BotonSecundario>
+      )}
 
       <CampoDeFecha etiqueta="¿Desde cuándo?" valor={desde} alCambiar={setDesde} />
 
@@ -565,12 +605,127 @@ function MoverA({
       {mover.isError ? <AvisoDeError error={mover.error} /> : null}
 
       <BotonPrincipal alTocar={guardar} deshabilitado={faltanAnimales || mover.isPending}>
-        {mover.isPending ? 'Guardando…' : 'Mover a…'}
+        {mover.isPending ? 'Guardando…' : textoDelBotonDeMover(elegidos.length, destino, destinoElegido)}
       </BotonPrincipal>
       <BotonSecundario alTocar={alCerrar} deshabilitado={mover.isPending}>
         Cancelar
       </BotonSecundario>
     </section>
+  )
+}
+
+/**
+ * El botón final dice el destino: «Mover 2 a Potrero Norte».
+ *
+ * Con «No sé» lo dice tal cual, porque también es un destino. Un potrero sin
+ * nombre no se inventa: se dice que no tiene nombre. El artículo se contrae
+ * como se habla («al Zapote», «a la Esperanza»), sin cambiar el nombre.
+ */
+function textoDelBotonDeMover(
+  cuantos: number,
+  destino: string,
+  potreroElegido: { readonly nombre: string | null } | null,
+): string {
+  if (cuantos === 0) {
+    return 'Mover a…'
+  }
+  const cuantosTexto = cuantos === 1 ? 'Mover 1' : `Mover ${String(cuantos)}`
+  if (destino === DESCONOCIDO) {
+    return `${cuantosTexto} a «No sé»`
+  }
+  if (potreroElegido === null) {
+    return `${cuantosTexto} a un potrero`
+  }
+  if (potreroElegido.nombre === null) {
+    return `${cuantosTexto} a un potrero sin nombre`
+  }
+  return `${cuantosTexto} ${aDonde(potreroElegido.nombre)}`
+}
+
+/** «al Zapote», «a la Esperanza», «a Potrero Norte». No se toca el nombre. */
+function aDonde(nombre: string): string {
+  if (nombre.startsWith('El ')) {
+    return `al ${nombre.slice(3)}`
+  }
+  if (nombre.startsWith('La ')) {
+    return `a la ${nombre.slice(3)}`
+  }
+  if (nombre.startsWith('Los ')) {
+    return `a los ${nombre.slice(4)}`
+  }
+  if (nombre.startsWith('Las ')) {
+    return `a las ${nombre.slice(4)}`
+  }
+  return `a ${nombre}`
+}
+
+/**
+ * Crear un potrero desde «Mover a…», sin salir al menú ni perder la selección.
+ *
+ * Es el mismo comando que la pantalla Potreros y el mismo `id`/`commandId`
+ * mientras el contenido no cambie: un reintento por mala señal devuelve el
+ * potrero que la API ya guardó en vez de crear otro.
+ */
+function FormularioDePotreroNuevo({
+  alCrear,
+  alCancelar,
+}: {
+  readonly alCrear: (potrero: { readonly id: string; readonly nombre: string | null }) => void
+  readonly alCancelar: () => void
+}) {
+  const [nombre, setNombre] = useState('')
+  const crear = useRegistrarPotrero()
+  const pendiente = useRef<{ contenido: string; commandId: string; id: string } | null>(null)
+
+  const guardar = (): void => {
+    if (crear.isPending) {
+      return
+    }
+    const limpio = nombre.trim()
+    const cuerpo = limpio === '' ? {} : { nombre: limpio }
+    const contenido = JSON.stringify(cuerpo)
+    if (pendiente.current === null || pendiente.current.contenido !== contenido) {
+      pendiente.current = {
+        contenido,
+        commandId: crypto.randomUUID(),
+        id: crypto.randomUUID(),
+      }
+    }
+    const ids = pendiente.current
+    crear.mutate(
+      { commandId: ids.commandId, id: ids.id, ...cuerpo },
+      {
+        onSuccess: (potrero) => {
+          pendiente.current = null
+          alCrear({ id: potrero.id, nombre: potrero.nombre })
+        },
+      },
+    )
+  }
+
+  return (
+    <form
+      className="formulario potrero-nuevo"
+      onSubmit={(evento) => {
+        evento.preventDefault()
+        guardar()
+      }}
+    >
+      <CampoDeTexto
+        etiqueta="Nombre del potrero nuevo"
+        valor={nombre}
+        alCambiar={setNombre}
+        maxLength={200}
+        ayuda="Como le dice el rancho. Si todavía no tiene nombre, se puede dejar vacío."
+      />
+      {crear.isError ? <AvisoDeError error={crear.error} /> : null}
+      <BotonPrincipal tipo="submit" deshabilitado={crear.isPending}>
+        {crear.isPending ? 'Guardando…' : 'Agregar potrero'}
+      </BotonPrincipal>
+      <BotonSecundario alTocar={alCancelar} deshabilitado={crear.isPending}>
+        Cancelar
+      </BotonSecundario>
+    </form>
   )
 }
 

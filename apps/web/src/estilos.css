@@ -650,6 +650,38 @@ label.ui-fila {
   margin-top: 8px;
 }
 
+/* Buscador de la madre en el nacimiento -------------------------------- */
+
+.madre__buscador {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* La madre ya elegida, con su «Quitar»: se ve quién es, no un hueco. */
+.eleccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--verde);
+  border-radius: var(--radio-control);
+  background: var(--verde-fondo);
+}
+
+.eleccion__nombre {
+  font-weight: 600;
+}
+
+/* Crear un potrero dentro de «Mover a…»: un formulario corto, no otra pantalla. */
+.potrero-nuevo {
+  padding: 12px 14px;
+  border: 1px dashed var(--borde-campo);
+  border-radius: var(--radio-control);
+  background: var(--superficie-campo);
+}
+
 .potrero__hueco {
   display: flex;
   flex-direction: column;
