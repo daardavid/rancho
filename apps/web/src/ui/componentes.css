@@ -424,6 +424,17 @@
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  /*
+   * En escritorio la barra de desplazamiento horizontal se ve como una franja
+   * fea debajo de las píldoras. El arrastre sigue: con el dedo o con la rueda
+   * horizontal, que es como se usa en el celular.
+   */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ui-filtros::-webkit-scrollbar {
+  display: none;
 }
 
 .ui-filtro {
@@ -1129,10 +1140,11 @@
 
 /*
  * La barra de guardar está fija encima de la navegación. Este aire es para
- * que la última fila no quede debajo de ella.
+ * que la última fila no quede debajo de ella: el botón, su nota y sus márgenes
+ * suman más de los 72 px de la navegación, y antes se quedaba corto.
  */
 .pantalla--pesaje {
-  padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--alto-barra) + 130px + env(safe-area-inset-bottom));
 }
 
 .pesaje__fecha {
@@ -1351,6 +1363,9 @@
 }
 
 .pesaje__sugerido {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--borde-tarjeta);
@@ -1361,6 +1376,26 @@
   text-align: left;
   padding: 10px 14px;
   cursor: pointer;
+}
+
+.pesaje__sugerido--marcado {
+  border-color: var(--verde);
+  background: var(--verde-fondo);
+}
+
+/* La casilla se ve: marca varios y se agregan de una vez. Tamaño del pulgar. */
+.pesaje__sugerido-casilla {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--verde);
+}
+
+.pesaje__sugerido-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .pesaje__sugerido-nombre {
@@ -1388,8 +1423,12 @@
 .pesaje__siguiente:focus-visible,
 .pesaje__agregar:focus-visible,
 .pesaje__fila:focus-visible,
-.pesaje__calidad:focus-visible,
-.pesaje__sugerido:focus-visible {
+.pesaje__calidad:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+.pesaje__sugerido:has(.pesaje__sugerido-casilla:focus-visible) {
   outline: 3px solid var(--texto);
   outline-offset: 2px;
 }

@@ -503,7 +503,8 @@ describe('Pesaje: una sesión de 3 animales con un «no se pesó»', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
     await usuario.type(screen.getByLabelText('Buscar'), 'lucero')
-    await usuario.click(screen.getByRole('button', { name: /\+ Lucero/ }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Lucero' }))
+    await usuario.click(screen.getByRole('button', { name: 'Agregar 1 animal' }))
 
     const kilos = await screen.findByRole('textbox', { name: 'Kilos de Lucero' })
     await usuario.type(kilos, '175.5')
@@ -1010,6 +1011,109 @@ describe('Pesaje con el hato vacío', () => {
     // Y no se guarda un borrador vacío en el celular: si el hato se llena más
     // adelante, esa vuelta vieja de cero filas aparecería como la captura.
     expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBeNull()
+  })
+})
+
+describe('Pesaje: agregar varios de una vez', () => {
+  const VACA = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+  const BECERRO_B = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+
+  function hatoConBecerrosYVaca() {
+    return () => ({
+      estado: 200,
+      cuerpo: {
+        animales: [
+          animalDeLista({ id: ANIMAL, nombre: 'Canelo', categoria: 'calf' }),
+          animalDeLista({ id: BECERRO_B, nombre: 'Tiznado', categoria: 'calf' }),
+          animalDeLista({ id: VACA, nombre: 'La Pinta', categoria: 'cow', sexo: 'female' }),
+        ],
+      },
+    })
+  }
+
+  it('«Agregar los becerros activos» llena la sesión con los becerros y no con las vacas', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': hatoConBecerrosYVaca(),
+      'GET /api/weighing-sessions/latest': sinVueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Todavía no hay animales en la sesión.')
+
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
+    await usuario.click(screen.getByRole('button', { name: 'Agregar los 2 becerros activos' }))
+
+    // Los dos becerros entraron, y la vaca no: no es un becerro. El primero en
+    // turno tiene el campo de kilos; el otro queda en la lista de la sesión.
+    expect(await screen.findByRole('textbox', { name: 'Kilos de Canelo' })).toBeDefined()
+    expect(screen.getByRole('button', { name: /Tiznado/ })).toBeDefined()
+    expect(screen.queryByText(/La Pinta/)).toBeNull()
+    expect(screen.getByText('0 de 2 pesados')).toBeDefined()
+  })
+
+  it('marca varios en la lista y los agrega con un solo toque', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': hatoConBecerrosYVaca(),
+      'GET /api/weighing-sessions/latest': sinVueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Todavía no hay animales en la sesión.')
+
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Tiznado' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a La Pinta' }))
+    await usuario.click(screen.getByRole('button', { name: 'Agregar 3 animales' }))
+
+    // Entra el primero en turno y los otros quedan en la lista de la sesión.
+    expect(await screen.findByRole('textbox', { name: 'Kilos de Canelo' })).toBeDefined()
+    expect(screen.getByRole('button', { name: /Tiznado/ })).toBeDefined()
+    expect(screen.getByRole('button', { name: /La Pinta/ })).toBeDefined()
+    expect(screen.getByText('0 de 3 pesados')).toBeDefined()
+  })
+
+  it('sin nada marcado el botón de agregar no hace nada y se dice', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': hatoConBecerrosYVaca(),
+      'GET /api/weighing-sessions/latest': sinVueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Todavía no hay animales en la sesión.')
+
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
+    expect(
+      screen.getByRole('button', { name: 'Agregar los marcados' }),
+    ).toHaveProperty('disabled', true)
+  })
+
+  it('el becerro que ya está en la sesión no se ofrece otra vez', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      'GET /api/animals': hatoConBecerrosYVaca(),
+      'GET /api/weighing-sessions/latest': sinVueltaAnterior(),
+    })
+
+    pintarApp('#/pesaje')
+    await screen.findByText('Todavía no hay animales en la sesión.')
+
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
+    await usuario.click(screen.getByRole('checkbox', { name: 'Elegir a Canelo' }))
+    await usuario.click(screen.getByRole('button', { name: 'Agregar 1 animal' }))
+    await screen.findByRole('textbox', { name: 'Kilos de Canelo' })
+
+    // Queda un becerro fuera, no dos: el que ya está no se vuelve a agregar.
+    await usuario.click(screen.getByRole('button', { name: 'Agregar otro animal' }))
+    expect(screen.getByRole('button', { name: 'Agregar el becerro activo' })).toBeDefined()
+    expect(screen.queryByRole('checkbox', { name: 'Elegir a Canelo' })).toBeNull()
   })
 })
 
