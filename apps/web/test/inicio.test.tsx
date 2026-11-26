@@ -1,9 +1,11 @@
-import { screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { App } from '../src/App'
 import { diaMas, hoyEnElRancho } from '../src/dominio/fechas'
-import { animalDeLista, montarApi, pintarApp, sesionAbierta } from './ayudas'
+import { animalDeLista, ANIMAL, fichaDeAnimal, montarApi, pintarApp, sesionAbierta } from './ayudas'
 
 /**
  * Inicio con datos sintéticos. El orden, el vacío y la fecha plegada se leen en
@@ -237,8 +239,103 @@ describe('Inicio', () => {
     expect(texto).toContain('Cuando haya animales, aquí se ve a quién hay que revisar.')
   })
 
-  it('un becerro atrasado aparece en «Para revisar», con el motivo y sin umbral', async () => {
+  it('después de dar de alta al primero, Inicio deja de decir que no hay animales', async () => {
     const desde = diaMas(hoyEnElRancho(), -7)
+    const hoy = hoyEnElRancho()
+    let hayAnimal = false
+
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/read-models/inicio?desde=${desde}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          hoy,
+          desde,
+          activosPorCategoria: hayAnimal ? [{ categoria: 'unknown', cantidad: 1 }] : [],
+          cambios: {
+            nacimientos: [],
+            nacimientosSinFecha: 0,
+            salidas: [],
+            pesajes: 0,
+            notasDeSanidad: 0,
+          },
+          paraRevisar: {
+            fechaDeLaUltimaVuelta: null,
+            huecosDeLaUltimaVuelta: [],
+            sinLugar: hayAnimal
+              ? [{ animalId: ANIMAL, nombre: 'Lucero', categoria: 'unknown' }]
+              : [],
+            lugarDesconocido: [],
+            sinObservacion: hayAnimal
+              ? [{ animalId: ANIMAL, nombre: 'Lucero', categoria: 'unknown' }]
+              : [],
+            porDiasSinVerse: [],
+          },
+        },
+      }),
+      'GET /api/read-models/growth-overview': () => ({
+        estado: 200,
+        cuerpo: {
+          animales: [],
+          gananciaMediaKilosPorDia: null,
+          pesadosEnLaUltimaVuelta: 0,
+          esperadosEnLaUltimaVuelta: 0,
+          fechaDeLaUltimaVuelta: null,
+        },
+      }),
+      'POST /api/animals': () => {
+        hayAnimal = true
+        return { estado: 201, cuerpo: fichaDeAnimal({ id: ANIMAL, nombre: 'Lucero' }) }
+      },
+      [`GET /api/animals/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: fichaDeAnimal({ id: ANIMAL, nombre: 'Lucero' }),
+      }),
+      [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          animalId: ANIMAL,
+          nombre: 'Lucero',
+          categoria: 'unknown',
+          activo: true,
+          pesos: [],
+          ultimoPesaje: null,
+          huecos: [],
+        },
+      }),
+    })
+
+    // El mismo cliente que usa la app, con su `staleTime`: sin invalidar la
+    // consulta de Inicio, volver antes de 30 s mostraría la respuesta vieja.
+    const cliente = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 30_000, refetchOnWindowFocus: false },
+        mutations: { retry: false },
+      },
+    })
+    window.location.hash = '#/'
+    render(
+      <QueryClientProvider client={cliente}>
+        <App />
+      </QueryClientProvider>,
+    )
+
+    const usuario = userEvent.setup()
+    // Inicio invita a dar de alta al primero; el dueño la sigue.
+    await usuario.click(await screen.findByRole('button', { name: 'Dar de alta el primer animal' }))
+    await usuario.click(await screen.findByRole('button', { name: /^Guardar$/ }))
+    // El alta abre la ficha del animal recién creado.
+    expect(await screen.findByRole('heading', { name: 'Lucero' })).toBeDefined()
+
+    window.location.hash = '#/'
+
+    // Ya no se dice que no hay animales: se ve al que se acaba de dar de alta.
+    expect(await screen.findByText('1 animal activo')).toBeDefined()
+    expect(screen.queryByText('Todavía no hay animales en el hato')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Dar de alta el primer animal' })).toBeNull()
+  })
+
+  it('un becerro atrasado aparece en «Para revisar», con el motivo y sin umbral', async () => {    const desde = diaMas(hoyEnElRancho(), -7)
     montarApi({
       'GET /api/session': sesionAbierta(),
       [`GET /api/read-models/inicio?desde=${desde}`]: vista(desde),
@@ -251,6 +348,52 @@ describe('Inicio', () => {
     const revisar = screen.getByRole('region', { name: 'Para revisar' })
     const enlace = await within(revisar).findByRole('link', { name: /Becerro que va atrás/ })
     expect(enlace.textContent).toContain('Perdió kilos en el último intervalo')
+  })
+
+  it('un hato que quedó vacío conserva el resumen del periodo y no afirma nada de «nadie»', async () => {
+    const desde = diaMas(hoyEnElRancho(), -7)
+    const hoy = hoyEnElRancho()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+      [`GET /api/read-models/inicio?desde=${desde}`]: () => ({
+        estado: 200,
+        cuerpo: {
+          hoy,
+          desde,
+          activosPorCategoria: [],
+          cambios: {
+            nacimientos: [],
+            nacimientosSinFecha: 0,
+            salidas: [{ animalId: ANIMAL, nombre: 'El que salió', categoria: 'cow', fecha: hoy }],
+            pesajes: 0,
+            notasDeSanidad: 0,
+          },
+          paraRevisar: {
+            fechaDeLaUltimaVuelta: null,
+            huecosDeLaUltimaVuelta: [],
+            sinLugar: [],
+            lugarDesconocido: [],
+            sinObservacion: [],
+            porDiasSinVerse: [],
+          },
+        },
+      }),
+      'GET /api/read-models/growth-overview': resumen([]),
+    })
+
+    const { container } = pintarApp('#/')
+
+    // Hubo una salida: no se dice «todavía no hay animales» ni se esconde el
+    // periodo, que es lo único que hay que mirar.
+    const periodo = await screen.findByRole('region', { name: 'Resumen del periodo' })
+    expect(within(periodo).getByText('El que salió')).toBeDefined()
+
+    const texto = container.textContent ?? ''
+    expect(texto).not.toContain('Todavía no hay animales')
+    expect(texto).not.toContain('Nadie está')
+    expect(texto).not.toContain('Todos tienen')
+    // La fecha es un rango, no una explicación técnica del valor por omisión.
+    expect(texto).not.toContain('por omisión')
   })
 
   it('la primera pestaña de la barra es Inicio y lleva a «#/»', async () => {

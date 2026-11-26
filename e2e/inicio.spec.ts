@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { entrar, irA, nombreUnico } from './ayudas'
+import { darDeAltaSinSaber, entrar, irA, nombreUnico } from './ayudas'
 
 /**
  * El camino del North Star del MVP: al abrir la app se ve lo que hay que
@@ -15,8 +15,23 @@ test('abrir la app, capturar un nacimiento desde Inicio y verlo ahí', async ({ 
 
   await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
 
-  // Inicio empieza por los accesos, no por un selector de fecha.
+  // La base es una sola para toda la corrida, y esta prueba tiene que valer
+  // también sobre un hato que todavía no tuvo a nadie: sin animales, Inicio
+  // solo ofrece darlos de alta. Se hace eso y se vuelve a Inicio, en vez de
+  // suponer que otra prueba ya dejó animales.
   const accesos = page.getByRole('region', { name: 'Accesos directos' })
+  const primerAnimal = page.getByRole('button', { name: 'Dar de alta el primer animal' })
+  // Se espera a que Inicio termine de armarse: o salen los accesos o sale la
+  // invitación del hato vacío. Mirar el botón antes de eso daría un «falso no».
+  await expect(accesos.or(primerAnimal).first()).toBeVisible()
+  if (await primerAnimal.isVisible()) {
+    await darDeAltaSinSaber(page)
+    await irA(page, 'Inicio')
+    await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible()
+    await expect(accesos).toBeVisible()
+  }
+
+  // Inicio empieza por los accesos, no por un selector de fecha.
   await expect(accesos.getByRole('link', { name: 'Registrar pesaje' })).toBeVisible()
   await expect(accesos.getByRole('link', { name: 'Salida' })).toBeVisible()
 
@@ -51,10 +66,19 @@ test('abrir la app, capturar un nacimiento desde Inicio y verlo ahí', async ({ 
   await expect(periodo.getByRole('region', { name: 'Nacimientos' }).getByRole('link', { name: nombre })).toBeVisible()
 })
 
-/** Las cuatro pestañas llevan el mismo encabezado y el mismo menú ☰. */test('las cuatro pestañas comparten encabezado y menú, y el pesaje ya no trae flecha', async ({
+/** Las cuatro pestañas llevan el mismo encabezado y el mismo menú ☰. */
+test('las cuatro pestañas comparten encabezado y menú, y el pesaje ya no trae flecha', async ({
   page,
 }) => {
   await entrar(page)
+
+  // Con el hato vacío, Pesaje solo ofrece darlos de alta y no monta el
+  // encabezado de la vuelta: sin animales no hay pestaña que comparar.
+  const primerAnimal = page.getByRole('button', { name: 'Dar de alta el primer animal' })
+  if (await primerAnimal.isVisible()) {
+    await darDeAltaSinSaber(page)
+    await irA(page, 'Inicio')
+  }
 
   for (const pantalla of ['Inicio', 'Hato', 'Pesaje', 'Crecimiento'] as const) {
     await irA(page, pantalla)
@@ -63,7 +87,10 @@ test('abrir la app, capturar un nacimiento desde Inicio y verlo ahí', async ({ 
     await expect(encabezado.getByRole('heading', { name: pantalla, exact: true })).toBeVisible()
     await expect(encabezado.getByRole('button', { name: 'Menú' })).toBeVisible()
     // Ninguna pestaña trae la flecha de regreso: no se regresa del trabajo.
+    // Se mira el enlace y el botón: el encabezado pinta la flecha como
+    // `<button>`, y Pesaje la traía así antes de R-29.
     await expect(encabezado.getByRole('link', { name: /Regresar/ })).toHaveCount(0)
+    await expect(encabezado.getByRole('button', { name: /Regresar/ })).toHaveCount(0)
 
     // El menú es el mismo y ofrece las cuatro opciones.
     await encabezado.getByRole('button', { name: 'Menú' }).click()

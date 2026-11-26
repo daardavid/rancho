@@ -1007,6 +1007,9 @@ describe('Pesaje con el hato vacío', () => {
     expect(screen.getByRole('button', { name: 'Dar de alta el primer animal' })).toBeDefined()
     expect(screen.queryByRole('button', { name: 'Agregar otro animal' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Guardar pesaje/ })).toBeNull()
+    // Y no se guarda un borrador vacío en el celular: si el hato se llena más
+    // adelante, esa vuelta vieja de cero filas aparecería como la captura.
+    expect(window.localStorage.getItem('rancho.pesaje.borrador')).toBeNull()
   })
 })
 
