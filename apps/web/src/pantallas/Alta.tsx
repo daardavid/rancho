@@ -37,9 +37,14 @@ import { IconoCerrar } from '../ui/iconos'
  * reintento —de uno o de los dos— no duplica nada: la API devuelve lo que ya
  * guardó.
  *
- * «Guardar y dar de alta otro» es lo que hace corto capturar un lote: limpia lo
- * que es de este animal y conserva el tipo y la tenencia, que casi siempre son
- * los mismos para los que siguen.
+ * «Guardar y dar de alta otro» es lo que hace corto capturar un lote. La regla
+ * es una sola para todos los campos, y se ve en la prueba:
+ *
+ * - **Se limpia** lo que identifica a este animal: el nombre o seña y el arete.
+ * - **Se conserva** lo que es del lote: el tipo, el sexo, la tenencia, la
+ *   participación económica, el detalle de «Otra» y la nota del arreglo. Antes
+ *   el sexo se reiniciaba y los demás no; ahora todos siguen la misma regla.
+ * - **La nota libre** se limpia: es de este animal, no del lote.
  */
 
 /** «Otra» no es un mosaico: su texto vive en «Más datos». */
@@ -126,9 +131,14 @@ export function Alta() {
   /**
    * Un toque en un mosaico descarta el texto de «Otra categoría»: son la misma
    * respuesta y solo una puede estar puesta.
+   *
+   * Vaca propone Hembra y Toro propone Macho: el sexo se ve marcado en su
+   * pregunta y se puede cambiar antes de guardar. Es una propuesta, no un
+   * hecho: si el dueño no la cambia, la guardó él al verla puesta. Becerro,
+   * «Otra» y «No sé» no proponen nada y dejan el sexo como esté.
    */
   const elegirTipo = (tipo: string): void => {
-    cambiar({ categoria: tipo, detalleCategoria: '' })
+    cambiar({ categoria: tipo, detalleCategoria: '', ...sexoPropuesto(tipo) })
   }
 
   /**
@@ -166,11 +176,15 @@ export function Alta() {
         return
       }
 
-      // El tipo y la tenencia se conservan: en un lote casi siempre se repiten.
+      // La regla es la misma para todos los campos: se conserva lo que es del
+      // lote y se limpia lo que identifica a este animal.
       const conservado = {
         categoria: borrador.categoria,
         detalleCategoria: borrador.categoria === 'other' ? borrador.detalleCategoria : '',
+        sexo: borrador.sexo,
         tenencia: borrador.tenencia,
+        participacion: borrador.participacion,
+        notaDelArreglo: borrador.tenencia === 'a_la_parte' ? borrador.notaDelArreglo : '',
       }
       setBorrador({ ...EN_BLANCO, ...conservado })
       setGuardado(textoNombre ?? 'el animal')
@@ -401,4 +415,21 @@ export function Alta() {
 function limpiar(texto: string): string | undefined {
   const recortado = texto.trim()
   return recortado === '' ? undefined : recortado
+}
+
+/**
+ * Lo que el tipo propone en el sexo, si propone algo.
+ *
+ * Vaca implica hembra y Toro implica macho en el vocabulario del rancho, pero
+ * es una propuesta: queda marcada y se puede cambiar. Un becerro puede ser
+ * hembra o macho, así que no propone nada.
+ */
+function sexoPropuesto(tipo: string): { readonly sexo?: string } {
+  if (tipo === 'cow') {
+    return { sexo: 'female' }
+  }
+  if (tipo === 'bull') {
+    return { sexo: 'male' }
+  }
+  return {}
 }

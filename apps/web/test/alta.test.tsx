@@ -165,7 +165,7 @@ describe('Alta de un animal', () => {
     expect(arete.desde).toBeUndefined()
   })
 
-  it('«Guardar y dar de alta otro» limpia el formulario y conserva el tipo y la tenencia', async () => {
+  it('«Guardar y dar de alta otro» sigue una sola regla: limpia lo del animal y conserva lo del lote', async () => {
     const usuario = userEvent.setup()
     let altas = 0
     const api = montarApi({
@@ -175,14 +175,19 @@ describe('Alta de un animal', () => {
         return { estado: 201, cuerpo: fichaDeAnimal({ nombre: `Becerro ${String(altas)}` }) }
       },
       [`GET /api/animals/${ANIMAL}`]: () => ({ estado: 200, cuerpo: fichaDeAnimal() }),
+      [`POST /api/animals/${ANIMAL}/marks`]: () => areteDePrueba('4821'),
       [`GET /api/read-models/animal-growth/${ANIMAL}`]: () => ({ estado: 200, cuerpo: VISTA_VACIA }),
     })
 
     pintarApp('#/alta')
 
     await usuario.type(await screen.findByLabelText('Nombre o seña'), 'Becerro Uno')
+    await usuario.type(screen.getByLabelText('Arete SINIIGA'), '4821')
     await usuario.click(screen.getByRole('radio', { name: 'Becerro' }))
+    await usuario.click(screen.getByRole('radio', { name: 'Hembra' }))
     await usuario.click(screen.getByRole('radio', { name: 'A la parte' }))
+    // La nota del arreglo vive en «Más datos»; se abre como lo haría el dueño.
+    await usuario.click(screen.getByRole('button', { name: /Más datos/ }))
     await usuario.type(screen.getByLabelText('Nota del arreglo'), 'Arreglo con el vecino')
 
     await usuario.click(screen.getByRole('button', { name: 'Guardar y dar de alta otro' }))
@@ -191,20 +196,28 @@ describe('Alta de un animal', () => {
     expect(await screen.findByRole('status')).toBeDefined()
     expect(window.location.hash).toBe('#/alta')
 
-    // Lo que era de ese animal ya no está escrito.
+    /*
+     * La regla, que es la misma para todos los campos:
+     *
+     * - Se limpia lo que identifica a este animal: nombre o seña y arete.
+     * - Se conserva lo que es del lote: tipo, sexo, tenencia, participación,
+     *   detalle de «Otra» y nota del arreglo.
+     *
+     * Antes el sexo se reiniciaba y los demás no: eso era una excepción sin
+     * regla. Ahora ningún campo se comporta distinto de los de su grupo.
+     */
     expect((screen.getByLabelText('Nombre o seña') as HTMLInputElement).value).toBe('')
-    expect((screen.getByLabelText('Nota del arreglo') as HTMLTextAreaElement).value).toBe('')
+    expect((screen.getByLabelText('Arete SINIIGA') as HTMLInputElement).value).toBe('')
 
-    // El tipo y la tenencia se conservan: en un lote casi siempre se repiten.
     expect((screen.getByRole('radio', { name: 'Becerro' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('radio', { name: 'Hembra' }) as HTMLInputElement).checked).toBe(true)
     expect((screen.getByRole('radio', { name: 'A la parte' }) as HTMLInputElement).checked).toBe(
       true,
     )
-    // El sexo vuelve a «No sé»: ese sí cambia de un animal a otro.
-    const sexo = screen.getByRole('radiogroup', { name: 'Sexo' })
-    expect(
-      (within(sexo).getByRole('radio', { name: 'No sé' }) as HTMLInputElement).checked,
-    ).toBe(true)
+    // La nota del arreglo es de la tenencia, no del animal: se conserva.
+    expect((screen.getByLabelText('Nota del arreglo') as HTMLTextAreaElement).value).toBe(
+      'Arreglo con el vecino',
+    )
 
     await usuario.type(screen.getByLabelText('Nombre o seña'), 'Becerro Dos')
     await usuario.click(screen.getByRole('button', { name: 'Guardar y dar de alta otro' }))
@@ -217,13 +230,49 @@ describe('Alta de un animal', () => {
     expect(segundas[1]?.cuerpo).toMatchObject({
       nombre: 'Becerro Dos',
       categoria: 'calf',
+      sexo: 'female',
       tenencia: 'a_la_parte',
+      notaDelArreglo: 'Arreglo con el vecino',
     })
+    // Lo que identifica al animal no se copió al siguiente.
+    expect(segundas[1]?.cuerpo).not.toHaveProperty('marca')
     // Son dos animales distintos: otro id y otro comando.
     const primera = segundas[0]?.cuerpo as Record<string, unknown>
     const segunda = segundas[1]?.cuerpo as Record<string, unknown>
     expect(segunda.id).not.toBe(primera.id)
     expect(segunda.commandId).not.toBe(primera.commandId)
+  })
+
+  it('Vaca propone Hembra y Toro propone Macho; Becerro no propone nada', async () => {
+    const usuario = userEvent.setup()
+    montarApi({
+      'GET /api/session': sesionAbierta(),
+    })
+
+    pintarApp('#/alta')
+    await screen.findByLabelText('Nombre o seña')
+
+    const sexo = (): HTMLElement => screen.getByRole('radiogroup', { name: 'Sexo' })
+    const marcado = (nombre: string): boolean =>
+      (within(sexo()).getByRole('radio', { name: nombre }) as HTMLInputElement).checked
+
+    // Se empieza en «No sé»: nada viene supuesto.
+    expect(marcado('No sé')).toBe(true)
+
+    await usuario.click(screen.getByRole('radio', { name: 'Vaca' }))
+    // La propuesta se ve marcada y se puede cambiar.
+    expect(marcado('Hembra')).toBe(true)
+    await usuario.click(within(sexo()).getByRole('radio', { name: 'Macho' }))
+    expect(marcado('Macho')).toBe(true)
+
+    await usuario.click(screen.getByRole('radio', { name: 'Toro' }))
+    expect(marcado('Macho')).toBe(true)
+    await usuario.click(within(sexo()).getByRole('radio', { name: 'Hembra' }))
+    expect(marcado('Hembra')).toBe(true)
+
+    // Becerro no propone: el sexo se queda como lo dejó el dueño.
+    await usuario.click(screen.getByRole('radio', { name: 'Becerro' }))
+    expect(marcado('Hembra')).toBe(true)
   })
 
   it('«Otra categoría» vive en «Más datos» y viaja como «Otra» con su texto', async () => {
