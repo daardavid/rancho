@@ -16,12 +16,12 @@ import { filasDe, type EjecutorSql } from '../../../infrastructure/db/filas'
 
 import type { CorreccionDePeso, ValorAnteriorDePeso } from '../domain/correccion'
 import { RechazoDeGrowth } from '../domain/errores'
-import type { FilaDeSesion, FilaPesada, SesionDePesaje } from '../domain/sesion'
+import type { ClaseDeSesion, FilaDeSesion, FilaPesada, SesionDePesaje } from '../domain/sesion'
 import { esCampoDePeso } from '../domain/valores'
 import type { PesoConHistoria, RepositorioDePesajes } from '../application/repositorio'
 
 const COLUMNAS_SESION = sql.raw(
-  'id, ranch_id, weighed_on::text as weighed_on, note, reported_by, recorded_by, recorded_at, command_id',
+  'id, ranch_id, weighed_on::text as weighed_on, note, reported_by, recorded_by, recorded_at, command_id, kind',
 )
 
 const COLUMNAS_LINEA = sql.raw(
@@ -37,6 +37,7 @@ type FilaSesion = {
   recorded_by: string
   recorded_at: unknown
   command_id: string
+  kind: string
 }
 
 type FilaLinea = {
@@ -69,10 +70,11 @@ export function crearRepositorioDePesajes(db: EjecutorSql): RepositorioDePesajes
       try {
         await db.execute(sql`
           INSERT INTO growth.weighing_session (
-            id, ranch_id, weighed_on, note, reported_by, recorded_by, recorded_at, command_id
+            id, ranch_id, weighed_on, note, reported_by, recorded_by, recorded_at, command_id, kind
           ) VALUES (
             ${sesion.id}, ${sesion.ranchId}, ${sesion.fecha}::date, ${sesion.nota},
-            ${sesion.reportedBy}, ${sesion.recordedBy}, ${sesion.recordedAt}, ${sesion.commandId}
+            ${sesion.reportedBy}, ${sesion.recordedBy}, ${sesion.recordedAt}, ${sesion.commandId},
+            ${sesion.clase}
           )
         `)
         for (const [indice, fila] of sesion.filas.entries()) {
@@ -93,6 +95,7 @@ export function crearRepositorioDePesajes(db: EjecutorSql): RepositorioDePesajes
           SELECT id
           FROM growth.weighing_session
           WHERE ranch_id = ${ranchId}
+            AND kind = 'vuelta'
           ORDER BY weighed_on DESC, recorded_at DESC, id DESC
           LIMIT 1
         `),
@@ -295,6 +298,7 @@ function sesionDesde(fila: FilaSesion, lineas: readonly FilaLinea[]): SesionDePe
     id: fila.id,
     ranchId: ranchIdSchema.parse(fila.ranch_id),
     fecha: dia(fila.weighed_on),
+    clase: claseDe(fila.kind),
     nota: fila.note,
     reportedBy: fila.reported_by === null ? null : reportedBySchema.parse(fila.reported_by),
     recordedBy: recordedBySchema.parse(fila.recorded_by),
@@ -370,6 +374,13 @@ function valorNuevo(fila: FilaPesada, anterior: ValorAnteriorDePeso): string | n
     return fila.calidad
   }
   return fila.evidenciaId
+}
+
+function claseDe(valor: string): ClaseDeSesion {
+  if (valor === 'vuelta' || valor === 'suelto') {
+    return valor
+  }
+  throw new Error('La sesión guardada tiene un tipo que no se puede leer.')
 }
 
 function esCalidad(valor: string): valor is SourceQuality {

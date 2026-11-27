@@ -260,7 +260,7 @@ export function FormularioDeDestete({
         </p>
       )}
 
-      <div className="barra">
+      <div className="formulario__acciones">
         <BotonPrincipal alTocar={guardar} deshabilitado={faltaDatos || anotar.isPending || subiendo}>
           {anotar.isPending || subiendo ? 'Guardando…' : 'Guardar destete'}
         </BotonPrincipal>
@@ -408,7 +408,7 @@ function Correccion({
       <CampoDeTexto etiqueta="¿Quién lo dijo?" valor={quien} alCambiar={setQuien} maxLength={LARGO_DE_QUIEN} />
       <CampoDeArea etiqueta="Nota" valor={nota} alCambiar={setNota} maxLength={LARGO_DE_NOTA} />
       <CampoDeTexto etiqueta="¿Por qué se corrige?" valor={motivo} alCambiar={setMotivo} maxLength={LARGO_DE_NOTA} />
-      <div className="barra">
+      <div className="formulario__acciones">
         <BotonPrincipal alTocar={guardar} deshabilitado={faltaDatos || corregir.isPending}>
           {corregir.isPending ? 'Guardando…' : 'Guardar corrección'}
         </BotonPrincipal>

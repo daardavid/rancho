@@ -22,10 +22,10 @@ import {
 /**
  * Destete con peso: un comando, una transacción, los dos hechos o ninguno.
  *
- * Herd guarda el destete. Growth guarda el peso, que es un peso como cualquier
- * otro. Este archivo no abre reglas de edad ni de ajuste: solo llama a los
- * dos módulos. Sin peso, igual hay una sola transacción y un solo recibo, y
- * Growth no escribe.
+ * Herd guarda el destete. Growth guarda el peso como peso suelto: cuenta para
+ * la cría y no abre una vuelta del hato. Este archivo no abre reglas de edad
+ * ni de ajuste: solo llama a los dos módulos. Sin peso, igual hay una sola
+ * transacción y un solo recibo, y Growth no escribe.
  *
  * El recibo se lee antes de abrir la transacción de la escritura. Con la base
  * embebida, un SELECT aparte con esa transacción abierta no vuelve.

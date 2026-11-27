@@ -120,6 +120,13 @@
       "when": 1795714998018,
       "tag": "0016_foto_del_animal",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795733343042,
+      "tag": "0017_peso_suelto",
+      "breakpoints": true
     }
   ]
 }

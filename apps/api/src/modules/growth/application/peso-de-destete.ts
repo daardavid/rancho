@@ -8,10 +8,10 @@ import { registrarSesion } from '../domain/sesion'
 import type { DepsDeGrowth } from './servicio'
 
 /**
- * El peso al destete es un peso como cualquier otro: sesión de un día, una
- * fila pesada por cría, con calidad y foto opcional. No abre transacción ni
- * guarda el recibo del comando. El orquestador ya los tiene abiertos, y este
- * peso no es un segundo comando.
+ * El peso al destete es un peso del animal: un día, una fila pesada por cría,
+ * con calidad y foto opcional. Se guarda como peso suelto, no como vuelta del
+ * hato. No abre transacción ni guarda el recibo del comando. El orquestador
+ * ya los tiene abiertos, y este peso no es un segundo comando.
  */
 export type FilaDePesoDeDestete = {
   readonly id: string
@@ -60,6 +60,7 @@ export async function insertarPesosDeDestete(
     recordedBy: entrada.recordedBy,
     recordedAt: entrada.recordedAt,
     commandId: entrada.commandId,
+    clase: 'suelto',
     filas: entrada.filas.map((fila) => ({
       id: fila.id,
       animalId: animalIdSchema.parse(fila.animalId),

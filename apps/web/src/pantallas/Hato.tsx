@@ -989,8 +989,9 @@ function categoriaVisual(categoria: string): CategoriaVisual {
 
 /**
  * «Hace cuánto fue el último pesaje» del hato entero: el mínimo de los días que
- * cada animal tiene desde su último peso. Sin ningún peso se dice, no se deja
- * en blanco ni se inventa una fecha.
+ * cada animal tiene desde su último peso de una vuelta. Un peso suelto, como
+ * el del destete, no adelanta esa fecha. Sin ningún peso de vuelta se dice,
+ * no se deja en blanco ni se inventa una fecha.
  */
 function textoDelUltimoPesaje(filas: readonly FilaDeCrecimiento[]): string {
   let menosDias: number | null = null

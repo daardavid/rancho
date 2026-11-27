@@ -16,7 +16,8 @@ import { esquemaGrowth } from '../../../infrastructure/db/esquema'
 /**
  * Sesión de pesaje. `ranch_id` es el alcance; no hay llave a `identity.ranch`.
  * `weighed_on` es el día en que se pesó. `reported_by` es texto libre, no una
- * cuenta. `command_id` es el id que mandó el cliente.
+ * cuenta. `command_id` es el id que mandó el cliente. `kind` distingue la
+ * vuelta del hato de un peso suelto.
  */
 export const sesionDePesaje = esquemaGrowth.table(
   'weighing_session',
@@ -29,10 +30,16 @@ export const sesionDePesaje = esquemaGrowth.table(
     recordedBy: text('recorded_by').notNull(),
     recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'date' }).notNull(),
     commandId: uuid('command_id').notNull(),
+    /**
+     * `vuelta` es el paso del hato por la báscula. `suelto` es un peso tomado
+     * aparte —hoy, el del destete—. Por omisión es vuelta: Pesaje no lo manda.
+     */
+    clase: text('kind').notNull().default('vuelta'),
   },
   (tabla) => [
     uniqueIndex('weighing_session_command').on(tabla.commandId),
     index('weighing_session_ranch_fecha').on(tabla.ranchId, tabla.fecha),
+    check('weighing_session_clase_valida', sql`${tabla.clase} in ('vuelta', 'suelto')`),
     check('weighing_session_nota_presente', sql`${tabla.nota} is null or length(btrim(${tabla.nota})) > 0`),
     check(
       'weighing_session_reported_presente',

@@ -25,6 +25,16 @@ function base() {
 }
 
 describe('sesión de pesaje', () => {
+  it('lo que se captura en Pesaje es una vuelta', () => {
+    const sesion = registrarSesion({ ...base(), filas: [] })
+    expect(sesion.clase).toBe('vuelta')
+  })
+
+  it('un peso tomado aparte se puede registrar como suelto', () => {
+    const sesion = registrarSesion({ ...base(), clase: 'suelto', filas: [] })
+    expect(sesion.clase).toBe('suelto')
+  })
+
   it('un hueco no es una baja ni una verificación del hato', () => {
     const sesion = registrarSesion({
       ...base(),

@@ -449,11 +449,10 @@ describe('media de la última vuelta', () => {
 
     const resumen = await modelos.resumenDelHato(id, '2026-11-22')
 
-    // subio: (110.010 − 100.000) / 10 = 1.001; (113.020 − 110.010) / 10 = 0.301.
-    // parejo: (210.020 − 200.000) / 10 = 1.002.
-    // mismoDia no tiene kilos por día, unPeso no tiene intervalo, hueco no tiene peso.
-    // Media de 0.301 y 1.002 = 1.303 / 2 = 0.6515, que redondea a 0.652.
-    expect(resumen.gananciaMediaKilosPorDia).toBe('0.652')
+    // La media es de la última vuelta (21 nov), no el promedio de intervalos
+    // que terminan en otra. En esa vuelta solo se pesó a subio:
+    // (113.020 − 110.010) / 10 = 0.301. parejo se quedó en la del 11 nov.
+    expect(resumen.gananciaMediaKilosPorDia).toBe('0.301')
     expect(resumen.pesadosEnLaUltimaVuelta).toBe(1)
     expect(resumen.esperadosEnLaUltimaVuelta).toBe(2)
     expect(resumen.fechaDeLaUltimaVuelta).toBe('2026-11-21')
